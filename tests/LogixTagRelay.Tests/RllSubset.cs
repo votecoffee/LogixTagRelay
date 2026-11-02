@@ -22,7 +22,7 @@ sealed class RllSubset
             int count = (int?)t.Attribute("Dimensions") ?? 1;
             if (type == SintMergeAoi.Name) { Add(name + ".Error", 4); continue; }
             if (type == "TIMER") { Add(name + ".DN", 4); continue; }
-            int size = type == "SINT" ? 1 : 4; Add(name, size, count);
+            int size = type == "SINT" ? 1 : type == "LINT" ? 8 : 4; Add(name, size, count);
         }
         Add(module + ":I.Data", 1, bundle.Configuration.AppToPlcBytes);
         Add(module + ":O.Data", 1, bundle.Configuration.PlcToAppBytes);
@@ -76,7 +76,12 @@ sealed class RllSubset
                 case "OTE": Set(a[0], power ? 1 : 0); break;
                 case "OTL": if (power) Set(a[0], 1); break;
                 case "OTU": if (power) Set(a[0], 0); break;
-                case "MOV": if (power) Set(a[1], Get(a[0])); break;
+                case "MOV": if (power)
+                {
+                    if (!int.TryParse(a[0], out _) && Address(a[0]).Item1.ElementBytes == 8 && Address(a[1]).Item1.ElementBytes == 8)
+                        Bytes(a[1], Bytes(a[0]));
+                    else Set(a[1], Get(a[0]));
+                } break;
                 case "ADD": if (power) Set(a[2], checked(Get(a[0]) + Get(a[1]))); break;
                 case "FLL": if (power) { if (Get(a[0]) != 0) throw new FormatException("Nonzero FLL unsupported"); var (d,o) = Address(a[1]); d.Data.AsSpan(o, Get(a[2]) * d.ElementBytes).Clear(); } break;
                 case "CPS": if (power) { var (s,so) = Address(a[0]); var (d,dp) = Address(a[1]); int n = Get(a[2]) * d.ElementBytes; s.Data.AsSpan(so,n).ToArray().CopyTo(d.Data,dp); } break;

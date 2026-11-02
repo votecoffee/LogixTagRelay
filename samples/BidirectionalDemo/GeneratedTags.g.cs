@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using LogixTagRelay;
 namespace LogixTagRelay.Generated;
 
-public sealed partial class GeneratedTags : IPlcModel
+public sealed partial class GeneratedTags : PlcModel
 {
     public Udt1 Tag_Machine { get; } = new Udt1 { Tag_Setpoint = new PlcVariable<float>(new FieldMap("Machine.Setpoint", PlcType.REAL, Direction.Bidirectional, 24, "Read/Write", 0)), Tag_Actual = new PlcVariable<float>(new FieldMap("Machine.Actual", PlcType.REAL, Direction.PlcToApp, 28, "Read Only", 0)), Tag_Enabled = new PlcVariable<bool>(new FieldMap("Machine.Enabled", PlcType.BOOL, Direction.Bidirectional, 32, "Read/Write", 0)), Tag_Counts = new PlcVariable<int>[3] { new PlcVariable<int>(new FieldMap("Machine.Counts[0]", PlcType.DINT, Direction.Bidirectional, 36, "Read/Write", 0)), new PlcVariable<int>(new FieldMap("Machine.Counts[1]", PlcType.DINT, Direction.Bidirectional, 40, "Read/Write", 0)), new PlcVariable<int>(new FieldMap("Machine.Counts[2]", PlcType.DINT, Direction.Bidirectional, 44, "Read/Write", 0)) }, Tag_Label = new PlcVariable<string>(new FieldMap("Machine.Label", PlcType.STRING, Direction.Bidirectional, 48, "Read/Write", 12)), Tag_Axis = new Udt2 { Tag_Position = new PlcVariable<float>(new FieldMap("Machine.Axis.Position", PlcType.REAL, Direction.Bidirectional, 64, "Read/Write", 0)), Tag_Ready = new PlcVariable<bool>(new FieldMap("Machine.Axis.Ready", PlcType.BOOL, Direction.PlcToApp, 68, "Read Only", 0)) } };
-    public IReadOnlyList<IPlcVariable> Variables => new IPlcVariable[] { Tag_Machine.Tag_Setpoint, Tag_Machine.Tag_Actual, Tag_Machine.Tag_Enabled, Tag_Machine.Tag_Counts[0], Tag_Machine.Tag_Counts[1], Tag_Machine.Tag_Counts[2], Tag_Machine.Tag_Label, Tag_Machine.Tag_Axis.Tag_Position, Tag_Machine.Tag_Axis.Tag_Ready };
+    public GeneratedTags() => InitializeVariables(new IPlcVariable[] { Tag_Machine.Tag_Setpoint, Tag_Machine.Tag_Actual, Tag_Machine.Tag_Enabled, Tag_Machine.Tag_Counts[0], Tag_Machine.Tag_Counts[1], Tag_Machine.Tag_Counts[2], Tag_Machine.Tag_Label, Tag_Machine.Tag_Axis.Tag_Position, Tag_Machine.Tag_Axis.Tag_Ready }, new string[] { "Tag_Machine", "Tag_Machine", "Tag_Machine", "Tag_Machine", "Tag_Machine", "Tag_Machine", "Tag_Machine", "Tag_Machine", "Tag_Machine" });
 }
 
 public sealed class Udt1

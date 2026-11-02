@@ -96,6 +96,27 @@ sealed class EmulatorSelfTest(EmulatorWorkspace workspace, IHostApplicationLifet
                 "bidirectional HTTP UDT read writes only the edited member and retains independent PLC edits");
             sharedModel.Set("Shared.Setpoint",25f); await sharedSession.SynchronizeOnceAsync(ct);
             Check(session.Writes == 1 && session.Reads == 3, "unchanged bidirectional HTTP cycles read snapshots without redundant writes");
+            List<FieldMap> typedFields = [new("Code",PlcType.USINT,Direction.Bidirectional,24),new("Count16",PlcType.UINT,Direction.Bidirectional,28),
+                new("Count32",PlcType.UDINT,Direction.Bidirectional,32),new("Count64",PlcType.ULINT,Direction.Bidirectional,36),
+                new("StartedAt",PlcType.DT,Direction.Bidirectional,44),new("Elapsed",PlcType.TIME,Direction.Bidirectional,52)];
+            var typedConfig = new SyncConfiguration(SyncConfiguration.ComputeHash(typedFields),typedFields,60,60,Explicit:new(),Implicit:new());
+            workspace.Load(typedConfig.ToJson()); session = workspace.Current;
+            object[] typedValues = [(byte)255,ushort.MaxValue,uint.MaxValue,ulong.MaxValue,new PlcDateTime(1793620800123456),new PlcTime(-9007199254740993)];
+            for (int i=0;i<typedFields.Count;i++) session.Memory.Set(typedFields[i].Path,typedValues[i]);
+            var typedModel = new Model(typedConfig); int typedChanges = 0;
+            foreach (IObservablePlcVariable variable in typedModel.Variables) variable.ValueChanged += (_,_) => typedChanges++;
+            await using var typedClient = await EmulatorClient.ConnectAsync(typedConfig,uri,ct);
+            var typedSession = new ExplicitSession(typedConfig,typedModel,typedClient); await typedSession.SynchronizeOnceAsync(ct);
+            Check(typedFields.Select((f,i) => Equals(typedModel.Get(f.Path),typedValues[i])).All(x => x) && typedChanges == 6, "HTTP explicit reads unsigned and temporal values without precision loss");
+            await typedSession.SynchronizeOnceAsync(ct); await typedSession.SynchronizeOnceAsync(ct);
+            Check(typedChanges == 6, "unchanged HTTP read cycles do not emit tag value events");
+            typedModel.Set("Count64",ulong.MaxValue-1); typedModel.Set("Elapsed",new PlcTime(1234567)); await typedSession.SynchronizeOnceAsync(ct);
+            Check((ulong)session.Memory.Read("Count64") == ulong.MaxValue-1 && (PlcTime)session.Memory.Read("Elapsed") == new PlcTime(1234567), "HTTP explicit dirty writes preserve ULINT and TIME");
+            var typedCodec = new ImplicitImage(typedConfig,typedModel);
+            typedCodec.ReceivePlcToApp(await typedClient.ExchangeImplicitAsync(typedCodec.BuildBootstrap(),ct),DateTimeOffset.UtcNow);
+            typedModel.Set("StartedAt",new PlcDateTime(1793620800654321)); typedModel.Set("Code",(byte)200);
+            typedCodec.ReceivePlcToApp(await typedClient.ExchangeImplicitAsync(typedCodec.BuildAppToPlc(),ct),DateTimeOffset.UtcNow);
+            Check((PlcDateTime)session.Memory.Read("StartedAt") == new PlcDateTime(1793620800654321) && (byte)session.Memory.Read("Code") == 200 && typedModel.Variables.All(v => !v.Dirty), "HTTP implicit merges DT and USINT and acknowledges the exact typed values");
             Console.WriteLine($"{count} emulator HTTP checks passed.");
         }
         catch (Exception failure)
@@ -117,13 +138,18 @@ sealed class EmulatorSelfTest(EmulatorWorkspace workspace, IHostApplicationLifet
         public Model(SyncConfiguration config) => Variables = config.Fields.Select(f => (IPlcVariable)(f.Type switch
         {
             PlcType.BOOL => (IPlcVariable)new PlcVariable<bool>(f), PlcType.SINT => new PlcVariable<sbyte>(f), PlcType.INT => new PlcVariable<short>(f),
-            PlcType.DINT => new PlcVariable<int>(f), PlcType.LINT => new PlcVariable<long>(f), PlcType.REAL => new PlcVariable<float>(f), PlcType.STRING => new PlcVariable<string>(f), _ => throw new ArgumentException()
+            PlcType.DINT => new PlcVariable<int>(f), PlcType.LINT => new PlcVariable<long>(f), PlcType.REAL => new PlcVariable<float>(f), PlcType.STRING => new PlcVariable<string>(f),
+        PlcType.USINT => new PlcVariable<byte>(f), PlcType.UINT => new PlcVariable<ushort>(f), PlcType.UDINT => new PlcVariable<uint>(f), PlcType.ULINT => new PlcVariable<ulong>(f),
+        PlcType.DT => new PlcVariable<PlcDateTime>(f), PlcType.TIME => new PlcVariable<PlcTime>(f), _ => throw new ArgumentException()
         })).ToArray();
         public object Get(string path) => Variables.Single(v => v.Map.Path == path).BoxedValue;
         public void Set(string path, object value)
         {
             var variable = Variables.Single(v => v.Map.Path == path);
-            switch (variable) { case PlcVariable<float> f: f.Value = (float)value; break; case PlcVariable<string> s: s.Value = (string)value; break; default: throw new ArgumentException(); }
+            switch (variable) { case PlcVariable<float> f: f.Value = (float)value; break; case PlcVariable<string> s: s.Value = (string)value; break; case PlcVariable<byte> v: v.Value = (byte)value; break; case PlcVariable<ushort> v: v.Value = (ushort)value; break;
+                case PlcVariable<uint> v: v.Value = (uint)value; break; case PlcVariable<ulong> v: v.Value = (ulong)value; break;
+                case PlcVariable<PlcDateTime> v: v.Value = (PlcDateTime)value; break; case PlcVariable<PlcTime> v: v.Value = (PlcTime)value; break;
+                default: throw new ArgumentException(); }
         }
     }
 }

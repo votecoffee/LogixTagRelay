@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.03" TargetType="Controller" TargetName="TypedDemo">
+  <Controller Name="TypedDemo"><DataTypes><DataType Name="TelemetryData"><Members>
+    <Member Name="Code" DataType="USINT" Dimension="0" ExternalAccess="Read/Write" />
+    <Member Name="Count16" DataType="UINT" Dimension="0" ExternalAccess="Read/Write" />
+    <Member Name="Count32" DataType="UDINT" Dimension="0" ExternalAccess="Read/Write" />
+    <Member Name="Count64" DataType="ULINT" Dimension="0" ExternalAccess="Read/Write" />
+    <Member Name="StartedAt" DataType="DT" Dimension="0" ExternalAccess="Read/Write" />
+    <Member Name="Elapsed" DataType="TIME" Dimension="0" ExternalAccess="Read/Write" />
+  </Members></DataType></DataTypes><Tags>
+    <Tag Name="Telemetry" TagType="Base" DataType="TelemetryData" ExternalAccess="Read/Write" />
+    <Tag Name="Grid" TagType="Base" DataType="UDINT" Dimensions="2 2" ExternalAccess="Read/Write" />
+  </Tags></Controller>
+</RSLogix5000Content>

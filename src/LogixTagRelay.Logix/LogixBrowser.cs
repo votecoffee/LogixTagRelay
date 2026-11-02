@@ -91,7 +91,7 @@ public sealed class LogixBrowser(string gateway, string route = "1,0", int timeo
             for (int i = 0; i < ArrayShape.Count(shape); i++) elements.Add(await BuildAsync($"[{ArrayShape.Subscript(i, shape)}]", $"{path}[{ArrayShape.Subscript(i, shape)}]", (ushort)(type & ~0x6000), [], depth + 1, cancellationToken).ConfigureAwait(false));
             return new(name, path, elements[0].DataType, "Unknown", elements, true, Dimensions: shape);
         }
-        string? atomic = (type & 0xFFF) switch { 0xC1 => "BOOL", 0xC2 => "SINT", 0xC3 => "INT", 0xC4 => "DINT", 0xC5 => "LINT", 0xCA => "REAL", _ => null };
+        string? atomic = (type & 0xFFF) switch { 0xC1 => "BOOL", 0xC2 => "SINT", 0xC3 => "INT", 0xC4 => "DINT", 0xC5 => "LINT", 0xCA => "REAL", 0xC6 => "USINT", 0xC7 => "UINT", 0xC8 => "UDINT", 0xC9 => "ULINT", 0xC0 => "DT", 0xD7 => "TIME", _ => null };
         if ((type & 0x8000) == 0) return atomic is null
             ? new(name, path, $"CIP:0x{type:X4}", "Unknown", [], false, "Unsupported CIP type.")
             : new(name, path, atomic, "Unknown", []);

@@ -15,5 +15,9 @@ try {
   if ($LASTEXITCODE) { throw 'Bidirectional UDT consumer failed.' }
   & dotnet run --project tools/LogixTagRelay.Emulator -c Release --no-build -- --self-test true
   if ($LASTEXITCODE) { throw 'Emulator HTTP checks failed.' }
+  & dotnet run --project samples/TypesAndEventsDemo -c Release --no-build
+  if ($LASTEXITCODE) { throw 'Types/events explicit consumer failed.' }
+  & dotnet run --project samples/TypesAndEventsDemo -c Release --no-build -- --implicit
+  if ($LASTEXITCODE) { throw 'Types/events implicit consumer failed.' }
   & "$PSScriptRoot/pack.ps1"
 } finally { Pop-Location }

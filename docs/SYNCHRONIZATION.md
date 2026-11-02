@@ -124,3 +124,11 @@ then saves that output payload as the next baseline. The API adopts the merged v
 unless a newer local edit is pending. Duplicate packets do not reapply commands.
 Application-level DINT triggers are an explicit scheduling feature; implicit transport
 uses its cyclic sequence handshake. See [PLC setup](PLC_SETUP.md) for integration.
+
+## Consumer events
+
+Generated contracts aggregate changed leaf values through `TagValueChanged` and standard
+`INotifyPropertyChanged`. Repeated equal observations stay silent. Readback and status
+changes have separate property names; timestamps do not generate polling noise. See
+[type mappings and notification semantics](TYPES_AND_EVENTS.md) for examples, collection
+membership, thread dispatch and subscriber exception handling.

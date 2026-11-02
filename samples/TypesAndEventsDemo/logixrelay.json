@@ -1,0 +1,119 @@
+{
+  "schemaHash": "543ED74FC5FB191B17B59643E2BEDFAC62C107A4D3C8BC72AC4F407C8F8104BE",
+  "fields": [
+    {
+      "path": "Telemetry.Code",
+      "type": "USINT",
+      "direction": "Bidirectional",
+      "offset": 24,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Telemetry.Count16",
+      "type": "UINT",
+      "direction": "Bidirectional",
+      "offset": 28,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Telemetry.Count32",
+      "type": "UDINT",
+      "direction": "Bidirectional",
+      "offset": 32,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Telemetry.Count64",
+      "type": "ULINT",
+      "direction": "Bidirectional",
+      "offset": 36,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Telemetry.StartedAt",
+      "type": "DT",
+      "direction": "Bidirectional",
+      "offset": 44,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Telemetry.Elapsed",
+      "type": "TIME",
+      "direction": "Bidirectional",
+      "offset": 52,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Grid[0,0]",
+      "type": "UDINT",
+      "direction": "Bidirectional",
+      "offset": 60,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Grid[0,1]",
+      "type": "UDINT",
+      "direction": "Bidirectional",
+      "offset": 64,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Grid[1,0]",
+      "type": "UDINT",
+      "direction": "Bidirectional",
+      "offset": 68,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Grid[1,1]",
+      "type": "UDINT",
+      "direction": "Bidirectional",
+      "offset": 72,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    }
+  ],
+  "plcToAppBytes": 76,
+  "appToPlcBytes": 76,
+  "gateway": "192.168.1.10",
+  "route": "1,0",
+  "explicit": {
+    "intervalMs": 100,
+    "triggerTag": null,
+    "triggerPollMs": 20,
+    "acknowledgeTag": null,
+    "handledTriggerTag": null,
+    "responseTag": null,
+    "readGroups": [
+      {
+        "path": "Telemetry",
+        "dataType": "TelemetryData",
+        "fields": [
+          "Telemetry.Code",
+          "Telemetry.Count16",
+          "Telemetry.Count32",
+          "Telemetry.Count64",
+          "Telemetry.StartedAt",
+          "Telemetry.Elapsed"
+        ]
+      }
+    ]
+  },
+  "implicit": {
+    "plcInputAssembly": 101,
+    "plcOutputAssembly": 100,
+    "configurationAssembly": 102,
+    "rpiMs": 20,
+    "maxAssemblyBytes": 480
+  },
+  "schemaVersion": 2
+}

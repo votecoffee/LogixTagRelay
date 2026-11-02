@@ -88,7 +88,7 @@ public sealed class LogixUdtReader(Func<string, CancellationToken, ValueTask<byt
             bool structure = (member.Type & 0x8000) != 0;
             Template? nested = structure ? await StructAsync(member.Type, ct).ConfigureAwait(false) : null;
             int scalar = member.Type & 0x0FFF;
-            int nativeSize = nested?.Size ?? scalar switch { 0xC1 or 0xC2 => 1, 0xC3 => 2, 0xC4 or 0xCA => 4, 0xC5 => 8, _ => throw new FormatException("Unsupported native member type.") };
+            int nativeSize = nested?.Size ?? scalar switch { 0xC1 or 0xC2 or 0xC6 => 1, 0xC3 or 0xC7 => 2, 0xC4 or 0xC8 or 0xCA => 4, 0xC0 or 0xC5 or 0xC9 or 0xD7 => 8, _ => throw new FormatException("Unsupported native member type.") };
             if (scalar == 0xC1 && part.Indices.Length > 0) throw new FormatException("Read BOOL array members with individual bit addresses, outside the UDT read group.");
             int local = checked(member.Offset + (part.Indices.Length == 0 ? 0 : part.Indices[0] * nativeSize));
             if (local < 0 || (long)local + nativeSize > current.Size) throw new FormatException("Member exceeds its reported native UDT size.");
@@ -103,7 +103,7 @@ public sealed class LogixUdtReader(Func<string, CancellationToken, ValueTask<byt
                     data.Metadata != field.StringCapacity || nested.Size != (field.WireBytes + 3) / 4 * 4) throw new FormatException("Native STRING layout/capacity differs from the contract.");
                 return new(field, offset);
             }
-            int expected = field.Type switch { PlcType.BOOL => 0xC1, PlcType.SINT => 0xC2, PlcType.INT => 0xC3, PlcType.DINT => 0xC4, PlcType.LINT => 0xC5, PlcType.REAL => 0xCA, _ => -1 };
+            int expected = field.Type switch { PlcType.BOOL => 0xC1, PlcType.SINT => 0xC2, PlcType.INT => 0xC3, PlcType.DINT => 0xC4, PlcType.LINT => 0xC5, PlcType.REAL => 0xCA, PlcType.USINT => 0xC6, PlcType.UINT => 0xC7, PlcType.UDINT => 0xC8, PlcType.ULINT => 0xC9, PlcType.DT => 0xC0, PlcType.TIME => 0xD7, _ => -1 };
             if (structure || scalar != expected) throw new FormatException($"Native type differs for {field.Path}.");
             if (field.Type == PlcType.BOOL)
             {

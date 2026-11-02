@@ -110,6 +110,7 @@ Check(OpenerAdapter.NativeAbiVersion == 1, "real native DLL loads through PInvok
 await TriggerTests.Run(bundle.Configuration, Check);
 await EmulationTests.Run(bundle, Check);
 await BidirectionalTests.Run(Check);
+await TypesAndEventsTests.Run(Check);
 var aoiXml = XDocument.Parse(SintMergeAoi.GenerateL5x());
 Check(aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").Count() == 3 &&
     aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").All(p => (string?)p.Attribute("DataType") == "SINT" && (string?)p.Attribute("Dimensions") == "1"), "merge AOI exposes exactly three arbitrary-size SINT InOut arrays");
@@ -256,6 +257,13 @@ if (args.Length == 2 && args[0] == "--export-aoi")
     Directory.CreateDirectory(args[1]);
     await File.WriteAllTextAsync(Path.Combine(args[1], "LTR_SintMerge.L5X"), SintMergeAoi.GenerateL5x(), new UTF8Encoding(false));
 }
+if (args.Length == 2 && args[0] == "--generate-types")
+{
+    var typed = TypesAndEventsTests.Bundle(); Directory.CreateDirectory(args[1]);
+    await File.WriteAllTextAsync(Path.Combine(args[1],"GeneratedTags.g.cs"),typed.ModelCs,new UTF8Encoding(false));
+    await File.WriteAllTextAsync(Path.Combine(args[1],"logixrelay.json"),typed.Configuration.ToJson(),new UTF8Encoding(false));
+    await File.WriteAllTextAsync(Path.Combine(args[1],"RelayRoutine.L5X"),typed.RoutineL5x,new UTF8Encoding(false));
+}
 if (args.Length == 2 && args[0] == "--generate-bidirectional")
 {
     var shared = BidirectionalTests.Bundle(); Directory.CreateDirectory(args[1]);
@@ -292,7 +300,9 @@ sealed class TestModel : IPlcModel
     public TestModel(SyncConfiguration config) => Variables = config.Fields.Select(f => (IPlcVariable)(f.Type switch
     {
         PlcType.BOOL => (IPlcVariable)new PlcVariable<bool>(f), PlcType.SINT => new PlcVariable<sbyte>(f), PlcType.INT => new PlcVariable<short>(f),
-        PlcType.DINT => new PlcVariable<int>(f), PlcType.LINT => new PlcVariable<long>(f), PlcType.REAL => new PlcVariable<float>(f), PlcType.STRING => new PlcVariable<string>(f), _ => throw new Exception()
+        PlcType.DINT => new PlcVariable<int>(f), PlcType.LINT => new PlcVariable<long>(f), PlcType.REAL => new PlcVariable<float>(f), PlcType.STRING => new PlcVariable<string>(f),
+        PlcType.USINT => new PlcVariable<byte>(f), PlcType.UINT => new PlcVariable<ushort>(f), PlcType.UDINT => new PlcVariable<uint>(f), PlcType.ULINT => new PlcVariable<ulong>(f),
+        PlcType.DT => new PlcVariable<PlcDateTime>(f), PlcType.TIME => new PlcVariable<PlcTime>(f), _ => throw new Exception()
     })).ToArray();
 }
 sealed class FakeTransport : IExplicitTransport

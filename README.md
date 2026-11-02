@@ -4,7 +4,7 @@ C# access to Logix PLC tags through generated, strongly typed contracts. Browse 
 and UDTs, generate C#/JSON and PLC imports, then synchronize through explicit messaging,
 implicit I/O, or a local memory emulator.
 
-**0.5.0-preview.1.** Local and emulator checks are available. Real PLC communication
+**0.6.0-preview.1.** Local and emulator checks are available. Real PLC communication
 and Studio 5000 import acceptance remain unverified; see [validation](docs/VALIDATION.md).
 
 ## Table of Contents
@@ -61,11 +61,33 @@ elements and choose their access mode:
 
 A bidirectional UDT can contain read-only PLC members. The generator preserves those
 permissions and makes its writable members bidirectional. Supported types include
-BOOL, SINT, INT, DINT, LINT, REAL, standard/custom STRING, nested UDTs and tag arrays.
+BOOL, SINT, INT, DINT, LINT, REAL, USINT, UINT, UDINT, ULINT, DT, TIME,
+standard/custom STRING, nested UDTs and tag arrays.
 
 The download includes ordinary C# source and `logixrelay.json`. Implicit generation
 also includes the synchronization routine, SINT merge AOI and module settings. A
 matching native module template can supply the module import.
+
+### React to tag changes
+
+Generated contracts and each `PlcVariable<T>` implement `INotifyPropertyChanged`.
+Subscribe to the contract's `TagValueChanged` for the PLC path, old/new typed values
+and `Application`/`Plc` origin:
+
+```csharp
+tags.TagValueChanged += (_, change) =>
+    Console.WriteLine($"{change.Path}: {change.OldValue} -> {change.NewValue}");
+tags.Tag_Machine.Tag_Setpoint.PropertyChanged += (_, change) =>
+{
+    if (change.PropertyName == "Value") UpdateDisplay();
+};
+```
+
+Identical reads and write acknowledgements do not produce value events. Array element
+values notify in the same way. The contract's `Variables` collection implements
+`INotifyCollectionChanged`; its membership is fixed, so element value changes use
+property notifications. Callbacks run on the updating thread; marshal UI work to the
+UI dispatcher. See [notification semantics and time types](docs/TYPES_AND_EVENTS.md).
 
 ### Read a UDT cyclically and write changed members
 
@@ -137,6 +159,14 @@ dotnet run --project samples/EmulationDemo -c Release -- implicit 50
 The emulator GUI edits PLC memory and displays API commands. JavaScript can automate
 responses. It tests contract behavior over loopback HTTP; it does not execute PLC
 programs or validate EtherNet/IP networking. See [emulator instructions](docs/EMULATION.md).
+
+`samples/TypesAndEventsDemo` demonstrates unsigned/date/time values and change events
+with both transports:
+
+```powershell
+dotnet run --project samples/TypesAndEventsDemo -c Release
+dotnet run --project samples/TypesAndEventsDemo -c Release -- --implicit
+```
 
 ## Documentation
 

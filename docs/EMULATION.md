@@ -99,10 +99,10 @@ state.ticks = (state.ticks || 0) + 1;
 | `plc.log(message)` | Append to the bounded GUI log |
 
 Numeric primitives use JavaScript numbers, BOOL uses boolean and STRING uses string.
-LINT reads return **BigInt**; use `plc.set('Counter', plc.get('Counter') + 1n)` to preserve
-all 64 bits. LINT writes accept BigInt, exact integer text or safe integer numbers.
+LINT/ULINT/DT/TIME reads return **BigInt**; use `plc.set('Counter', plc.get('Counter') + 1n)` to preserve
+all 64 bits. These 64-bit writes accept BigInt, exact integer text or safe integer numbers.
 Store BigInts as text in `state`, which must remain JSON serializable. GUI and HTTP
-values use invariant text to avoid JSON/JavaScript loss of LINT precision. Custom string
+values use invariant text to avoid JSON/JavaScript loss of 64-bit precision. Custom string
 capacities and the library's lossless Latin-1 rules still apply. Use Logix array paths
 such as `Stations[1,2].Name` when reading or writing expanded array elements.
 
@@ -159,3 +159,9 @@ The second command starts an owned HTTP host on an ephemeral loopback port, exer
 the real routes/client and exits. It checks explicit, implicit and DINT-triggered motion,
 custom STRING/LINT/array paths, rejected stale clients, manual edits, script failures,
 memory restore and static GUI serving. It requires no PLC or EtherNet/IP adapter.
+
+DT and TIME editors accept signed integer microseconds (DT since Unix epoch UTC;
+TIME is a duration). Scripts return these values as `BigInt`, just like LINT/ULINT.
+Use `plc.set("Telemetry.Elapsed", 1500000n)` for 1.5 seconds. USINT/UINT/UDINT use
+ordinary JavaScript safe integers, with strict unsigned range checks at commit.
+See [type mappings and notifications](TYPES_AND_EVENTS.md).

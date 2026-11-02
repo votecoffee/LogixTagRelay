@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using LogixTagRelay;
 namespace LogixTagRelay.Generated;
 
-public sealed partial class GeneratedTags : IPlcModel
+public sealed partial class GeneratedTags : PlcModel
 {
     public PlcVariable<float> Tag_Motion_002ECommandPosition { get; } = new PlcVariable<float>(new FieldMap("Motion.CommandPosition", PlcType.REAL, Direction.AppToPlc, 24, "Read/Write", 0));
     public PlcVariable<float> Tag_Motion_002EActualPosition { get; } = new PlcVariable<float>(new FieldMap("Motion.ActualPosition", PlcType.REAL, Direction.PlcToApp, 28, "Read Only", 0));
     public PlcVariable<bool> Tag_Motion_002EInPosition { get; } = new PlcVariable<bool>(new FieldMap("Motion.InPosition", PlcType.BOOL, Direction.PlcToApp, 32, "Read Only", 0));
     public PlcVariable<float> Tag_Motion_002ESpeed { get; } = new PlcVariable<float>(new FieldMap("Motion.Speed", PlcType.REAL, Direction.PlcToApp, 36, "Read Only", 0));
-    public IReadOnlyList<IPlcVariable> Variables => new IPlcVariable[] { Tag_Motion_002ECommandPosition, Tag_Motion_002EActualPosition, Tag_Motion_002EInPosition, Tag_Motion_002ESpeed };
+    public GeneratedTags() => InitializeVariables(new IPlcVariable[] { Tag_Motion_002ECommandPosition, Tag_Motion_002EActualPosition, Tag_Motion_002EInPosition, Tag_Motion_002ESpeed }, new string[] { "Tag_Motion_002ECommandPosition", "Tag_Motion_002EActualPosition", "Tag_Motion_002EInPosition", "Tag_Motion_002ESpeed" });
 }

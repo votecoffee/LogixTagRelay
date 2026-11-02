@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmulationDemo", "samples\Em
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BidirectionalDemo", "samples\BidirectionalDemo\BidirectionalDemo.csproj", "{D89B3881-D2F1-4B1B-B79A-93853875ECEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypesAndEventsDemo", "samples\TypesAndEventsDemo\TypesAndEventsDemo.csproj", "{F72229AF-5991-41F8-B671-2624B8DD8BE8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -189,6 +191,18 @@ Global
 		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Release|x64.Build.0 = Release|Any CPU
 		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Release|x86.ActiveCfg = Release|Any CPU
 		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Release|x86.Build.0 = Release|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Debug|x64.Build.0 = Debug|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Debug|x86.Build.0 = Debug|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Release|x64.ActiveCfg = Release|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Release|x64.Build.0 = Release|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Release|x86.ActiveCfg = Release|Any CPU
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -206,5 +220,6 @@ Global
 		{E0FDE24C-EA14-4E4D-89F2-3C5DFA7574C2} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{AE1B9EBF-69F5-4120-8D5C-86AC298CF381} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{D89B3881-D2F1-4B1B-B79A-93853875ECEB} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{F72229AF-5991-41F8-B671-2624B8DD8BE8} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 	EndGlobalSection
 EndGlobal

@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 namespace LogixTagRelay;
 
 public enum Direction { PlcToApp, AppToPlc, Bidirectional }
-public enum PlcType { BOOL, SINT, INT, DINT, LINT, REAL, STRING }
+public enum PlcType { BOOL, SINT, INT, DINT, LINT, REAL, STRING, USINT, UINT, UDINT, ULINT, DT, TIME }
 public enum Quality { Unknown, Good, Bad }
 
 public static class PlcTypes
@@ -15,13 +15,15 @@ public static class PlcTypes
     public static int Size(PlcType type, int stringCapacity = 0) => type switch
     {
         PlcType.BOOL => 4, // Deliberate wire representation: DINT, never CLR/Logix BOOL layout.
-        PlcType.SINT => 1, PlcType.INT => 2, PlcType.DINT or PlcType.REAL => 4,
-        PlcType.LINT => 8, PlcType.STRING when stringCapacity is >= 1 and <= 65535 => 4 + stringCapacity,
+        PlcType.SINT or PlcType.USINT => 1, PlcType.INT or PlcType.UINT => 2, PlcType.DINT or PlcType.UDINT or PlcType.REAL => 4,
+        PlcType.LINT or PlcType.ULINT or PlcType.DT or PlcType.TIME => 8, PlcType.STRING when stringCapacity is >= 1 and <= 65535 => 4 + stringCapacity,
         _ => throw new ArgumentOutOfRangeException(nameof(type), "A STRING requires its declared capacity (1..65535).")
     };
     public static string CSharp(PlcType type) => type switch
     {
         PlcType.BOOL => "bool", PlcType.SINT => "sbyte", PlcType.INT => "short",
+        PlcType.USINT => "byte", PlcType.UINT => "ushort", PlcType.UDINT => "uint", PlcType.ULINT => "ulong",
+        PlcType.DT => "PlcDateTime", PlcType.TIME => "PlcTime",
         PlcType.DINT => "int", PlcType.LINT => "long", PlcType.REAL => "float", PlcType.STRING => "string",
         _ => throw new ArgumentOutOfRangeException(nameof(type))
     };
@@ -44,6 +46,12 @@ public static class PlcTypes
             case PlcType.DINT: BinaryPrimitives.WriteInt32LittleEndian(destination, (int)value); break;
             case PlcType.LINT: BinaryPrimitives.WriteInt64LittleEndian(destination, (long)value); break;
             case PlcType.REAL: BinaryPrimitives.WriteSingleLittleEndian(destination, (float)value); break;
+            case PlcType.USINT: destination[0] = (byte)value; break;
+            case PlcType.UINT: BinaryPrimitives.WriteUInt16LittleEndian(destination, (ushort)value); break;
+            case PlcType.UDINT: BinaryPrimitives.WriteUInt32LittleEndian(destination, (uint)value); break;
+            case PlcType.ULINT: BinaryPrimitives.WriteUInt64LittleEndian(destination, (ulong)value); break;
+            case PlcType.DT: BinaryPrimitives.WriteInt64LittleEndian(destination, ((PlcDateTime)value).UnixMicroseconds); break;
+            case PlcType.TIME: BinaryPrimitives.WriteInt64LittleEndian(destination, ((PlcTime)value).Microseconds); break;
             case PlcType.STRING:
                 var text = (string)value;
                 ValidateString(text, stringCapacity);
@@ -61,6 +69,10 @@ public static class PlcTypes
         PlcType.DINT => BinaryPrimitives.ReadInt32LittleEndian(source),
         PlcType.LINT => BinaryPrimitives.ReadInt64LittleEndian(source),
         PlcType.REAL => BinaryPrimitives.ReadSingleLittleEndian(source),
+        PlcType.USINT => source[0], PlcType.UINT => BinaryPrimitives.ReadUInt16LittleEndian(source),
+        PlcType.UDINT => BinaryPrimitives.ReadUInt32LittleEndian(source), PlcType.ULINT => BinaryPrimitives.ReadUInt64LittleEndian(source),
+        PlcType.DT => new PlcDateTime(BinaryPrimitives.ReadInt64LittleEndian(source)),
+        PlcType.TIME => new PlcTime(BinaryPrimitives.ReadInt64LittleEndian(source)),
         PlcType.STRING => DecodeString(source, stringCapacity),
         _ => throw new ArgumentOutOfRangeException(nameof(type))
     };

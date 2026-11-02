@@ -68,7 +68,7 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
         {
             RelayType.BOOL => tag.GetInt8(0) != 0, RelayType.SINT => tag.GetInt8(0), RelayType.INT => tag.GetInt16(0),
             RelayType.DINT => tag.GetInt32(0), RelayType.LINT => tag.GetInt64(0), RelayType.REAL => tag.GetFloat32(0),
-            _ => throw new ArgumentOutOfRangeException(nameof(field))
+            _ => PlcTypes.Decode(field, tag.GetBuffer())
         };
     }
     public ValueTask WriteAsync(string path, RelayType type, object value, CancellationToken cancellationToken) =>
@@ -93,7 +93,10 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
                 case RelayType.DINT: tag.SetInt32(0, (int)value); break;
                 case RelayType.LINT: tag.SetInt64(0, (long)value); break;
                 case RelayType.REAL: tag.SetFloat32(0, (float)value); break;
-                default: throw new ArgumentOutOfRangeException(nameof(field));
+                default:
+                    var buffer = tag.GetBuffer();
+                    PlcTypes.Encode(field, value, buffer);
+                    tag.SetBuffer(buffer); break;
             }
             await tag.WriteAsync(cancellationToken).ConfigureAwait(false);
         }

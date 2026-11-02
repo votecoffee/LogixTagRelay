@@ -1,12 +1,12 @@
 # Validation and remaining acceptance
 
-Validation date: November 2, 2026. Version 0.5 preview; offline and loopback emulator evidence.
+Validation date: November 2, 2026. Version 0.6 preview; offline and loopback emulator evidence.
 
 ## Local evidence
 
 - C# solution builds in Release with warnings treated as errors.
 - Native bridge builds with MSVC x64 against OpENer commit `0e1ab7ee5c272950c0dc8daf7793008d7a518912`.
-- All 154 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
+- All 187 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
   JSON duplicate-key/hash checks, XML entity rejection, CPS destination lengths,
   exact scalar codecs (including LINT above 2^53), write races, failed writes,
   triggered acknowledgements, implicit sequence wrap, bad schema, stale/duplicate frames,
@@ -40,13 +40,13 @@ Validation date: November 2, 2026. Version 0.5 preview; offline and loopback emu
   assign directions, configure DINT trigger/response and download the C#/JSON/routine/
   AOI/settings ZIP. Download contents and trigger settings were inspected. No controller
   address was contacted.
-- The PLC memory emulator has 23 additional offline checks (included in 154 above)
+- The PLC memory emulator has 23 additional offline checks (included in 187 above)
   for typed shared memory, DINT control tags, PLC-first image merge, duplicate/baseline
   rejection, invalid merged STRING LEN, generated wrapper/ST model agreement, JavaScript
   motion, BigInt LINT precision, persistent state, bounded runaway scripts, atomic tick
   failures, stale script transactions and concurrent unchanged API traffic that must
   not invalidate value snapshots or starve scripts.
-- All 17 HTTP checks pass through the actual emulator host/client. They cover explicit,
+- All 21 HTTP checks pass through the actual emulator host/client. They cover explicit,
   implicit and DINT-triggered motion, GUI edits, last-API-value metadata, STRING/LINT/
   multidimensional paths, stale contract rejection, transactional memory restore,
   script errors, write-route headers and static GUI serving. The host uses an owned
@@ -65,6 +65,20 @@ Validation date: November 2, 2026. Version 0.5 preview; offline and loopback emu
 - Browser verification loads a contract and script, changes PLC speed, runs the response
   and displays command/actual/in-position and DINT handled/ACK values. Emulation uses
   HTTP plus the managed contract codec; it is not controller or EtherNet/IP evidence.
+
+## Types and notification evidence
+
+- The added 33 offline checks cover USINT/UINT/UDINT/ULINT maxima, exact DT/TIME
+  microseconds, checked .NET conversions, unsigned range errors, generated rectangular
+  arrays, controller-reported native UDT offsets, and emitted LINT time-copy bridges.
+- Explicit and implicit memory transports exercise property and contract value events,
+  silent identical reads, unchanged assignments, command readback, first-default edits,
+  PLC-winning replacements and isolated observer exceptions.
+- The real HTTP client/server suite now has 21 checks, including lossless reads/writes
+  of every added type, silent repeated reads, and implicit DT/USINT writes.
+- `TypesAndEventsDemo` compiles the generated contract and runs both transports. Each
+  reports nine actual value transitions while identical cycles emit no value events.
+  A fixed contract collection does not emit structural events for element value changes.
 
 ## Required native/controller acceptance
 

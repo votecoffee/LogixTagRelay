@@ -45,7 +45,7 @@ see [synchronization](SYNCHRONIZATION.md) for conflict semantics and metadata li
 All values use little-endian encoding. Both directions use one shared layout and equal sizes.
 The contract is independent of CLR and PLC UDT memory layout. Fields start on 4-byte
 boundaries. A fresh image has zero padding; echoed/native string padding is preserved. BOOL uses a DINT wire value (0/1); SINT is signed
-8-bit, INT is signed 16-bit, DINT signed 32-bit, LINT signed 64-bit and REAL IEEE binary32.
+8-bit, INT is signed 16-bit, DINT signed 32-bit, LINT signed 64-bit and REAL IEEE binary32. USINT/UINT/UDINT/ULINT retain their full unsigned ranges. DT and TIME use exact 64-bit microseconds; see [type mappings and events](TYPES_AND_EVENTS.md).
 
 | Byte offset | Type | Meaning |
 | --- | --- | --- |
