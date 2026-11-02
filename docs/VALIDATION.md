@@ -1,12 +1,12 @@
 # Validation and remaining acceptance
 
-Validation date: November 2, 2026. Version 0.4 preview; offline and loopback emulator evidence.
+Validation date: November 2, 2026. Version 0.5 preview; offline and loopback emulator evidence.
 
 ## Local evidence
 
 - C# solution builds in Release with warnings treated as errors.
 - Native bridge builds with MSVC x64 against OpENer commit `0e1ab7ee5c272950c0dc8daf7793008d7a518912`.
-- All 135 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
+- All 154 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
   JSON duplicate-key/hash checks, XML entity rejection, CPS destination lengths,
   exact scalar codecs (including LINT above 2^53), write races, failed writes,
   triggered acknowledgements, implicit sequence wrap, bad schema, stale/duplicate frames,
@@ -38,17 +38,26 @@ Validation date: November 2, 2026. Version 0.4 preview; offline and loopback emu
   assign directions, configure DINT trigger/response and download the C#/JSON/routine/
   AOI/settings ZIP. Download contents and trigger settings were inspected. No controller
   address was contacted.
-- The PLC memory emulator has 23 additional offline checks (included in 135 above)
+- The PLC memory emulator has 23 additional offline checks (included in 154 above)
   for typed shared memory, DINT control tags, PLC-first image merge, duplicate/baseline
   rejection, invalid merged STRING LEN, generated wrapper/ST model agreement, JavaScript
   motion, BigInt LINT precision, persistent state, bounded runaway scripts, atomic tick
   failures, stale script transactions and concurrent unchanged API traffic that must
   not invalidate value snapshots or starve scripts.
-- All 14 HTTP checks pass through the actual emulator host/client. They cover explicit,
+- All 17 HTTP checks pass through the actual emulator host/client. They cover explicit,
   implicit and DINT-triggered motion, GUI edits, last-API-value metadata, STRING/LINT/
   multidimensional paths, stale contract rejection, transactional memory restore,
   script errors, write-route headers and static GUI serving. The host uses an owned
   ephemeral loopback port and shuts itself down after the test.
+- Bidirectional checks cover clean PLC value refresh, pending local edits, read-only
+  leaves within a whole UDT, dirty-member-only writes, same-value/reverted edits,
+  in-flight edits, failures and intentional default assignments. A separate generated
+  consumer reports a single `Machine.Setpoint` write while retaining a PLC array edit.
+- Synthetic native template tests exercise the actual grouped-read decoder with root
+  snapshots, native member offsets, packed BOOLs, member arrays, nested UDTs and custom
+  STRING. They verify root refresh per cycle, cached metadata and size-drift rejection.
+  These tests do not establish native controller interoperability. HTTP tests exercise
+  grouped bidirectional snapshots and changed-member-only writes through the emulator.
 - The published emulator passes the same HTTP checks when invoked by DLL from outside
   its content directory. Static files, examples and dependency license notices are included.
 - Browser verification loads a contract and script, changes PLC speed, runs the response

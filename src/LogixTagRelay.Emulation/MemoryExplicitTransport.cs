@@ -27,4 +27,13 @@ public sealed class MemoryExplicitTransport(PlcMemory memory) : IExplicitTranspo
         return WriteAsync(field.Path, field.Type, value, cancellationToken);
     }
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public ValueTask<IReadOnlyList<object>> ReadBatchAsync(IReadOnlyList<FieldMap> fields, IReadOnlyList<ExplicitReadGroup> groups, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested(); ExplicitReads.Validate(fields, groups);
+        lock (memory.Gate)
+        {
+            foreach (var field in fields) if (memory.Map(field.Path) != field) throw new ArgumentException("Read batch differs from the loaded mapping.");
+            return ValueTask.FromResult<IReadOnlyList<object>>(fields.Select(f => memory.Read(f.Path)).ToArray());
+        }
+    }
 }

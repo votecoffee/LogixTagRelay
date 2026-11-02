@@ -316,7 +316,69 @@
     "triggerPollMs": 20,
     "acknowledgeTag": null,
     "handledTriggerTag": null,
-    "responseTag": null
+    "responseTag": null,
+    "readGroups": [
+      {
+        "path": "Metrics",
+        "dataType": "MetricsType",
+        "fields": [
+          "Metrics.Title",
+          "Metrics.Code"
+        ]
+      },
+      {
+        "path": "Stations[0,0]",
+        "dataType": "Station",
+        "fields": [
+          "Stations[0,0].Name",
+          "Stations[0,0].Enabled",
+          "Stations[0,0].Measured",
+          "Stations[0,0].History[0]",
+          "Stations[0,0].History[1]"
+        ]
+      },
+      {
+        "path": "Stations[0,1]",
+        "dataType": "Station",
+        "fields": [
+          "Stations[0,1].Name",
+          "Stations[0,1].Enabled",
+          "Stations[0,1].Measured",
+          "Stations[0,1].History[0]",
+          "Stations[0,1].History[1]"
+        ]
+      },
+      {
+        "path": "Stations[1,0]",
+        "dataType": "Station",
+        "fields": [
+          "Stations[1,0].Name",
+          "Stations[1,0].Enabled",
+          "Stations[1,0].Measured",
+          "Stations[1,0].History[0]",
+          "Stations[1,0].History[1]"
+        ]
+      },
+      {
+        "path": "Stations[1,1]",
+        "dataType": "Station",
+        "fields": [
+          "Stations[1,1].Name",
+          "Stations[1,1].Enabled",
+          "Stations[1,1].Measured",
+          "Stations[1,1].History[0]",
+          "Stations[1,1].History[1]"
+        ]
+      },
+      {
+        "path": "Request",
+        "dataType": "RequestType",
+        "fields": [
+          "Request.Recipe",
+          "Request.Execute"
+        ]
+      }
+    ]
   },
   "implicit": {
     "plcInputAssembly": 101,

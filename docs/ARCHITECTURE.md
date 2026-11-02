@@ -17,14 +17,14 @@ flowchart LR
     D --> P
 ```
 
-## Ownership and synchronization
+## Access and synchronization
 
-Every selected leaf has one direction, from the consuming application's perspective.
-PLC-to-app leaves are read-only to the consumer; app-to-PLC leaves are writable by
-the consumer. A mixed UDT can be selected member by member. This avoids read/modify/write
-races where a PLC scan and an application update own different bits of the same buffer.
-For writable fields, the PLC-first SINT merge resolves concurrent byte changes against
-the exact frozen snapshot. The AOI itself has no field/type/ownership information.
+Each leaf is PLC-to-app, app-to-PLC or bidirectional. Bidirectional values follow PLC
+reads when clean and retain local edits until completion. Whole-UDT bidirectional
+selection keeps externally read-only members read-only. Explicit mode reads UDT root
+snapshots and writes changed member paths, preserving unrelated members. Implicit
+mode uses the PLC-first SINT merge against the exact frozen snapshot; the AOI itself
+has no field, type or permission information.
 
 `PlcVariable<T>` locks value/version/quality changes. A captured version is acknowledged
 only after the explicit driver succeeds or the PLC echoes an implicit image sequence.
@@ -33,10 +33,12 @@ Unknown, becomes Good after a successful transfer, and becomes Bad on a failed/s
 Timestamps are PC UTC observations, not PLC timestamps. Reading several variables
 separately does not constitute an atomic class snapshot.
 
-Explicit reads are staged before publishing; writes are individually sent only when
-dirty. This is not an atomic CIP multi-tag transaction. Whole UDT transfers and request
-packing can be added behind the transport once native template offsets, access and
-preservation have been established; they are not inferred from L5X member order.
+Explicit reads are staged and validated before publishing. Generated read groups let
+LogixTransport read each selected UDT root using native template metadata, then decode
+members at reported offsets. Writes are individually addressed and sent only when
+dirty and different from the fresh read. No UDT buffer is written back. Native offsets
+are not inferred from L5X member order. This is not an atomic CIP multi-tag transaction;
+see [synchronization](SYNCHRONIZATION.md) for conflict semantics and metadata lifetime.
 
 ## Implicit payload contract v3
 

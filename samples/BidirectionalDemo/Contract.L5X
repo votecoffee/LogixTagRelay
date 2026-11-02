@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.03" TargetType="Controller" TargetName="SharedDemo">
+  <Controller Name="SharedDemo"><DataTypes>
+    <DataType Name="Text12" Family="StringFamily"><Members><Member Name="LEN" DataType="DINT" Dimension="0" /><Member Name="DATA" DataType="SINT" Dimension="12" /></Members></DataType>
+    <DataType Name="AxisData"><Members><Member Name="Position" DataType="REAL" Dimension="0" ExternalAccess="Read/Write" /><Member Name="Ready" DataType="BOOL" Dimension="0" ExternalAccess="Read Only" /></Members></DataType>
+    <DataType Name="MachineData"><Members>
+      <Member Name="Setpoint" DataType="REAL" Dimension="0" ExternalAccess="Read/Write" />
+      <Member Name="Actual" DataType="REAL" Dimension="0" ExternalAccess="Read Only" />
+      <Member Name="Enabled" DataType="BOOL" Dimension="0" ExternalAccess="Read/Write" />
+      <Member Name="Counts" DataType="DINT" Dimension="3" ExternalAccess="Read/Write" />
+      <Member Name="Label" DataType="Text12" Dimension="0" ExternalAccess="Read/Write" />
+      <Member Name="Axis" DataType="AxisData" Dimension="0" ExternalAccess="Read/Write" />
+    </Members></DataType>
+  </DataTypes><Tags><Tag Name="Machine" TagType="Base" DataType="MachineData" ExternalAccess="Read/Write" /></Tags></Controller>
+</RSLogix5000Content>

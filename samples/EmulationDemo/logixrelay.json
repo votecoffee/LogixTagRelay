@@ -44,7 +44,8 @@
     "triggerPollMs": 20,
     "acknowledgeTag": null,
     "handledTriggerTag": null,
-    "responseTag": null
+    "responseTag": null,
+    "readGroups": []
   },
   "implicit": {
     "plcInputAssembly": 101,

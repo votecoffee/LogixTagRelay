@@ -76,7 +76,29 @@
     "triggerPollMs": 20,
     "acknowledgeTag": null,
     "handledTriggerTag": null,
-    "responseTag": null
+    "responseTag": null,
+    "readGroups": [
+      {
+        "path": "Status",
+        "dataType": "MotorStatus",
+        "fields": [
+          "Status.Running",
+          "Status.Speed",
+          "Status.Count",
+          "Status.Faults[0]",
+          "Status.Faults[1]",
+          "Status.Faults[2]"
+        ]
+      },
+      {
+        "path": "Command",
+        "dataType": "MotorCommand",
+        "fields": [
+          "Command.Enable",
+          "Command.Setpoint"
+        ]
+      }
+    ]
   },
   "implicit": {
     "plcInputAssembly": 101,

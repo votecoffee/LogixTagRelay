@@ -28,7 +28,7 @@ to change the simulated motion speed. Stop the script to test entirely manual PL
 Load a generated `logixrelay.json` using **Load contract**, or start with:
 
 ```powershell
-dotnet run --project tools/LogixTagRelay.Emulator -c Release -- --contract samples/StringsAndArraysDemo/logixrelay.json
+dotnet run --project tools/LogixTagRelay.Emulator -c Release -- --contract (Resolve-Path samples/StringsAndArraysDemo/logixrelay.json).Path
 ```
 
 Loading a contract stops its old script and creates fresh memory and a new instance ID.
@@ -67,7 +67,7 @@ It does not exercise OpENer, CIP connections, RPI negotiation or real controller
 
 For headless unit tests, use `PlcMemory`, `MemoryExplicitTransport`, `ImplicitPlc` and
 `ScriptRunner` directly in the test process. GUI edits and scripts may change any
-PLC-side field. API writes are limited to app-to-PLC fields and configured reply tags.
+PLC-side field. API writes are limited to command/bidirectional fields and configured reply tags.
 The GUI shows current values and last requested API values separately, which also
 makes PLC-winning implicit conflicts visible.
 

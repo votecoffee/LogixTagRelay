@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogixTagRelay.Emulator", "t
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmulationDemo", "samples\EmulationDemo\EmulationDemo.csproj", "{AE1B9EBF-69F5-4120-8D5C-86AC298CF381}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BidirectionalDemo", "samples\BidirectionalDemo\BidirectionalDemo.csproj", "{D89B3881-D2F1-4B1B-B79A-93853875ECEB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -175,6 +177,18 @@ Global
 		{AE1B9EBF-69F5-4120-8D5C-86AC298CF381}.Release|x64.Build.0 = Release|Any CPU
 		{AE1B9EBF-69F5-4120-8D5C-86AC298CF381}.Release|x86.ActiveCfg = Release|Any CPU
 		{AE1B9EBF-69F5-4120-8D5C-86AC298CF381}.Release|x86.Build.0 = Release|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Debug|x64.Build.0 = Debug|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Debug|x86.Build.0 = Debug|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Release|x64.ActiveCfg = Release|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Release|x64.Build.0 = Release|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Release|x86.ActiveCfg = Release|Any CPU
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -191,5 +205,6 @@ Global
 		{14E8A602-0B7B-49AF-9E71-6C1496DE4834} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{E0FDE24C-EA14-4E4D-89F2-3C5DFA7574C2} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{AE1B9EBF-69F5-4120-8D5C-86AC298CF381} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{D89B3881-D2F1-4B1B-B79A-93853875ECEB} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 	EndGlobalSection
 EndGlobal

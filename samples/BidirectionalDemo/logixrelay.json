@@ -1,0 +1,114 @@
+{
+  "schemaHash": "80A907366394636B7E278FB507E92D9786EC100A9D14C4354ED815D2FE3CB299",
+  "fields": [
+    {
+      "path": "Machine.Setpoint",
+      "type": "REAL",
+      "direction": "Bidirectional",
+      "offset": 24,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Machine.Actual",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 28,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Machine.Enabled",
+      "type": "BOOL",
+      "direction": "Bidirectional",
+      "offset": 32,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Machine.Counts[0]",
+      "type": "DINT",
+      "direction": "Bidirectional",
+      "offset": 36,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Machine.Counts[1]",
+      "type": "DINT",
+      "direction": "Bidirectional",
+      "offset": 40,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Machine.Counts[2]",
+      "type": "DINT",
+      "direction": "Bidirectional",
+      "offset": 44,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Machine.Label",
+      "type": "STRING",
+      "direction": "Bidirectional",
+      "offset": 48,
+      "access": "Read/Write",
+      "stringCapacity": 12
+    },
+    {
+      "path": "Machine.Axis.Position",
+      "type": "REAL",
+      "direction": "Bidirectional",
+      "offset": 64,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Machine.Axis.Ready",
+      "type": "BOOL",
+      "direction": "PlcToApp",
+      "offset": 68,
+      "access": "Read Only",
+      "stringCapacity": 0
+    }
+  ],
+  "plcToAppBytes": 72,
+  "appToPlcBytes": 72,
+  "gateway": "192.168.1.10",
+  "route": "1,0",
+  "explicit": {
+    "intervalMs": 100,
+    "triggerTag": null,
+    "triggerPollMs": 20,
+    "acknowledgeTag": null,
+    "handledTriggerTag": null,
+    "responseTag": null,
+    "readGroups": [
+      {
+        "path": "Machine",
+        "dataType": "MachineData",
+        "fields": [
+          "Machine.Setpoint",
+          "Machine.Actual",
+          "Machine.Enabled",
+          "Machine.Counts[0]",
+          "Machine.Counts[1]",
+          "Machine.Counts[2]",
+          "Machine.Label",
+          "Machine.Axis.Position",
+          "Machine.Axis.Ready"
+        ]
+      }
+    ]
+  },
+  "implicit": {
+    "plcInputAssembly": 101,
+    "plcOutputAssembly": 100,
+    "configurationAssembly": 102,
+    "rpiMs": 20,
+    "maxAssemblyBytes": 480
+  },
+  "schemaVersion": 2
+}

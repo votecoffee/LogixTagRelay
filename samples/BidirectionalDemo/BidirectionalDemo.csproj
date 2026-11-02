@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../src/LogixTagRelay.Emulation/LogixTagRelay.Emulation.csproj" /></ItemGroup>
+  <ItemGroup><None Update="logixrelay.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+</Project>

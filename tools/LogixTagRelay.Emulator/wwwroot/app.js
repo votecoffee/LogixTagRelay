@@ -12,7 +12,7 @@ const showValue = tag => tag.map.type === 'STRING' ? JSON.stringify(tag.value) :
 function makeRow(tag) {
   const row = document.createElement('tr');
   const path = document.createElement('td'), title = document.createElement('div'), meta = document.createElement('div');
-  title.className = 'tag-path'; title.textContent = tag.map.path; meta.className = 'tag-meta'; meta.textContent = `${tag.map.type}${tag.map.stringCapacity ? `[${tag.map.stringCapacity}]` : ''} · ${tag.role === 'Data' ? tag.map.direction === 'AppToPlc' ? 'API command' : 'PLC → API' : tag.role}`; path.append(title,meta);
+  title.className = 'tag-path'; title.textContent = tag.map.path; meta.className = 'tag-meta'; meta.textContent = `${tag.map.type}${tag.map.stringCapacity ? `[${tag.map.stringCapacity}]` : ''} · ${tag.role === 'Data' ? tag.map.direction === 'Bidirectional' ? 'PLC ↔ API' : tag.map.direction === 'AppToPlc' ? 'API command' : 'PLC → API' : tag.role}`; path.append(title,meta);
   const value = document.createElement('td'); value.className = 'value';
   const editor = document.createElement('td'), form = document.createElement('form'); form.className = 'edit';
   const input = document.createElement('input'); input.setAttribute('aria-label',`PLC value for ${tag.map.path}`); input.value = tag.value;

@@ -11,6 +11,8 @@ try {
   if ($LASTEXITCODE) { throw 'Generated consumer failed.' }
   & dotnet run --project samples/StringsAndArraysDemo -c Release --no-build
   if ($LASTEXITCODE) { throw 'STRING/array consumer failed.' }
+  & dotnet run --project samples/BidirectionalDemo -c Release --no-build
+  if ($LASTEXITCODE) { throw 'Bidirectional UDT consumer failed.' }
   & dotnet run --project tools/LogixTagRelay.Emulator -c Release --no-build -- --self-test true
   if ($LASTEXITCODE) { throw 'Emulator HTTP checks failed.' }
   & "$PSScriptRoot/pack.ps1"

@@ -38,7 +38,7 @@ public sealed class ImplicitImage
             int next = sequence = sequence == int.MaxValue ? 1 : sequence + 1;
             WriteHeader(image, next, lastPlcSequence!.Value);
             var versions = new List<(IPlcVariable, long)>();
-            foreach (var variable in model.Variables.Where(v => v.Map.Direction == Direction.AppToPlc))
+            foreach (var variable in model.Variables.Where(v => v.Map.CanWrite))
             {
                 var captured = variable.CaptureForMerge();
                 // Unedited values echo the PLC. No CLR default can overwrite startup values.

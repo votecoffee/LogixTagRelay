@@ -86,6 +86,13 @@ app.MapPost("/api/client/write", async (ClientTagRequest request, CancellationTo
     await session.Explicit.WriteAsync(request.Path, request.Type, TagText.Parse(field, request.Value), ct); Interlocked.Increment(ref session.Writes);
     return new TagReply(TagText.Format(session.Memory.Read(request.Path)));
 });
+app.MapPost("/api/client/read-batch", async (ClientReadRequest request, CancellationToken ct) =>
+{
+    var session = workspace.Require(request.InstanceId, request.Fingerprint);
+    var values = await session.Explicit.ReadBatchAsync(request.Fields, request.Groups, ct);
+    Interlocked.Increment(ref session.Reads);
+    return new ReadReply(values.Select(TagText.Format).ToList());
+});
 app.MapPost("/api/client/exchange", (ClientImageRequest request) =>
 {
     var session = workspace.Require(request.InstanceId, request.Fingerprint);

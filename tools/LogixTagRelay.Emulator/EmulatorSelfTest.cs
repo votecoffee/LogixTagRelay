@@ -83,6 +83,19 @@ sealed class EmulatorSelfTest(EmulatorWorkspace workspace, IHostApplicationLifet
                 Check(restore.StatusCode == HttpStatusCode.BadRequest && (long)session.Memory.Read("Count") == 9007199254740993L, "invalid memory restore applies no partial changes");
             using (var restore = await http.PostAsJsonAsync("api/restore", new { instanceId = session.Contract.InstanceId, fingerprint = session.Contract.Fingerprint, values = new Dictionary<string,string> { ["Count"] = "7", ["Recipe"] = "Saved" } }, ct)) restore.EnsureSuccessStatusCode();
             Check((long)session.Memory.Read("Count") == 7L && (string)session.Memory.Read("Recipe") == "Saved" && !session.Scripts.Status.Running, "valid memory restore commits the batch and stops scripting");
+            List<FieldMap> sharedFields = [new("Shared.Setpoint",PlcType.REAL,Direction.Bidirectional,24),new("Shared.Counts[2]",PlcType.DINT,Direction.Bidirectional,28),new("Shared.Actual",PlcType.REAL,Direction.PlcToApp,32,"Read Only")];
+            var sharedConfig = new SyncConfiguration(SyncConfiguration.ComputeHash(sharedFields),sharedFields,36,36,
+                Explicit:new(ReadGroups:[new("Shared","SharedData",sharedFields.Select(f => f.Path).ToList())]),Implicit:new());
+            workspace.Load(sharedConfig.ToJson()); session = workspace.Current; session.Memory.Set("Shared.Setpoint",10f);
+            var sharedModel = new Model(sharedConfig);
+            await using var sharedClient = await EmulatorClient.ConnectAsync(sharedConfig,uri,ct);
+            var sharedSession = new ExplicitSession(sharedConfig,sharedModel,sharedClient); await sharedSession.SynchronizeOnceAsync(ct);
+            Check((float)sharedModel.Get("Shared.Setpoint") == 10f && session.Writes == 0, "bidirectional HTTP UDT batch refreshes clean values without writing defaults");
+            sharedModel.Set("Shared.Setpoint",25f); session.Memory.Set("Shared.Counts[2]",99); await sharedSession.SynchronizeOnceAsync(ct);
+            Check(session.Writes == 1 && (float)session.Memory.Read("Shared.Setpoint") == 25f && (int)sharedModel.Get("Shared.Counts[2]") == 99,
+                "bidirectional HTTP UDT read writes only the edited member and retains independent PLC edits");
+            sharedModel.Set("Shared.Setpoint",25f); await sharedSession.SynchronizeOnceAsync(ct);
+            Check(session.Writes == 1 && session.Reads == 3, "unchanged bidirectional HTTP cycles read snapshots without redundant writes");
             Console.WriteLine($"{count} emulator HTTP checks passed.");
         }
         catch (Exception failure)

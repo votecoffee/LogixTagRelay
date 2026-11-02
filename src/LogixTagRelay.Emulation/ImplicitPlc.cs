@@ -55,7 +55,7 @@ public sealed class ImplicitPlc
                     else if (received[i] != published![i] && received[i] != current[i]) conflicts++;
                 }
                 // A byte-level merge can make STRING LEN invalid. Stage all values before committing.
-                var writes = config.Fields.Where(f => f.Direction == Direction.AppToPlc).Select(f => new MemoryWrite(f.Path,
+                var writes = config.Fields.Where(f => f.CanWrite).Select(f => new MemoryWrite(f.Path,
                     PlcTypes.Decode(f, current.AsSpan(f.Offset)), PlcTypes.Decode(f, received.AsSpan(f.Offset)))).ToArray();
                 memory.Apply(writes, "API implicit", fromApi: true);
             }

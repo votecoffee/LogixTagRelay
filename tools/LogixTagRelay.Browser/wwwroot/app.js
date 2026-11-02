@@ -13,11 +13,13 @@ async function post(url, body, json = true) {
 function count() { $('summary').textContent = `${selected.size} selection${selected.size === 1 ? '' : 's'}`; $('generate').disabled = selected.size === 0; }
 function supported(node) { return !node.unsupportedReason && (node.children.length ? node.children.every(supported) : node.stringCapacity > 0 || ['BOOL','SINT','INT','DINT','LINT','REAL'].includes(node.dataType)); }
 function writable(node) { return node.access === 'Read/Write' && node.children.every(writable); }
+function shareable(node) { return node.children.length ? node.children.some(shareable) : node.access === 'Read/Write'; }
 function render() {
   const target = $('catalog'); target.replaceChildren();
   const filter = $('filter').value.toLowerCase();
   function matches(node) { return `${node.path} ${node.dataType}`.toLowerCase().includes(filter) || node.children.some(matches); }
   function nodeUi(node, parentDirection = null) {
+    if (parentDirection === 'Bidirectional' && !shareable(node)) parentDirection = 'PlcToApp';
     const parentSelected = Boolean(parentDirection);
     if (filter && !matches(node)) return null;
     const box = document.createElement('div'); box.className = 'node';
@@ -26,8 +28,8 @@ function render() {
     const label = document.createElement('label'); label.textContent = node.name;
     const type = document.createElement('span'); type.className = 'type'; type.textContent = node.isArray ? `${node.dataType}[${(node.dimensions || [node.children.length]).join(',')}]` : node.stringCapacity ? `${node.dataType} · ${node.stringCapacity} bytes` : node.dataType;
     const direction = document.createElement('select'); direction.setAttribute('aria-label', `Direction for ${node.path}`);
-    for (const [value, text] of [['PlcToApp','PLC → app'], ['AppToPlc','App → PLC']]) { const option = new Option(text, value); if (value === 'AppToPlc' && !writable(node)) option.disabled = true; direction.add(option); }
-    direction.value = parentDirection || selected.get(node.path) || 'PlcToApp'; direction.disabled = parentSelected;
+    for (const [value, text] of [['PlcToApp','PLC → app'], ['AppToPlc','App → PLC'], ['Bidirectional','PLC ↔ app']]) { const option = new Option(text, value); if ((value === 'AppToPlc' && !writable(node)) || (value === 'Bidirectional' && !shareable(node))) option.disabled = true; direction.add(option); }
+    direction.value = parentDirection || selected.get(node.path) || (shareable(node) ? 'Bidirectional' : 'PlcToApp'); direction.disabled = parentSelected;
     function removeChildren(n) { for (const child of n.children) { selected.delete(child.path); removeChildren(child); } }
     check.onchange = () => { if (check.checked) { removeChildren(node); selected.set(node.path, direction.value); } else selected.delete(node.path); count(); render(); };
     direction.onchange = () => { if (selected.has(node.path)) { selected.set(node.path, direction.value); render(); } };

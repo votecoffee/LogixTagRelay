@@ -8,13 +8,19 @@ public interface IExplicitTransport : IAsyncDisposable
     ValueTask WriteAsync(string path, PlcType type, object value, CancellationToken cancellationToken);
     ValueTask<object> ReadAsync(FieldMap field, CancellationToken cancellationToken) => ReadAsync(field.Path, field.Type, cancellationToken);
     ValueTask WriteAsync(FieldMap field, object value, CancellationToken cancellationToken) => WriteAsync(field.Path, field.Type, value, cancellationToken);
+    async ValueTask<IReadOnlyList<object>> ReadBatchAsync(IReadOnlyList<FieldMap> fields, IReadOnlyList<ExplicitReadGroup> groups, CancellationToken cancellationToken)
+    {
+        var values = new List<object>(fields.Count);
+        foreach (var field in fields) values.Add(await ReadAsync(field, cancellationToken).ConfigureAwait(false));
+        return values;
+    }
 }
 
 /// <summary>Single serialized group. Owns no transport lifetime; the caller disposes its transport.</summary>
 public sealed class ExplicitSession
 {
     private readonly SyncConfiguration config;
-    private readonly IPlcModel model;
+    private readonly IReadOnlyList<IPlcVariable> variables;
     private readonly IExplicitTransport transport;
     private readonly SemaphoreSlim cycleGate = new(1, 1);
     private int running;
@@ -25,7 +31,7 @@ public sealed class ExplicitSession
     public ExplicitSession(SyncConfiguration config, IPlcModel model, IExplicitTransport transport)
     {
         ModelValidation.Validate(config, model);
-        this.config = config; this.model = model; this.transport = transport;
+        this.config = SyncConfiguration.FromJson(config.ToJson()); variables = model.Variables.ToArray(); this.transport = transport;
     }
     public async Task SynchronizeOnceAsync(CancellationToken cancellationToken = default)
     {
@@ -34,20 +40,25 @@ public sealed class ExplicitSession
         {
             // Stage ALL reads before publishing them. No multi-tag PLC atomicity is implied.
             var reads = new List<(IPlcVariable Variable, object Value)>();
-            foreach (var variable in model.Variables)
+            var values = await transport.ReadBatchAsync(config.Fields, config.Explicit?.ReadGroups ?? [], cancellationToken).ConfigureAwait(false);
+            if (values.Count != variables.Count) throw new FormatException("Explicit read batch does not match the contract.");
+            for (int i = 0; i < variables.Count; i++)
             {
-                var value = await transport.ReadAsync(variable.Map, cancellationToken).ConfigureAwait(false);
-                if (variable.Map.Type == PlcType.STRING) PlcTypes.ValidateString((string)value, variable.Map.StringCapacity);
+                var variable = variables[i]; var value = values[i];
+                PlcTypes.Encode(variable.Map, value, new byte[variable.Map.WireBytes]);
                 reads.Add((variable, value));
             }
             var time = DateTimeOffset.UtcNow;
             foreach (var (variable, value) in reads) variable.Observe(value, time);
-            foreach (var variable in model.Variables.Where(v => v.Map.Direction == Direction.AppToPlc && v.Dirty))
+            foreach (var variable in variables.Where(v => v.Map.CanWrite))
             {
-                var captured = variable.Capture();
+                var captured = variable.CaptureForMerge();
+                if (!captured.Dirty) continue;
                 try
                 {
-                    await transport.WriteAsync(variable.Map, captured.Value, cancellationToken).ConfigureAwait(false);
+                    // A fresh PLC read already equal to the desired member needs no network write.
+                    if (!Equals(variable.PlcValue, captured.Value))
+                        await transport.WriteAsync(variable.Map, captured.Value, cancellationToken).ConfigureAwait(false);
                     variable.AcceptWrite(captured.Version, DateTimeOffset.UtcNow);
                 }
                 catch { variable.MarkBad(); throw; }
@@ -55,7 +66,7 @@ public sealed class ExplicitSession
         }
         catch
         {
-            foreach (var variable in model.Variables) variable.MarkBad();
+            foreach (var variable in variables) variable.MarkBad();
             throw;
         }
         finally { cycleGate.Release(); }

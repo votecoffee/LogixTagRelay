@@ -71,7 +71,7 @@ internal static class L5xGenerator
             mergedValid += $"GEQ({p}_StringLen{i},0)LEQ({p}_StringLen{i},{strings[i].StringCapacity})";
         }
         R($"{mergedValid}OTE({p}_MergedValid);", "Validate merged STRING LENs before changing any destination. Invalid merges are not applied or acknowledged.");
-        foreach (var f in config.Fields.Where(f => f.Direction == Direction.AppToPlc))
+        foreach (var f in config.Fields.Where(f => f.CanWrite))
         {
             string path = PathOf(f), gate = $"XIC({p}_MergedValid)"; int offset = f.Offset - 24;
             if (f.Type == PlcType.BOOL)

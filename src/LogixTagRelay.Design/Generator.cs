@@ -34,7 +34,8 @@ public static partial class Generator
             foreach (var leaf in node.Leaves())
             {
                 var type = leaf.AtomicType ?? throw new ArgumentException("Selection has no supported leaf type.");
-                var field = new FieldMap(leaf.Path, type, direction, imageBytes, leaf.Access, leaf.StringCapacity);
+                var leafDirection = direction == Direction.Bidirectional && leaf.Access == "Read Only" ? Direction.PlcToApp : direction;
+                var field = new FieldMap(leaf.Path, type, leafDirection, imageBytes, leaf.Access, leaf.StringCapacity);
                 fields.Add(field);
                 imageBytes += ((field.WireBytes + 3) / 4 * 4);
             }
@@ -42,8 +43,20 @@ public static partial class Generator
         if (assemblyBytes != 0 && (assemblyBytes < imageBytes || assemblyBytes % 4 != 0))
             throw new ArgumentException($"Assembly length must be a multiple of 4 and at least {imageBytes} bytes for this contract.");
         imageBytes = Math.Max(imageBytes, assemblyBytes);
+        var readGroups = new List<ExplicitReadGroup>();
+        void Group(TagNode node)
+        {
+            if (node.IsArray) { foreach (var child in node.Children) Group(child); return; }
+            if (node.Children.Count == 0) return;
+            // BOOL array leaves use the driver's explicit bit addressing rather than a guessed packed layout.
+            var members = node.Leaves().Where(n => !(n.AtomicType == PlcType.BOOL && n.Path.EndsWith(']'))).Select(n => n.Path).ToList();
+            if (members.Count > 0) readGroups.Add(new(node.Path, node.DataType, members));
+        }
+        foreach (var (node, _) in nodes) Group(node);
+        var explicitConfig = explicitOptions ?? new();
+        explicitConfig = explicitConfig with { ReadGroups = explicitConfig.ReadGroups ?? readGroups };
         var config = new SyncConfiguration(SyncConfiguration.ComputeHash(fields), fields, imageBytes, imageBytes,
-            Explicit: explicitOptions ?? new(), Implicit: includeImplicit ? new() : null);
+            Explicit: explicitConfig, Implicit: includeImplicit ? new() : null);
         config.Validate(); // Includes duplicate parent/child selections and incompatible access.
         foreach (var path in new[] { config.Explicit!.TriggerTag, config.Explicit.MirrorTag, config.Explicit.ResponseTag }.Where(p => p != null))
         {

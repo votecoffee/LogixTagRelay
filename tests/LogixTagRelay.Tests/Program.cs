@@ -109,6 +109,7 @@ using (var cancel = new CancellationTokenSource())
 Check(OpenerAdapter.NativeAbiVersion == 1, "real native DLL loads through PInvoke without opening network ports");
 await TriggerTests.Run(bundle.Configuration, Check);
 await EmulationTests.Run(bundle, Check);
+await BidirectionalTests.Run(Check);
 var aoiXml = XDocument.Parse(SintMergeAoi.GenerateL5x());
 Check(aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").Count() == 3 &&
     aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").All(p => (string?)p.Attribute("DataType") == "SINT" && (string?)p.Attribute("Dimensions") == "1"), "merge AOI exposes exactly three arbitrary-size SINT InOut arrays");
@@ -254,6 +255,13 @@ if (args.Length == 2 && args[0] == "--export-aoi")
 {
     Directory.CreateDirectory(args[1]);
     await File.WriteAllTextAsync(Path.Combine(args[1], "LTR_SintMerge.L5X"), SintMergeAoi.GenerateL5x(), new UTF8Encoding(false));
+}
+if (args.Length == 2 && args[0] == "--generate-bidirectional")
+{
+    var shared = BidirectionalTests.Bundle(); Directory.CreateDirectory(args[1]);
+    await File.WriteAllTextAsync(Path.Combine(args[1],"GeneratedTags.g.cs"),shared.ModelCs,new UTF8Encoding(false));
+    await File.WriteAllTextAsync(Path.Combine(args[1],"logixrelay.json"),shared.Configuration.ToJson(),new UTF8Encoding(false));
+    await File.WriteAllTextAsync(Path.Combine(args[1],"RelayRoutine.L5X"),shared.RoutineL5x,new UTF8Encoding(false));
 }
 if (args.Length == 2 && args[0] == "--generate-emulation")
 {

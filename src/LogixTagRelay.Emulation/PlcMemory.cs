@@ -30,7 +30,7 @@ public sealed class PlcMemory
     public PlcMemory(SyncConfiguration configuration)
     {
         config = SyncConfiguration.FromJson(configuration.ToJson());
-        foreach (var field in config.Fields) entries.Add(field.Path, new(field, "Data", field.Direction == Direction.AppToPlc));
+        foreach (var field in config.Fields) entries.Add(field.Path, new(field, "Data", field.CanWrite));
         var options = config.Explicit;
         void Control(string? path, string role, bool writable)
         {

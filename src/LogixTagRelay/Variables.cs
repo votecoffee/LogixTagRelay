@@ -34,9 +34,15 @@ public sealed class PlcVariable<T>(FieldMap map) : IPlcVariable
         get { lock (gate) return value; }
         set
         {
-            if (Map.Direction != Direction.AppToPlc) throw new InvalidOperationException("PLC owns this variable.");
+            if (!Map.CanWrite) throw new InvalidOperationException("This contract member is read-only to the application.");
             if (Map.Type == PlcType.STRING) PlcTypes.ValidateString((string)(object)value!, Map.StringCapacity);
-            lock (gate) { this.value = value; version++; }
+            lock (gate)
+            {
+                // First assignment is intentional even when it equals an unknown CLR default.
+                bool reassertCommand = Map.Direction == Direction.AppToPlc && version == acceptedVersion && plcValue is T observed && !EqualityComparer<T>.Default.Equals(observed, value);
+                if (EqualityComparer<T>.Default.Equals(this.value, value) && (version != 0 || plcValue is not null) && !reassertCommand) return;
+                this.value = value; version++;
+            }
         }
     }
     public object BoxedValue => Value!;
@@ -52,7 +58,7 @@ public sealed class PlcVariable<T>(FieldMap map) : IPlcVariable
     public (object Value, long Version, bool Dirty) CaptureForMerge() { lock (gate) return (value!, version, version != acceptedVersion); }
     public void AcceptRead(object newValue, DateTimeOffset time)
     {
-        if (Map.Direction != Direction.PlcToApp) throw new InvalidOperationException("App owns this variable.");
+        if (Map.Direction == Direction.AppToPlc) throw new InvalidOperationException("Use Observe for command readback.");
         Observe(newValue, time);
     }
     public void Observe(object newValue, DateTimeOffset time)
@@ -62,7 +68,8 @@ public sealed class PlcVariable<T>(FieldMap map) : IPlcVariable
         {
             plcValue = (T)newValue;
             plcTimestamp = time;
-            if (Map.Direction == Direction.PlcToApp) { value = (T)newValue; quality = Quality.Good; timestamp = time; }
+            if (Map.Direction == Direction.PlcToApp || (Map.Direction == Direction.Bidirectional && version == acceptedVersion))
+            { value = (T)newValue; quality = Quality.Good; timestamp = time; }
         }
     }
     public void AcceptWrite(long writtenVersion, DateTimeOffset time)

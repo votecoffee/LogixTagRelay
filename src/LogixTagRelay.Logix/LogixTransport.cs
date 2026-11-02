@@ -4,12 +4,34 @@ using RelayType = LogixTagRelay.PlcType;
 
 namespace LogixTagRelay.Logix;
 
-/// <summary>Explicit symbolic reads/writes. Each leaf is a separately addressed Logix tag/member.</summary>
+/// <summary>Grouped UDT snapshots with individually addressed dirty-member writes.</summary>
 public sealed class LogixTransport(string gateway, string route = "1,0", int timeoutMs = 5000) : IExplicitTransport
 {
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly Dictionary<string, NativeTag> tags = new(StringComparer.OrdinalIgnoreCase);
     private bool disposed;
+    private LogixUdtReader? udtReader;
+    private async ValueTask<byte[]> ReadRawAsync(string path, CancellationToken ct)
+    {
+        var tag = await GetAsync(path, ct).ConfigureAwait(false);
+        await tag.ReadAsync(ct).ConfigureAwait(false); return tag.GetBuffer();
+    }
+    public async ValueTask<IReadOnlyList<object>> ReadBatchAsync(IReadOnlyList<FieldMap> fields, IReadOnlyList<ExplicitReadGroup> groups, CancellationToken cancellationToken)
+    {
+        ExplicitReads.Validate(fields, groups);
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            udtReader ??= new(ReadRawAsync);
+            var values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (var group in groups)
+                foreach (var pair in await udtReader.ReadAsync(group, fields, cancellationToken).ConfigureAwait(false)) values.Add(pair.Key, pair.Value);
+            foreach (var field in fields.Where(f => !values.ContainsKey(f.Path))) values.Add(field.Path, await ReadFieldAsync(field, cancellationToken).ConfigureAwait(false));
+            return fields.Select(f => values[f.Path]).ToArray();
+        }
+        finally { gate.Release(); }
+    }
     internal NativeTag Create(string path) => new()
     {
         Name = path, Gateway = gateway, Path = route, PlcType = libplctag.PlcType.ControlLogix,
@@ -33,17 +55,21 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var tag = await GetAsync(field.Path, cancellationToken).ConfigureAwait(false);
-            await tag.ReadAsync(cancellationToken).ConfigureAwait(false);
-            if (field.Type == RelayType.STRING) return LogixStringBuffer.Decode(field, tag.GetBuffer());
-            return field.Type switch
-            {
-                RelayType.BOOL => tag.GetBit(0), RelayType.SINT => tag.GetInt8(0), RelayType.INT => tag.GetInt16(0),
-                RelayType.DINT => tag.GetInt32(0), RelayType.LINT => tag.GetInt64(0), RelayType.REAL => tag.GetFloat32(0),
-                _ => throw new ArgumentOutOfRangeException(nameof(field))
-            };
+            return await ReadFieldAsync(field, cancellationToken).ConfigureAwait(false);
         }
         finally { gate.Release(); }
+    }
+    private async ValueTask<object> ReadFieldAsync(FieldMap field, CancellationToken cancellationToken)
+    {
+        var tag = await GetAsync(LogixAddress.SymbolicPath(field), cancellationToken).ConfigureAwait(false);
+        await tag.ReadAsync(cancellationToken).ConfigureAwait(false);
+        if (field.Type == RelayType.STRING) return LogixStringBuffer.Decode(field, tag.GetBuffer());
+        return field.Type switch
+        {
+            RelayType.BOOL => tag.GetInt8(0) != 0, RelayType.SINT => tag.GetInt8(0), RelayType.INT => tag.GetInt16(0),
+            RelayType.DINT => tag.GetInt32(0), RelayType.LINT => tag.GetInt64(0), RelayType.REAL => tag.GetFloat32(0),
+            _ => throw new ArgumentOutOfRangeException(nameof(field))
+        };
     }
     public ValueTask WriteAsync(string path, RelayType type, object value, CancellationToken cancellationToken) =>
         WriteAsync(new FieldMap(path, type, Direction.AppToPlc, 24, StringCapacity: type == RelayType.STRING ? 82 : 0), value, cancellationToken);
@@ -53,7 +79,7 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
         try
         {
             if (field.Type == RelayType.STRING) PlcTypes.ValidateString((string)value, field.StringCapacity);
-            var tag = await GetAsync(field.Path, cancellationToken).ConfigureAwait(false);
+            var tag = await GetAsync(LogixAddress.SymbolicPath(field), cancellationToken).ConfigureAwait(false);
             if (field.Type == RelayType.STRING)
             {
                 await tag.ReadAsync(cancellationToken).ConfigureAwait(false);
@@ -61,7 +87,7 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
             }
             else switch (field.Type)
             {
-                case RelayType.BOOL: tag.SetBit(0, (bool)value); break;
+                case RelayType.BOOL: tag.SetInt8(0, (sbyte)((bool)value ? 1 : 0)); break;
                 case RelayType.SINT: tag.SetInt8(0, (sbyte)value); break;
                 case RelayType.INT: tag.SetInt16(0, (short)value); break;
                 case RelayType.DINT: tag.SetInt32(0, (int)value); break;

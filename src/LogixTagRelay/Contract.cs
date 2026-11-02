@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace LogixTagRelay;
 
-public enum Direction { PlcToApp, AppToPlc }
+public enum Direction { PlcToApp, AppToPlc, Bidirectional }
 public enum PlcType { BOOL, SINT, INT, DINT, LINT, REAL, STRING }
 public enum Quality { Unknown, Good, Bad }
 
@@ -76,9 +76,12 @@ public static class PlcTypes
 public sealed record FieldMap(string Path, PlcType Type, Direction Direction, int Offset, string Access = "Read/Write", int StringCapacity = 0)
 {
     [JsonIgnore] public int WireBytes => PlcTypes.Size(Type, StringCapacity);
+    [JsonIgnore] public bool CanWrite => (Direction is Direction.AppToPlc or Direction.Bidirectional) && Access == "Read/Write";
 }
+public sealed record ExplicitReadGroup(string Path, string DataType, List<string> Fields);
 public sealed record ExplicitOptions(int IntervalMs = 100, string? TriggerTag = null, int TriggerPollMs = 20,
-    string? AcknowledgeTag = null, string? HandledTriggerTag = null, string? ResponseTag = null)
+    string? AcknowledgeTag = null, string? HandledTriggerTag = null, string? ResponseTag = null,
+    List<ExplicitReadGroup>? ReadGroups = null)
 {
     // AcknowledgeTag is the original API name for the exact handled-trigger mirror.
     [JsonIgnore] public string? MirrorTag => HandledTriggerTag ?? AcknowledgeTag;
@@ -134,7 +137,7 @@ public sealed record SyncConfiguration(string SchemaHash, List<FieldMap> Fields,
                 throw new FormatException("Invalid or duplicate field mapping.");
             if ((field.Type == PlcType.STRING && field.StringCapacity is < 1 or > 65535) ||
                 (field.Type != PlcType.STRING && field.StringCapacity != 0)) throw new FormatException("Invalid STRING capacity metadata.");
-            if (field.Access == "None" || (field.Direction == Direction.AppToPlc && field.Access != "Read/Write"))
+            if (field.Access == "None" || (field.Direction != Direction.PlcToApp && field.Access != "Read/Write"))
                 throw new FormatException($"External access prevents mapping {field.Path}.");
             int size = field.Direction == Direction.PlcToApp ? PlcToAppBytes : AppToPlcBytes;
             if ((long)field.Offset + field.WireBytes > size) throw new FormatException("Field exceeds assembly.");
@@ -147,6 +150,7 @@ public sealed record SyncConfiguration(string SchemaHash, List<FieldMap> Fields,
         }
         if (Explicit is { } e)
         {
+            ExplicitReads.Validate(Fields, e.ReadGroups ?? []);
             if (e.IntervalMs <= 0 || e.TriggerPollMs <= 0 ||
                 (e.TriggerTag == null && (e.MirrorTag != null || e.ResponseTag != null)) ||
                 (e.AcknowledgeTag != null && e.HandledTriggerTag != null && !e.AcknowledgeTag.Equals(e.HandledTriggerTag, StringComparison.OrdinalIgnoreCase)))

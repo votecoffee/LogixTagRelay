@@ -6,6 +6,8 @@ namespace LogixTagRelay.Emulation;
 public sealed record EmulationContract(Guid InstanceId, string Fingerprint, string ConfigurationJson);
 public sealed record ClientTagRequest(Guid InstanceId, string Fingerprint, string Path, PlcType Type, string? Value = null);
 public sealed record ClientImageRequest(Guid InstanceId, string Fingerprint, byte[] Frame);
+public sealed record ClientReadRequest(Guid InstanceId, string Fingerprint, List<FieldMap> Fields, List<ExplicitReadGroup> Groups);
+public sealed record ReadReply(List<string> Values);
 public sealed record TagReply(string Value);
 public sealed record ImageReply(byte[] Frame);
 
@@ -82,6 +84,14 @@ public sealed class EmulatorClient : IExplicitTransport
         if (config.Implicit is null) throw new InvalidOperationException("Contract has no implicit settings.");
         var reply = await PostAsync<ClientImageRequest, ImageReply>("api/client/exchange", new(contract.InstanceId, contract.Fingerprint, frame), cancellationToken).ConfigureAwait(false);
         return reply.Frame;
+    }
+    public async ValueTask<IReadOnlyList<object>> ReadBatchAsync(IReadOnlyList<FieldMap> fields, IReadOnlyList<ExplicitReadGroup> groups, CancellationToken cancellationToken)
+    {
+        ExplicitReads.Validate(fields, groups);
+        foreach (var field in fields) if (Field(field.Path, field.Type) != field) throw new ArgumentException("Read batch differs from the configured mapping.");
+        var reply = await PostAsync<ClientReadRequest, ReadReply>("api/client/read-batch", new(contract.InstanceId, contract.Fingerprint, fields.ToList(), groups.ToList()), cancellationToken).ConfigureAwait(false);
+        if (reply.Values.Count != fields.Count) throw new IOException("Emulator returned an incomplete read batch.");
+        return reply.Values.Select((value, i) => TagText.Parse(fields[i], value)).ToArray();
     }
     public async Task RunImplicitAsync(IPlcModel model, CancellationToken cancellationToken)
     {
