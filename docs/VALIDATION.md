@@ -79,6 +79,10 @@ Validation date: November 2, 2026. Version 0.6 preview; offline and loopback emu
 - `TypesAndEventsDemo` compiles the generated contract and runs both transports. Each
   reports nine actual value transitions while identical cycles emit no value events.
   A fixed contract collection does not emit structural events for element value changes.
+- A fresh 0.6 consumer restores all five packages into a separate cache, compiles
+  the new generated model in its own contract library and exercises both transports.
+  Unsigned/temporal values and generated events pass alongside native ABI 1 and embedded
+  AOI loading. The published emulator independently passes the same 21 HTTP checks.
 
 ## Required native/controller acceptance
 
