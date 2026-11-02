@@ -27,8 +27,10 @@ Validation date: November 2, 2026. Version 0.5 preview; offline and loopback emu
   a complete output image and loads native ABI 1. Generated types compile into a separate
   contract class library referenced by the consuming app; all five packages restore,
   including the Design package's embedded ST resource and Emulation's Jint dependency.
-  The 0.4 consumer runs scripted motion through explicit and implicit memory transports. This test
-  starts no EtherNet/IP listeners.
+  The 0.5 consumer exercises bidirectional UDTs through explicit and implicit memory
+  transports. A fresh package client also reads GUI values through HTTP, edits one UDT
+  member and preserves an independent PLC-side array change: three read batches,
+  exactly one member write. These checks start no EtherNet/IP listeners.
 - Additional checks cover counted STRING data (null and 8-bit bytes), capacities through
   65535, native tail preservation, invalid LEN and late-image rejection, compiler-generated
   rectangular-array models, full-image echo, immutable pending commands and duplicate acknowledgements.
