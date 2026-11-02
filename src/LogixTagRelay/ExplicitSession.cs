@@ -48,6 +48,7 @@ public sealed class ExplicitSession
             // Stage ALL reads before publishing them. No multi-tag PLC atomicity is implied.
             var reads = new List<(IPlcVariable Variable, object Value)>();
             var values = await transport.ReadBatchAsync(config.Fields, config.Explicit?.ReadGroups ?? [], cancellationToken).ConfigureAwait(false);
+            Diagnostics.Contact();
             if (values.Count != variables.Count) throw new FormatException("Explicit read batch does not match the contract.");
             for (int i = 0; i < variables.Count; i++)
             {

@@ -8,7 +8,7 @@ public sealed record ContractProject(string Name, List<TagSelection> Selections,
     string? SourceL5x = null, string? SourceSha256 = null, string Namespace = "LogixTagRelay.Generated",
     string ClassName = "GeneratedTags", bool IncludeImplicit = true, string ModuleName = "LogixRelay",
     string SoftwareRevision = "", int AssemblyBytes = 0, ExplicitOptions? Explicit = null,
-    ImplicitOptions? Implicit = null, string Gateway = "192.168.1.10", string Route = "1,0", int Version = 1)
+    ImplicitOptions? Implicit = null, string Gateway = "192.168.1.10", string Route = "1,0", string PcAddress = "192.168.1.200", int Version = 1)
 {
     public string ToJson() => JsonSerializer.Serialize(this, SyncConfiguration.Json) + "\n";
     public static ContractProject FromJson(string json)
@@ -46,12 +46,12 @@ public sealed record ContractProject(string Name, List<TagSelection> Selections,
         config.Validate();
         // Regenerate module references using the final assembly choices. Payload layout stays unchanged.
         string revision = string.IsNullOrEmpty(SoftwareRevision) ? catalog!.SoftwareRevision : SoftwareRevision;
-        string model = bundle.ModelCs.Replace("namespace LogixTagRelay.Generated;", $"namespace {Namespace};", StringComparison.Ordinal)
+        string model = bundle.ModelCs.Replace(JsonSerializer.Serialize(bundle.Configuration.ToJson()), JsonSerializer.Serialize(config.ToJson()), StringComparison.Ordinal).Replace("namespace LogixTagRelay.Generated;", $"namespace {Namespace};", StringComparison.Ordinal)
             .Replace("class GeneratedTags :", $"class {ClassName} :", StringComparison.Ordinal)
             .Replace("public GeneratedTags()", $"public {ClassName}()", StringComparison.Ordinal);
         return bundle with { ModelCs = model, Configuration = config,
             RoutineL5x = IncludeImplicit ? L5xGenerator.Generate(config, ModuleName, revision) : "",
-            ModuleInstructions = bundle.ModuleInstructions };
+            ModuleInstructions = bundle.ModuleInstructions.Replace("IP address: the PC NIC serving the adapter (not the PLC IP)", $"IP address: {PcAddress} (PC adapter NIC; not the PLC)", StringComparison.Ordinal) };
     }
     private static readonly HashSet<string> Keywords = new(("abstract as base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while record required file").Split(' '), StringComparer.Ordinal);
 }

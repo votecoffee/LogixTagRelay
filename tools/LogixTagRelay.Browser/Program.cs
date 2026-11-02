@@ -5,8 +5,10 @@ using LogixTagRelay.Design;
 using LogixTagRelay.Logix;
 using LogixTagRelay;
 
-var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls("http://127.0.0.1:5274");
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory });
+bool selfTest = args.Contains("--self-test");
+builder.WebHost.UseUrls(selfTest ? "http://127.0.0.1:0" : "http://127.0.0.1:5274");
+if (selfTest) builder.Services.AddHostedService<BrowserSelfTest>();
 builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 16 * 1024 * 1024);
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 var app = builder.Build();
@@ -17,7 +19,7 @@ app.Use(async (context, next) =>
     if (context.Request.Method == "POST" && context.Request.Headers["X-LogixTagRelay"] != "browser")
     { context.Response.StatusCode = 403; return; }
     try { await next(); }
-    catch (Exception error) when (error is ArgumentException or FormatException or System.Xml.XmlException or InvalidOperationException)
+    catch (Exception error) when (error is ArgumentException or FormatException or System.Xml.XmlException or InvalidOperationException or System.Text.Json.JsonException)
     { context.Response.StatusCode = 400; await context.Response.WriteAsJsonAsync(new { error = error.Message }); }
     catch (Exception error) when (error is IOException or libplctag.LibPlcTagException or OperationCanceledException)
     { context.Response.StatusCode = 502; await context.Response.WriteAsJsonAsync(new { error = error.Message }); }
@@ -40,8 +42,10 @@ app.MapPost("/api/module-template", async (HttpRequest request) =>
     var bytes = stream.ToArray();
     return Results.Json(new { info = ModuleTemplate.Inspect(bytes), templateBase64 = Convert.ToBase64String(bytes) });
 });
-app.MapPost("/api/project", (ContractProject request) =>
+app.MapPost("/api/project", async (HttpRequest http, CancellationToken ct) =>
 {
+    using var reader = new StreamReader(http.Body);
+    var request = ContractProject.FromJson(await reader.ReadToEndAsync(ct));
     if (request.Catalog is null) throw new ArgumentException("Browser projects require an embedded catalog. Use the build CLI for sourceL5x projects.");
     var bundle = request.Generate();
     return Results.Json(new { project = request, catalog = request.Catalog, configuration = bundle.Configuration });
@@ -50,7 +54,7 @@ app.MapPost("/api/generate", (GenerateRequest request) =>
 {
     var project = new ContractProject(request.ProjectName, request.Selections, request.Catalog, Namespace: request.Namespace, ClassName: request.ClassName,
         IncludeImplicit: request.Implicit, ModuleName: request.ModuleName, SoftwareRevision: request.SoftwareRevision, AssemblyBytes: request.AssemblyBytes,
-        Explicit: request.Explicit, Implicit: request.AssemblyOptions, Gateway: request.Gateway, Route: request.Route);
+        Explicit: request.Explicit, Implicit: request.AssemblyOptions, Gateway: request.Gateway, Route: request.Route, PcAddress: request.PcAddress);
     var bundle = project.Generate();
     ModuleImport? module = request.Implicit && request.ModuleTemplateBase64 != null ?
         ModuleTemplate.Generate(Convert.FromBase64String(request.ModuleTemplateBase64), bundle.Configuration, request.ModuleName, request.PcAddress) : null;

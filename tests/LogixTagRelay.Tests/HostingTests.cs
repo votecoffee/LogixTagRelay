@@ -90,6 +90,14 @@ static class HostingTests
             check(broken.Diagnostics.Snapshot.Recoveries == 0 && healthy.Diagnostics.Snapshot.State == SessionState.Running, "non-transient faults do not retry or stop unrelated contracts");
             stop.Cancel(); try { await run; } catch (FormatException) { }
         }
+        int timeoutAttempts = 0;
+        var timeoutSession = new ExplicitContractSession(otherConfig, new TestModel(otherConfig), _ => ValueTask.FromResult<IExplicitTransport>(new FaultTransport(otherMemory, cancelRead: Interlocked.Increment(ref timeoutAttempts) == 1)), retry);
+        using (var stop = new CancellationTokenSource())
+        {
+            var run = timeoutSession.RunAsync(stop.Token); await Until(() => timeoutSession.Diagnostics.Snapshot.SuccessfulUpdates > 0);
+            check(timeoutSession.Diagnostics.Snapshot.Recoveries == 1 && timeoutAttempts == 2, "transport-local cancellation/timeouts recover without treating them as user shutdown");
+            stop.Cancel(); await run;
+        }
         var deadlineSession = new ExplicitSession(otherConfig with { Explicit = new(IntervalMs: 1) }, new TestModel(otherConfig), new DelayedTransport(otherMemory));
         deadlineSession.Diagnostics.Changed += (_,_) => throw new Exception("Observer failure");
         await deadlineSession.SynchronizeOnceAsync();
@@ -122,10 +130,10 @@ static class HostingTests
         public ValueTask WriteAsync(string path, PlcType type, object value, CancellationToken ct) => ValueTask.CompletedTask;
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
-    private sealed class FaultTransport(PlcMemory memory, bool failRead = false, bool failMirror = false, Action? dataWrite = null) : IExplicitTransport
+    private sealed class FaultTransport(PlcMemory memory, bool failRead = false, bool failMirror = false, Action? dataWrite = null, bool cancelRead = false) : IExplicitTransport
     {
         private readonly MemoryExplicitTransport inner = new(memory);
-        public ValueTask<object> ReadAsync(string path, PlcType type, CancellationToken ct) => failRead ? ValueTask.FromException<object>(new IOException("Read interrupted")) : inner.ReadAsync(path, type, ct);
+        public ValueTask<object> ReadAsync(string path, PlcType type, CancellationToken ct) => cancelRead ? ValueTask.FromException<object>(new TaskCanceledException("Transport timed out")) : failRead ? ValueTask.FromException<object>(new IOException("Read interrupted")) : inner.ReadAsync(path, type, ct);
         public ValueTask WriteAsync(string path, PlcType type, object value, CancellationToken ct)
         {
             if (failMirror && path == "Handled") return ValueTask.FromException(new IOException("Receipt interrupted"));

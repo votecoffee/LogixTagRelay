@@ -19,7 +19,9 @@ feed until publication):
 
 Normal `dotnet build` generates source under `obj/.../LogixTagRelay`, compiles it into
 the class library, and copies JSON to `contracts/<project-file-stem>/logixrelay.json`
-under its output directory. Consumers reference that library for ordinary compiler
+under its output directory and propagates it to referencing applications. The generated
+class also exposes `CreateConfiguration()` with its embedded matching configuration.
+Consumers reference that library for ordinary compiler
 checking and IntelliSense. Do not also compile a downloaded manual GeneratedTags.cs.
 Use distinct file stems and namespaces for multiple contract projects in one library.
 

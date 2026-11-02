@@ -8,9 +8,9 @@ public static class BuiltInTypes
     {
         if (!IsTimerOrCounter(type)) throw new ArgumentException("Expected TIMER or COUNTER.");
         var children = new List<TagNode>();
-        foreach (string member in new[] { "PRE", "ACC" }) children.Add(new(member, path + "." + member, "DINT", access, []));
+        foreach (string member in new[] { "PRE", "ACC" }) children.Add(new(member, path + "." + member, "DINT", access, [], UnsupportedReason: access == "None" ? "ExternalAccess=None" : null));
         foreach (string member in type == "TIMER" ? new[] { "EN", "TT", "DN" } : new[] { "CU", "CD", "DN", "OV", "UN" })
-            children.Add(new(member, path + "." + member, "BOOL", access == "None" ? "None" : access == "Unknown" ? "Unknown" : "Read Only", []));
+            children.Add(new(member, path + "." + member, "BOOL", access == "None" ? "None" : access == "Unknown" ? "Unknown" : "Read Only", [], UnsupportedReason: access == "None" ? "ExternalAccess=None" : null));
         return new(name, path, type, access, children);
     }
 }

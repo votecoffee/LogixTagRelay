@@ -2,13 +2,13 @@
   <PropertyGroup>
     <_LogixTagRelayGenerator Condition="'$(_LogixTagRelayGenerator)' == ''">$(MSBuildThisFileDirectory)../tools/net8.0/any/LogixTagRelay.Build.dll</_LogixTagRelayGenerator>
   </PropertyGroup>
-  <Target Name="GenerateLogixContracts" BeforeTargets="CoreCompile" Condition="'@(LogixContract)' != ''">
+  <Target Name="GenerateLogixContracts" BeforeTargets="AssignTargetPaths;CoreCompile" Condition="'@(LogixContract)' != ''">
     <PropertyGroup><_LogixTagRelayOutput>$(IntermediateOutputPath)LogixTagRelay/</_LogixTagRelayOutput></PropertyGroup>
     <Exec Command="dotnet &quot;$(_LogixTagRelayGenerator)&quot; generate &quot;%(LogixContract.FullPath)&quot; &quot;$(_LogixTagRelayOutput)%(LogixContract.Filename)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
     <ItemGroup>
       <Compile Include="@(LogixContract->'$(_LogixTagRelayOutput)%(Filename)/GeneratedTags.g.cs')" />
 
+      <None Include="$(_LogixTagRelayOutput)%(LogixContract.Filename)/logixrelay.json" CopyToOutputDirectory="PreserveNewest" TargetPath="contracts/%(LogixContract.Filename)/logixrelay.json" />
     </ItemGroup>
-    <Copy SourceFiles="$(_LogixTagRelayOutput)%(LogixContract.Filename)/logixrelay.json" DestinationFiles="$(OutDir)contracts/%(LogixContract.Filename)/logixrelay.json" />
   </Target>
 </Project>

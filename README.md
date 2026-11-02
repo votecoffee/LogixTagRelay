@@ -39,7 +39,7 @@ Packages are built locally; this preview is not published on nuget.org.
 | `LogixTagRelay.Emulation` | Shared PLC memory, JavaScript scripts and emulator client |
 
 The browser, emulator and explicit driver need no OpENer build. To build and verify
-the complete solution and create all NuGets, run `./scripts/verify.ps1`. Building the
+the complete solution and create all six NuGets, run `./scripts/verify.ps1`. Building the
 OpENer DLL also requires Visual Studio 2022 C++ tools, Windows SDK and CMake. Use
 `artifacts/packages` alongside nuget.org as the consumer's package sources.
 

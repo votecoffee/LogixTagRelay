@@ -1,12 +1,12 @@
 # Validation and remaining acceptance
 
-Validation date: November 2, 2026. Version 0.6 preview; offline and loopback emulator evidence.
+Validation date: November 2, 2026. Version 0.7 preview; offline and loopback emulator evidence.
 
 ## Local evidence
 
 - C# solution builds in Release with warnings treated as errors.
 - Native bridge builds with MSVC x64 against OpENer commit `0e1ab7ee5c272950c0dc8daf7793008d7a518912`.
-- All 187 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
+- All 227 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
   JSON duplicate-key/hash checks, XML entity rejection, CPS destination lengths,
   exact scalar codecs (including LINT above 2^53), write races, failed writes,
   triggered acknowledgements, implicit sequence wrap, bad schema, stale/duplicate frames,
@@ -22,10 +22,10 @@ Validation date: November 2, 2026. Version 0.6 preview; offline and loopback emu
 - Separate generated-model console applications compile and run. The extended consumer
   uses default/custom STRING, 2D/3D primitive arrays, multidimensional UDT arrays and
   legal one-dimensional UDT member arrays in a 480-byte symmetric image.
-- All five local NuGet packages are produced. A fresh consumer with a separate package
+- All six local NuGet packages are produced, including the private MSBuild generator. A fresh consumer with a separate package
   cache restores the package dependencies, consumes the generated model and JSON, builds
-  a complete output image and loads native ABI 1. Generated types compile into a separate
-  contract class library referenced by the consuming app; all five packages restore,
+  a complete output image and loads native ABI 2. Generated types compile into a separate
+  contract class library referenced by the consuming app; runtime and build packages restore,
   including the Design package's embedded ST resource and Emulation's Jint dependency.
   The 0.5 consumer exercises bidirectional UDTs through explicit and implicit memory
   transports. A fresh package client also reads GUI values through HTTP, edits one UDT
@@ -40,13 +40,13 @@ Validation date: November 2, 2026. Version 0.6 preview; offline and loopback emu
   assign directions, configure DINT trigger/response and download the C#/JSON/routine/
   AOI/settings ZIP. Download contents and trigger settings were inspected. No controller
   address was contacted.
-- The PLC memory emulator has 23 additional offline checks (included in 187 above)
+- The PLC memory emulator has 23 additional offline checks (included in 227 above)
   for typed shared memory, DINT control tags, PLC-first image merge, duplicate/baseline
   rejection, invalid merged STRING LEN, generated wrapper/ST model agreement, JavaScript
   motion, BigInt LINT precision, persistent state, bounded runaway scripts, atomic tick
   failures, stale script transactions and concurrent unchanged API traffic that must
   not invalidate value snapshots or starve scripts.
-- All 21 HTTP checks pass through the actual emulator host/client. They cover explicit,
+- All 23 HTTP checks pass through the actual emulator host/client. They cover explicit,
   implicit and DINT-triggered motion, GUI edits, last-API-value metadata, STRING/LINT/
   multidimensional paths, stale contract rejection, transactional memory restore,
   script errors, write-route headers and static GUI serving. The host uses an owned
@@ -83,6 +83,28 @@ Validation date: November 2, 2026. Version 0.6 preview; offline and loopback emu
   the new generated model in its own contract library and exercises both transports.
   Unsigned/temporal values and generated events pass alongside native ABI 1 and embedded
   AOI loading. The published emulator independently passes the same 21 HTTP checks.
+
+## Hosting, build tooling and recovery evidence (0.7)
+
+- 227 offline checks pass, including common types, saved projects, schema comparisons,
+  multiple explicit groups alongside one implicit image, independent fault handling,
+  transient timeout recovery, suspended writes and interrupted trigger receipts.
+- The generated RLL/ST model and memory emulator both execute the nonce-echo baseline
+  handshake. Old snapshots/nonces are rejected; an ACK lost after a PLC-side edit does
+  not cause an automatic replay over that newer PLC value. The merge AOI is unchanged.
+- Native ABI 2 builds. An exact-owned child probe loads ABI 2 and the epoch entry point
+  without binding any EtherNet/IP ports. Live native reconnect/mode changes remain pending.
+- The real emulator HTTP suite has 23 checks, including LREAL/TIME32/LTIME/LDT, BigInt
+  nanosecond scripts and hosted implicit baseline recovery. The browser has 8 HTTP
+  checks for project reopen, C# identity, custom assemblies, ZIP regeneration, invalid
+  projects and strict 480-byte enforcement.
+- A fresh six-package consumer builds four contract types in a separate class library,
+  runs two explicit contracts and one implicit contract, consumes generated JSON through
+  project references, handles all common types and starts the packaged child ABI probe.
+  Build errors from invalid projects use LTR001. No controller connection is involved.
+- `HostingDemo` runs 25/100 ms explicit groups alongside one 40-byte implicit image.
+  Contract classes carry a matching CreateConfiguration factory. Generator outputs stay
+  under obj, and repeated generation does not rewrite equal content.
 
 ## Required native/controller acceptance
 

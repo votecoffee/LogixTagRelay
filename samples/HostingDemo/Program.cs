@@ -4,8 +4,7 @@ using Example.Contracts.Io;
 using LogixTagRelay;
 using LogixTagRelay.Emulation;
 
-SyncConfiguration Load(string name) => SyncConfiguration.FromJson(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "contracts", name + ".ltrx", "logixrelay.json")));
-var fastConfig = Load("fast"); var slowConfig = Load("slow"); var ioConfig = Load("io");
+var fastConfig = FastTags.CreateConfiguration(); var slowConfig = SlowTags.CreateConfiguration(); var ioConfig = IoTags.CreateConfiguration();
 var fast = new FastTags(); var slow = new SlowTags(); var io = new IoTags();
 var fastMemory = new PlcMemory(fastConfig); var slowMemory = new PlcMemory(slowConfig); var ioMemory = new PlcMemory(ioConfig);
 fastMemory.Set("Telemetry.Count16", (ushort)99); slowMemory.Set("Telemetry.Count64", ulong.MaxValue);

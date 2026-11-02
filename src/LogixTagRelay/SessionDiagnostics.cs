@@ -57,7 +57,7 @@ public sealed record RecoveryOptions(int InitialDelayMs = 250, int MaximumDelayM
     }
     internal int Delay(int attempt) => (int)Math.Min(MaximumDelayMs, InitialDelayMs * Math.Pow(2, Math.Min(attempt - 1, 20)));
     internal bool Retry(Exception error, int attempt) => (MaximumAttempts == 0 || attempt <= MaximumAttempts) &&
-        (error is IOException or TimeoutException || error.GetType().FullName == "libplctag.LibPlcTagException");
+        (error is IOException or TimeoutException or OperationCanceledException || error.GetType().FullName == "libplctag.LibPlcTagException");
 }
 
 public interface IRelaySession

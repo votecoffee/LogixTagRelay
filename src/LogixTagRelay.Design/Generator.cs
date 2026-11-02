@@ -162,6 +162,7 @@ public static partial class Generator
                 References(node.Children[i], node.IsArray ? $"{expression}[{ArrayShape.Subscript(i, node.ArrayDimensions)}]" : expression + "." + Id(node.Children[i].Name));
         }
         for (int i = 0; i < nodes.Count; i++) References(nodes[i].Node, names[i]);
+        builder.AppendLine("    public static SyncConfiguration CreateConfiguration() => SyncConfiguration.FromJson(" + Literal(config.ToJson()) + ");");
         var roots = nodes.SelectMany((n, i) => n.Node.Leaves().Select(_ => Literal(names[i])));
         builder.AppendLine("    public GeneratedTags() => InitializeVariables(new IPlcVariable[] { " + string.Join(", ", refs) + " }, new string[] { " + string.Join(", ", roots) + " });\n}");
         foreach (var (_, item) in classes)

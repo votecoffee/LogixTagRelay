@@ -14,6 +14,8 @@ static class ContractProjectTests
             bundle.Configuration.Implicit!.PlcInputAssembly == 111 && bundle.ModuleInstructions.Contains("Input assembly: 111"), "portable project retains C# identity, selections and module assemblies");
         check(project.Generate().ModelCs == bundle.ModelCs && ContractComparison.Compare(bundle.Configuration, bundle.Configuration).Count == 0,
             "project regeneration is deterministic and equal schemas have no differences");
+        var relocated = (project with { Gateway = "192.0.2.10", Route = "1,1", PcAddress = "192.0.2.20" }).Generate();
+        check(relocated.ModelCs.Contains("192.0.2.10") && relocated.ModuleInstructions.Contains("192.0.2.20"), "project embeds matching endpoint settings and retains the module PC address");
         var changed = project with { Selections = [new("Telemetry.Code", Direction.Bidirectional)] };
         check(ContractComparison.Compare(bundle.Configuration, changed.Generate().Configuration).Any(c => c.Breaking && c.Path == "Telemetry.Count16"), "schema comparison identifies breaking removals");
         bool Reject(Action action) { try { action(); return false; } catch (FormatException) { return true; } }

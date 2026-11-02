@@ -54,7 +54,7 @@ boundaries. A fresh image has zero padding; echoed/native string padding is pres
 | 8 | DINT | First 32 bits of SHA-256 mapping hash, interpreted little-endian |
 | 12 | DINT | Positive 31-bit sender sequence, wraps from max to 1 |
 | 16 | DINT | API: referenced PLC baseline; PLC: accepted API command sequence |
-| 20 | DINT | Valid = 1 |
+| 20 | DINT | Flags: 0 invalid, 1 normal, 2 API resync, 3 PLC nonce baseline |
 | 24 onward | mapped fields | Every selected leaf at the same offset in both directions |
 
 STRING occupies a DINT LEN followed by exactly its declared SINT DATA[N] capacity,

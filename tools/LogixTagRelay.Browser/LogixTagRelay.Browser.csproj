@@ -4,4 +4,6 @@
     <ProjectReference Include="../../src/LogixTagRelay.Design/LogixTagRelay.Design.csproj" />
     <ProjectReference Include="../../src/LogixTagRelay.Logix/LogixTagRelay.Logix.csproj" />
   </ItemGroup>
+  <ItemGroup><Content Update="wwwroot/**" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><Content Include="../../licenses/*.txt" Link="licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /><Content Include="../../THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" /><Content Include="../../LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

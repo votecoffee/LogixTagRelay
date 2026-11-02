@@ -63,7 +63,7 @@ $('load-module').onclick = async () => {
 };
 $('generate').onclick = async () => {
   try {
-    const response = await post('/api/generate', { catalog, gateway: $('gateway').value, route: $('route').value, selections: [...selected].map(([path,direction]) => ({path,direction})), implicit: $('mode').value === 'implicit', projectName: $('project-name').value, namespace: $('project-namespace').value, className: $('project-class').value, assemblyOptions: assemblySettings(), gateway: $('gateway').value, route: $('route').value, moduleName: $('module').value, softwareRevision: $('revision').value,
+    const response = await post('/api/generate', { catalog, pcAddress: $('pc-address').value, gateway: $('gateway').value, route: $('route').value, selections: [...selected].map(([path,direction]) => ({path,direction})), implicit: $('mode').value === 'implicit', projectName: $('project-name').value, namespace: $('project-namespace').value, className: $('project-class').value, assemblyOptions: assemblySettings(), gateway: $('gateway').value, route: $('route').value, moduleName: $('module').value, softwareRevision: $('revision').value,
       assemblyBytes: $('mode').value === 'implicit' ? Number($('assembly-bytes').value) : 0, moduleTemplateBase64, pcAddress: $('pc-address').value,
       explicit: { intervalMs: Number($('interval-ms').value), triggerTag: $('trigger-tag').value.trim() || null,
         triggerPollMs: Number($('trigger-poll-ms').value), handledTriggerTag: $('handled-tag').value.trim() || null, responseTag: $('response-tag').value.trim() || null } });
@@ -76,7 +76,7 @@ function assemblySettings() { return { plcInputAssembly: Number($('input-assembl
 function projectSettings() {
   if (!catalog) throw new Error('Load a catalog first.');
   return { version: 1, name: $('project-name').value, namespace: $('project-namespace').value, className: $('project-class').value,
-    catalog, gateway: $('gateway').value, route: $('route').value, selections: [...selected].map(([path,direction]) => ({path,direction})), includeImplicit: $('mode').value === 'implicit',
+    catalog, pcAddress: $('pc-address').value, gateway: $('gateway').value, route: $('route').value, selections: [...selected].map(([path,direction]) => ({path,direction})), includeImplicit: $('mode').value === 'implicit',
     moduleName: $('module').value, softwareRevision: $('revision').value, assemblyBytes: $('mode').value === 'implicit' ? Number($('assembly-bytes').value) : 0, implicit: assemblySettings(),
     explicit: { intervalMs: Number($('interval-ms').value), triggerTag: $('trigger-tag').value.trim() || null, triggerPollMs: Number($('trigger-poll-ms').value), handledTriggerTag: $('handled-tag').value.trim() || null, responseTag: $('response-tag').value.trim() || null } };
 }
@@ -89,8 +89,8 @@ $('project-save').onclick = async () => { try {
 $('project-open').onclick = async () => { try {
   const file = $('project-file').files[0]; if (!file) throw new Error('Choose a saved .ltrx.json first.');
   const response = await (await post('/api/project', JSON.parse(await file.text()))).json(); const p = response.project;
-  loaded(p.catalog); moduleTemplateBase64 = null;
-  $('gateway').value = p.gateway; $('route').value = p.route; $('project-name').value = p.name; $('project-namespace').value = p.namespace; $('project-class').value = p.className;
+  loaded(p.catalog); moduleTemplateBase64 = null; $('module-status').textContent = 'Select a native module template to include its import.';
+  $('pc-address').value = p.pcAddress; $('gateway').value = p.gateway; $('route').value = p.route; $('project-name').value = p.name; $('project-namespace').value = p.namespace; $('project-class').value = p.className;
   $('mode').value = p.includeImplicit ? 'implicit' : 'explicit'; $('module').value = p.moduleName; $('revision').value = p.softwareRevision || p.catalog.softwareRevision;
   $('assembly-bytes').value = p.assemblyBytes;
   for (const [id,key] of [['interval-ms','intervalMs'],['trigger-tag','triggerTag'],['trigger-poll-ms','triggerPollMs'],['handled-tag','handledTriggerTag'],['response-tag','responseTag']]) if (p.explicit) $(id).value = p.explicit[key] ?? '';

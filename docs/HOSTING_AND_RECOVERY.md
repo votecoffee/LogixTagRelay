@@ -36,7 +36,7 @@ groups stop. Subscribe to diagnostics for immediate per-contract fault handling.
 Factories must return newly owned transports and honor their cancellation token.
 Format/schema/argument errors fault the group instead of retrying indefinitely.
 
-`RecoveryOptions` controls exponential retry delays, maximum consecutive attempts
+`RecoveryOptions` controls exponential retry delays, maximum consecutive recovery attempts after the initial connection
 (zero means unlimited), connection timeout, implicit stale timeout and pending writes.
 The default `PendingWritePolicy.Suspend` retains dirty application values but prevents
 their transmission after a failure. Reads/readback resume. Inspect the fresh PLC values,
