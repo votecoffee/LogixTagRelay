@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><PackageId>LogixTagRelay.Emulation</PackageId></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../LogixTagRelay/LogixTagRelay.csproj" /></ItemGroup>
+  <ItemGroup><PackageReference Include="Jint" Version="4.17.0" /></ItemGroup>
+</Project>

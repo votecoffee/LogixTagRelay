@@ -1,0 +1,57 @@
+{
+  "schemaHash": "55B878D26DAA8BE696E91FD66BD7550ABC609A707717D26196475D19AE7ACC9C",
+  "fields": [
+    {
+      "path": "Motion.CommandPosition",
+      "type": "REAL",
+      "direction": "AppToPlc",
+      "offset": 24,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Motion.ActualPosition",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 28,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Motion.InPosition",
+      "type": "BOOL",
+      "direction": "PlcToApp",
+      "offset": 32,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Motion.Speed",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 36,
+      "access": "Read Only",
+      "stringCapacity": 0
+    }
+  ],
+  "plcToAppBytes": 40,
+  "appToPlcBytes": 40,
+  "gateway": "192.168.1.10",
+  "route": "1,0",
+  "explicit": {
+    "intervalMs": 100,
+    "triggerTag": null,
+    "triggerPollMs": 20,
+    "acknowledgeTag": null,
+    "handledTriggerTag": null,
+    "responseTag": null
+  },
+  "implicit": {
+    "plcInputAssembly": 101,
+    "plcOutputAssembly": 100,
+    "configurationAssembly": 102,
+    "rpiMs": 20,
+    "maxAssemblyBytes": 480
+  },
+  "schemaVersion": 2
+}

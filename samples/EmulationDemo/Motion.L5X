@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.03" TargetType="Controller" TargetName="MotionDemo">
+  <Controller Name="MotionDemo"><DataTypes><DataType Name="MotionData"><Members>
+    <Member Name="CommandPosition" DataType="REAL" Dimension="0" ExternalAccess="Read/Write" />
+    <Member Name="ActualPosition" DataType="REAL" Dimension="0" ExternalAccess="Read Only" />
+    <Member Name="InPosition" DataType="BOOL" Dimension="0" ExternalAccess="Read Only" />
+    <Member Name="Speed" DataType="REAL" Dimension="0" ExternalAccess="Read Only" />
+  </Members></DataType></DataTypes><Tags>
+    <Tag Name="Motion" DataType="MotionData" TagType="Base" ExternalAccess="Read/Write" />
+    <Tag Name="RequestSequence" DataType="DINT" TagType="Base" ExternalAccess="Read Only" />
+    <Tag Name="HandledSequence" DataType="DINT" TagType="Base" ExternalAccess="Read/Write" />
+    <Tag Name="ResponseSequence" DataType="DINT" TagType="Base" ExternalAccess="Read/Write" />
+  </Tags></Controller>
+</RSLogix5000Content>

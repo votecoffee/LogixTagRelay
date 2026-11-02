@@ -2,6 +2,7 @@
 
 Typed C# access to Logix PLC tags, with a tag browser, generated models/configuration,
 explicit synchronization, and an experimental OpENer implicit I/O adapter.
+Includes a PLC-side memory emulator with a local GUI and JavaScript response scripts.
 
 **Status: 0.3.0-preview.1.** The managed code and Windows native bridge build locally.
 Offline tests and the generated consumer run. PLC communication, native L5X import,
@@ -43,12 +44,35 @@ Packages are produced locally; public NuGet availability is not implied.
 | `LogixTagRelay.Design` | Offline L5X catalog and C#/JSON/routine-L5X generation |
 | `LogixTagRelay.Logix` | Explicit driver and online symbol/UDT discovery using libplctag 1.5.2 |
 | `LogixTagRelay.Opener` | Windows x64 native adapter and its managed wrapper |
+| `LogixTagRelay.Emulation` | PLC-side memory, explicit/implicit contract emulation, JavaScript ticks and loopback client |
 
 Use `artifacts/packages` as a local NuGet feed alongside nuget.org. Include the core,
 Logix and/or Opener packages in the consuming application's restore. The Opener
 package carries its DLL under `runtimes/win-x64/native` with its native license.
 
 ## Usage
+
+### Test without a PLC
+
+```powershell
+dotnet run --project tools/LogixTagRelay.Emulator -c Release
+```
+
+Open <http://127.0.0.1:5275>. The motion example is loaded with its response script
+ready for review. Click **Run script**, then in another terminal run either:
+
+```powershell
+dotnet run --project samples/EmulationDemo -c Release -- explicit 25
+dotnet run --project samples/EmulationDemo -c Release -- implicit 50
+```
+
+The API writes command position; the script moves actual position and sets in-position.
+Load any generated `logixrelay.json` to emulate its memory instead. Edit PLC values,
+inspect the last API command, run/step/stop scripts, and save/restore memory from the GUI.
+The emulator supports standard/custom STRING, LINT and multidimensional array leaves.
+It uses the real explicit scheduler and implicit image codec through a loopback client;
+it does not execute PLC programs or emulate EtherNet/IP network traffic.
+See [emulator usage and scripting](docs/EMULATION.md) for integration and trigger examples.
 
 ### Browse and generate
 

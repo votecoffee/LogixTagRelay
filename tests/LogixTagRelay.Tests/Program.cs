@@ -108,6 +108,7 @@ using (var cancel = new CancellationTokenSource())
 }
 Check(OpenerAdapter.NativeAbiVersion == 1, "real native DLL loads through PInvoke without opening network ports");
 await TriggerTests.Run(bundle.Configuration, Check);
+await EmulationTests.Run(bundle, Check);
 var aoiXml = XDocument.Parse(SintMergeAoi.GenerateL5x());
 Check(aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").Count() == 3 &&
     aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").All(p => (string?)p.Attribute("DataType") == "SINT" && (string?)p.Attribute("Dimensions") == "1"), "merge AOI exposes exactly three arbitrary-size SINT InOut arrays");
@@ -253,6 +254,19 @@ if (args.Length == 2 && args[0] == "--export-aoi")
 {
     Directory.CreateDirectory(args[1]);
     await File.WriteAllTextAsync(Path.Combine(args[1], "LTR_SintMerge.L5X"), SintMergeAoi.GenerateL5x(), new UTF8Encoding(false));
+}
+if (args.Length == 2 && args[0] == "--generate-emulation")
+{
+    using var motionStream = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Motion.L5X"));
+    var motionCatalog = L5xCatalog.Read(motionStream);
+    var motionSelections = new TagSelection[] { new("Motion.CommandPosition", Direction.AppToPlc), new("Motion.ActualPosition", Direction.PlcToApp),
+        new("Motion.InPosition", Direction.PlcToApp), new("Motion.Speed", Direction.PlcToApp) };
+    var motion = Generator.Generate(motionCatalog, motionSelections);
+    var motionTriggered = Generator.Generate(motionCatalog, motionSelections, explicitOptions: new(TriggerTag: "RequestSequence", HandledTriggerTag: "HandledSequence", ResponseTag: "ResponseSequence"));
+    Directory.CreateDirectory(args[1]);
+    await File.WriteAllTextAsync(Path.Combine(args[1], "GeneratedTags.g.cs"), motion.ModelCs, new UTF8Encoding(false));
+    await File.WriteAllTextAsync(Path.Combine(args[1], "logixrelay.json"), motion.Configuration.ToJson(), new UTF8Encoding(false));
+    await File.WriteAllTextAsync(Path.Combine(args[1], "logixrelay-triggered.json"), motionTriggered.Configuration.ToJson(), new UTF8Encoding(false));
 }
 if (args.Length == 2 && args[0] == "--generate-extended")
 {
