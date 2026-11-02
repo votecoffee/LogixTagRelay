@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><PackageId>LogixTagRelay.Build</PackageId><DevelopmentDependency>true</DevelopmentDependency><IncludeBuildOutput>false</IncludeBuildOutput><SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../LogixTagRelay.Design/LogixTagRelay.Design.csproj" /></ItemGroup>
+  <ItemGroup><None Include="buildTransitive/LogixTagRelay.Build.targets" Pack="true" PackagePath="buildTransitive/" /></ItemGroup>
+  <Target Name="IncludeGeneratorRuntime" BeforeTargets="_GetPackageFiles">
+    <ItemGroup><None Include="$(TargetDir)*.dll;$(TargetDir)*.json" Pack="true" PackagePath="tools/net8.0/any/" /></ItemGroup>
+  </Target>
+</Project>

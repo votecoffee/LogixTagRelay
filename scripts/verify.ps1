@@ -19,5 +19,7 @@ try {
   if ($LASTEXITCODE) { throw 'Types/events explicit consumer failed.' }
   & dotnet run --project samples/TypesAndEventsDemo -c Release --no-build -- --implicit
   if ($LASTEXITCODE) { throw 'Types/events implicit consumer failed.' }
+  & dotnet run --project samples/ContractProjectDemo -c Release --no-build
+  if ($LASTEXITCODE) { throw 'Build-generated consumer failed.' }
   & "$PSScriptRoot/pack.ps1"
 } finally { Pop-Location }

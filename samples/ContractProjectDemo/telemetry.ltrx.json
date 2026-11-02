@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "name": "Telemetry",
+  "sourceL5x": "../TypesAndEventsDemo/Contract.L5X",
+  "namespace": "Example.Contracts.Telemetry",
+  "className": "TelemetryTags",
+  "selections": [{ "path": "Telemetry", "direction": "Bidirectional" }, { "path": "Grid", "direction": "Bidirectional" }],
+  "includeImplicit": true,
+  "implicit": { "plcInputAssembly": 111, "plcOutputAssembly": 110, "configurationAssembly": 112, "rpiMs": 20, "maxAssemblyBytes": 480 }
+}

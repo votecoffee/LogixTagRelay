@@ -63,7 +63,7 @@ $('load-module').onclick = async () => {
 };
 $('generate').onclick = async () => {
   try {
-    const response = await post('/api/generate', { catalog, selections: [...selected].map(([path,direction]) => ({path,direction})), implicit: $('mode').value === 'implicit', moduleName: $('module').value, softwareRevision: $('revision').value,
+    const response = await post('/api/generate', { catalog, gateway: $('gateway').value, route: $('route').value, selections: [...selected].map(([path,direction]) => ({path,direction})), implicit: $('mode').value === 'implicit', projectName: $('project-name').value, namespace: $('project-namespace').value, className: $('project-class').value, assemblyOptions: assemblySettings(), gateway: $('gateway').value, route: $('route').value, moduleName: $('module').value, softwareRevision: $('revision').value,
       assemblyBytes: $('mode').value === 'implicit' ? Number($('assembly-bytes').value) : 0, moduleTemplateBase64, pcAddress: $('pc-address').value,
       explicit: { intervalMs: Number($('interval-ms').value), triggerTag: $('trigger-tag').value.trim() || null,
         triggerPollMs: Number($('trigger-poll-ms').value), handledTriggerTag: $('handled-tag').value.trim() || null, responseTag: $('response-tag').value.trim() || null } });
@@ -71,3 +71,29 @@ $('generate').onclick = async () => {
     status('Generated interface downloaded. Keep the C# model and JSON together.');
   } catch(e) { status(e.message); }
 };
+
+function assemblySettings() { return { plcInputAssembly: Number($('input-assembly').value), plcOutputAssembly: Number($('output-assembly').value), configurationAssembly: Number($('config-assembly').value), rpiMs: Number($('rpi-ms').value), maxAssemblyBytes: 480 }; }
+function projectSettings() {
+  if (!catalog) throw new Error('Load a catalog first.');
+  return { version: 1, name: $('project-name').value, namespace: $('project-namespace').value, className: $('project-class').value,
+    catalog, gateway: $('gateway').value, route: $('route').value, selections: [...selected].map(([path,direction]) => ({path,direction})), includeImplicit: $('mode').value === 'implicit',
+    moduleName: $('module').value, softwareRevision: $('revision').value, assemblyBytes: $('mode').value === 'implicit' ? Number($('assembly-bytes').value) : 0, implicit: assemblySettings(),
+    explicit: { intervalMs: Number($('interval-ms').value), triggerTag: $('trigger-tag').value.trim() || null, triggerPollMs: Number($('trigger-poll-ms').value), handledTriggerTag: $('handled-tag').value.trim() || null, responseTag: $('response-tag').value.trim() || null } };
+}
+$('project-save').onclick = async () => { try {
+  const project = projectSettings(); await post('/api/project', project);
+  const url = URL.createObjectURL(new Blob([JSON.stringify(project,null,2)], {type:'application/json'}));
+  const a = document.createElement('a'); a.href = url; a.download = 'contract.ltrx.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  status('Contract project saved.');
+} catch(e) { status(e.message); } };
+$('project-open').onclick = async () => { try {
+  const file = $('project-file').files[0]; if (!file) throw new Error('Choose a saved .ltrx.json first.');
+  const response = await (await post('/api/project', JSON.parse(await file.text()))).json(); const p = response.project;
+  loaded(p.catalog); moduleTemplateBase64 = null;
+  $('gateway').value = p.gateway; $('route').value = p.route; $('project-name').value = p.name; $('project-namespace').value = p.namespace; $('project-class').value = p.className;
+  $('mode').value = p.includeImplicit ? 'implicit' : 'explicit'; $('module').value = p.moduleName; $('revision').value = p.softwareRevision || p.catalog.softwareRevision;
+  $('assembly-bytes').value = p.assemblyBytes;
+  for (const [id,key] of [['interval-ms','intervalMs'],['trigger-tag','triggerTag'],['trigger-poll-ms','triggerPollMs'],['handled-tag','handledTriggerTag'],['response-tag','responseTag']]) if (p.explicit) $(id).value = p.explicit[key] ?? '';
+  for (const [id,key] of [['input-assembly','plcInputAssembly'],['output-assembly','plcOutputAssembly'],['config-assembly','configurationAssembly'],['rpi-ms','rpiMs']]) if (p.implicit) $(id).value = p.implicit[key];
+  for (const item of p.selections) selected.set(item.path,item.direction); count(); render(); status('Contract project opened.');
+} catch(e) { status(e.message); } };

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><IsPackable>false</IsPackable><_LogixTagRelayGenerator>$(MSBuildProjectDirectory)/../../src/LogixTagRelay.Build/bin/$(Configuration)/net8.0/LogixTagRelay.Build.dll</_LogixTagRelayGenerator></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/LogixTagRelay/LogixTagRelay.csproj" />
+    <ProjectReference Include="../../src/LogixTagRelay.Build/LogixTagRelay.Build.csproj" ReferenceOutputAssembly="false" />
+    <LogixContract Include="telemetry.ltrx.json" />
+  </ItemGroup>
+  <Import Project="../../src/LogixTagRelay.Build/buildTransitive/LogixTagRelay.Build.targets" />
+</Project>

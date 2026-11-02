@@ -40,9 +40,18 @@ app.MapPost("/api/module-template", async (HttpRequest request) =>
     var bytes = stream.ToArray();
     return Results.Json(new { info = ModuleTemplate.Inspect(bytes), templateBase64 = Convert.ToBase64String(bytes) });
 });
+app.MapPost("/api/project", (ContractProject request) =>
+{
+    if (request.Catalog is null) throw new ArgumentException("Browser projects require an embedded catalog. Use the build CLI for sourceL5x projects.");
+    var bundle = request.Generate();
+    return Results.Json(new { project = request, catalog = request.Catalog, configuration = bundle.Configuration });
+});
 app.MapPost("/api/generate", (GenerateRequest request) =>
 {
-    var bundle = Generator.Generate(request.Catalog, request.Selections, request.Implicit, request.ModuleName, request.SoftwareRevision, request.AssemblyBytes, request.Explicit);
+    var project = new ContractProject(request.ProjectName, request.Selections, request.Catalog, Namespace: request.Namespace, ClassName: request.ClassName,
+        IncludeImplicit: request.Implicit, ModuleName: request.ModuleName, SoftwareRevision: request.SoftwareRevision, AssemblyBytes: request.AssemblyBytes,
+        Explicit: request.Explicit, Implicit: request.AssemblyOptions, Gateway: request.Gateway, Route: request.Route);
+    var bundle = project.Generate();
     ModuleImport? module = request.Implicit && request.ModuleTemplateBase64 != null ?
         ModuleTemplate.Generate(Convert.FromBase64String(request.ModuleTemplateBase64), bundle.Configuration, request.ModuleName, request.PcAddress) : null;
     using var bytes = new MemoryStream();
@@ -50,6 +59,7 @@ app.MapPost("/api/generate", (GenerateRequest request) =>
     {
         void Add(string name, string content)
         { using var writer = new StreamWriter(zip.CreateEntry(name).Open(), new UTF8Encoding(false)); writer.Write(content); }
+        Add("contract.ltrx.json", project.ToJson());
         Add("GeneratedTags.cs", bundle.ModelCs); Add("logixrelay.json", bundle.Configuration.ToJson());
         if (request.Implicit)
         {
@@ -67,4 +77,4 @@ app.MapPost("/api/generate", (GenerateRequest request) =>
 app.Run();
 public sealed record OnlineRequest(string Gateway, string Route = "1,0");
 public sealed record GenerateRequest(TagCatalog Catalog, List<TagSelection> Selections, bool Implicit = true, string ModuleName = "LogixRelay", string SoftwareRevision = "",
-    int AssemblyBytes = 0, string? ModuleTemplateBase64 = null, string PcAddress = "192.168.1.200", ExplicitOptions? Explicit = null);
+    int AssemblyBytes = 0, string? ModuleTemplateBase64 = null, string PcAddress = "192.168.1.200", ExplicitOptions? Explicit = null, ImplicitOptions? AssemblyOptions = null, string ProjectName = "Contract", string Namespace = "LogixTagRelay.Generated", string ClassName = "GeneratedTags", string Gateway = "192.168.1.10", string Route = "1,0");

@@ -4,7 +4,7 @@ C# access to Logix PLC tags through generated, strongly typed contracts. Browse 
 and UDTs, generate C#/JSON and PLC imports, then synchronize through explicit messaging,
 implicit I/O, or a local memory emulator.
 
-**0.6.0-preview.1.** Local and emulator checks are available. Real PLC communication
+**0.7.0-preview.1.** Local and emulator checks are available. Real PLC communication
 and Studio 5000 import acceptance remain unverified; see [validation](docs/VALIDATION.md).
 
 ## Table of Contents
@@ -32,6 +32,7 @@ Packages are built locally; this preview is not published on nuget.org.
 | Package | Use |
 | --- | --- |
 | `LogixTagRelay` | Typed values, contract configuration and synchronization |
+| `LogixTagRelay.Build` | MSBuild generation from saved contract projects |
 | `LogixTagRelay.Design` | L5X browsing and C#/JSON/PLC import generation |
 | `LogixTagRelay.Logix` | Explicit Logix driver using libplctag |
 | `LogixTagRelay.Opener` | Implicit EtherNet/IP adapter on Windows x64 |
@@ -67,6 +68,10 @@ standard/custom STRING, nested UDTs, TIMER/COUNTER members and tag arrays.
 The download includes ordinary C# source and `logixrelay.json`. Implicit generation
 also includes the synchronization routine, SINT merge AOI and module settings. A
 matching native module template can supply the module import.
+
+Saved `.ltrx.json` projects retain catalog inputs, selections and settings. The
+`LogixTagRelay.Build` package generates C# during compilation, with `LTR001` diagnostics.
+See [contract projects](docs/CONTRACT_PROJECTS.md) and `samples/ContractProjectDemo`.
 
 ### React to tag changes
 

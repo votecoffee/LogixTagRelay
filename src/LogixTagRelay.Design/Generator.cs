@@ -16,7 +16,7 @@ public static partial class Generator
 {
     public static GeneratedBundle Generate(TagCatalog catalog, IReadOnlyList<TagSelection> selections,
         bool includeImplicit = true, string moduleName = "LogixRelay", string softwareRevision = "", int assemblyBytes = 0,
-        ExplicitOptions? explicitOptions = null)
+        ExplicitOptions? explicitOptions = null, ImplicitOptions? implicitOptions = null)
     {
         if (!Identifier().IsMatch(moduleName) || moduleName.Length > 16) throw new ArgumentException("Module name must be an identifier of at most 16 characters.");
         var nodes = new List<(TagNode Node, Direction Direction)>();
@@ -56,7 +56,7 @@ public static partial class Generator
         var explicitConfig = explicitOptions ?? new();
         explicitConfig = explicitConfig with { ReadGroups = explicitConfig.ReadGroups ?? readGroups };
         var config = new SyncConfiguration(SyncConfiguration.ComputeHash(fields), fields, imageBytes, imageBytes,
-            Explicit: explicitConfig, Implicit: includeImplicit ? new() : null);
+            Explicit: explicitConfig, Implicit: includeImplicit ? implicitOptions ?? new() : null);
         config.Validate(); // Includes duplicate parent/child selections and incompatible access.
         foreach (var path in new[] { config.Explicit!.TriggerTag, config.Explicit.MirrorTag, config.Explicit.ResponseTag }.Where(p => p != null))
         {
