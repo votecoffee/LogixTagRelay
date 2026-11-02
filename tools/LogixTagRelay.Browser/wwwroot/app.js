@@ -1,6 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let catalog = null;
+let moduleTemplateBase64 = null;
 const selected = new Map();
 const expanded = new Set();
 const status = message => { $('status').textContent = message; };
@@ -10,7 +11,7 @@ async function post(url, body, json = true) {
   return response;
 }
 function count() { $('summary').textContent = `${selected.size} selection${selected.size === 1 ? '' : 's'}`; $('generate').disabled = selected.size === 0; }
-function supported(node) { return !node.unsupportedReason && (node.children.length ? node.children.every(supported) : ['BOOL','SINT','INT','DINT','LINT','REAL'].includes(node.dataType)); }
+function supported(node) { return !node.unsupportedReason && (node.children.length ? node.children.every(supported) : node.stringCapacity > 0 || ['BOOL','SINT','INT','DINT','LINT','REAL'].includes(node.dataType)); }
 function writable(node) { return node.access === 'Read/Write' && node.children.every(writable); }
 function render() {
   const target = $('catalog'); target.replaceChildren();
@@ -23,7 +24,7 @@ function render() {
     const row = document.createElement('div'); row.className = 'node-row';
     const check = document.createElement('input'); check.type = 'checkbox'; check.checked = parentSelected || selected.has(node.path); check.disabled = parentSelected || !supported(node); check.setAttribute('aria-label', `Select ${node.path}`);
     const label = document.createElement('label'); label.textContent = node.name;
-    const type = document.createElement('span'); type.className = 'type'; type.textContent = node.isArray ? `${node.dataType}[${node.children.length}]` : node.dataType;
+    const type = document.createElement('span'); type.className = 'type'; type.textContent = node.isArray ? `${node.dataType}[${(node.dimensions || [node.children.length]).join(',')}]` : node.stringCapacity ? `${node.dataType} · ${node.stringCapacity} bytes` : node.dataType;
     const direction = document.createElement('select'); direction.setAttribute('aria-label', `Direction for ${node.path}`);
     for (const [value, text] of [['PlcToApp','PLC → app'], ['AppToPlc','App → PLC']]) { const option = new Option(text, value); if (value === 'AppToPlc' && !writable(node)) option.disabled = true; direction.add(option); }
     direction.value = parentDirection || selected.get(node.path) || 'PlcToApp'; direction.disabled = parentSelected;
@@ -47,9 +48,21 @@ function loaded(value) { catalog = value; selected.clear(); expanded.clear(); $(
 $('load').onclick = async () => { try { const file = $('file').files[0]; if (!file) throw new Error('Choose an L5X file first.'); const form = new FormData(); form.append('file', file); loaded(await (await post('/api/catalog', form, false)).json()); } catch (e) { status(e.message); } };
 $('online').onclick = async () => { const button = $('online'); button.disabled = true; status('Reading tag catalog and UDT templates…'); try { loaded(await (await post('/api/online', { gateway: $('gateway').value, route: $('route').value })).json()); } catch(e) { status(e.message); } finally { button.disabled = false; } };
 $('filter').oninput = render;
+$('module-file').onchange = () => { moduleTemplateBase64 = null; $('module-status').textContent = 'Inspect the selected export before generating module L5X.'; };
+$('load-module').onclick = async () => {
+  try {
+    const file = $('module-file').files[0]; if (!file) throw new Error('Choose a native module export first.');
+    const form = new FormData(); form.append('file', file);
+    const result = await (await post('/api/module-template', form, false)).json();
+    moduleTemplateBase64 = result.info.errors.length ? null : result.templateBase64;
+    $('module-status').textContent = result.info.errors.length ? result.info.errors.join(' ') : `Template accepted for offline generation · SHA-256 ${result.info.sourceSha256}`;
+    if (!result.info.errors.length) { $('pc-address').value = result.info.address; $('assembly-bytes').value = result.info.inputBytes; }
+  } catch (e) { moduleTemplateBase64 = null; $('module-status').textContent = e.message; }
+};
 $('generate').onclick = async () => {
   try {
-    const response = await post('/api/generate', { catalog, selections: [...selected].map(([path,direction]) => ({path,direction})), implicit: $('mode').value === 'implicit', moduleName: $('module').value, softwareRevision: $('revision').value });
+    const response = await post('/api/generate', { catalog, selections: [...selected].map(([path,direction]) => ({path,direction})), implicit: $('mode').value === 'implicit', moduleName: $('module').value, softwareRevision: $('revision').value,
+      assemblyBytes: $('mode').value === 'implicit' ? Number($('assembly-bytes').value) : 0, moduleTemplateBase64, pcAddress: $('pc-address').value });
     const url = URL.createObjectURL(await response.blob()); const a = document.createElement('a'); a.href = url; a.download = 'LogixTagRelay.Generated.zip'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     status('Generated interface downloaded. Keep the C# model and JSON together.');
   } catch(e) { status(e.message); }

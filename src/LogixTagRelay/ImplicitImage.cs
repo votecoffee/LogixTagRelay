@@ -10,6 +10,7 @@ public sealed class ImplicitImage
 {
     public const int HeaderBytes = 24;
     public const int Magic = 0x50535031;
+    public const int ProtocolVersion = 2;
     private readonly SyncConfiguration config;
     private readonly IPlcModel model;
     private readonly int schemaToken;
@@ -18,6 +19,7 @@ public sealed class ImplicitImage
     private int sequence = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, int.MaxValue - 32);
     private int? lastPlcSequence;
     private DateTimeOffset? lastFresh;
+    private byte[]? lastReceived;
     private sealed record SentImage(int Sequence, List<(IPlcVariable Variable, long Version)> Versions);
 
     public ImplicitImage(SyncConfiguration config, IPlcModel model)
@@ -34,40 +36,60 @@ public sealed class ImplicitImage
             if (pending.Count >= 32) throw new InvalidOperationException("PLC acknowledgement has stalled.");
             if (model.Variables.Any(v => v.Map.Direction == Direction.AppToPlc && v.Version == 0))
                 throw new InvalidOperationException("Assign every app-owned value before publishing an implicit image.");
-            var image = new byte[config.AppToPlcBytes];
+            var image = lastReceived?.ToArray() ?? new byte[config.AppToPlcBytes];
             int next = sequence = (sequence + 1) & int.MaxValue;
             WriteHeader(image, next, lastPlcSequence ?? 0);
             var versions = new List<(IPlcVariable, long)>();
             foreach (var variable in model.Variables.Where(v => v.Map.Direction == Direction.AppToPlc))
             {
                 var captured = variable.Capture();
-                PlcTypes.Encode(variable.Map.Type, captured.Value, image.AsSpan(variable.Map.Offset));
+                PlcTypes.Encode(variable.Map, captured.Value, image.AsSpan(variable.Map.Offset));
                 versions.Add((variable, captured.Version));
             }
             pending.Enqueue(new(next, versions));
             return image;
         }
     }
-    public void ReceivePlcToApp(ReadOnlySpan<byte> image, DateTimeOffset time)
+    public byte[] RefreshPlcEcho(byte[] commandImage)
+    {
+        lock (gate)
+        {
+            if (commandImage.Length != config.AppToPlcBytes || ReadInt(commandImage, 0) != Magic ||
+                ReadInt(commandImage, 4) != ProtocolVersion || ReadInt(commandImage, 8) != schemaToken)
+                throw new FormatException("Command image does not match this contract.");
+            var refreshed = lastReceived?.ToArray() ?? commandImage.ToArray();
+            commandImage.AsSpan(0, HeaderBytes).CopyTo(refreshed);
+            WriteInt(refreshed, 16, lastPlcSequence ?? 0);
+            foreach (var variable in model.Variables.Where(v => v.Map.Direction == Direction.AppToPlc))
+            {
+                int length = (variable.Map.WireBytes + 3) / 4 * 4;
+                commandImage.AsSpan(variable.Map.Offset, length).CopyTo(refreshed.AsSpan(variable.Map.Offset));
+            }
+            return refreshed;
+        }
+    }
+    public bool ReceivePlcToApp(ReadOnlySpan<byte> image, DateTimeOffset time)
     {
         lock (gate)
         {
             try
             {
                 if (image.Length != config.PlcToAppBytes || ReadInt(image, 0) != Magic ||
-                    ReadInt(image, 4) != 1 || ReadInt(image, 8) != schemaToken || ReadInt(image, 20) != 1)
+                    ReadInt(image, 4) != ProtocolVersion || ReadInt(image, 8) != schemaToken || ReadInt(image, 20) != 1)
                     throw new FormatException("Assembly size, version, schema, or valid flag mismatch.");
                 int plcSequence = ReadInt(image, 12);
                 if (plcSequence < 0) throw new FormatException("Expected a nonnegative 31-bit sequence.");
                 if (lastPlcSequence.HasValue)
                 {
                     int delta = unchecked(plcSequence - lastPlcSequence.Value) & int.MaxValue;
-                    if (delta == 0 || delta > int.MaxValue / 2) return;
+                    if (delta == 0 || delta > int.MaxValue / 2) return false;
                 }
-                var decoded = model.Variables.Where(v => v.Map.Direction == Direction.PlcToApp)
-                    .Select(v => v).ToArray();
-                foreach (var variable in decoded)
-                    variable.AcceptRead(PlcTypes.Decode(variable.Map.Type, image[variable.Map.Offset..]), time);
+                var decoded = new List<(IPlcVariable Variable, object Value)>();
+                foreach (var variable in model.Variables)
+                    decoded.Add((variable, PlcTypes.Decode(variable.Map, image[variable.Map.Offset..])));
+                // A malformed STRING rejects the entire image before any values are published.
+                foreach (var (variable, value) in decoded) variable.Observe(value, time);
+                lastReceived = image.ToArray();
                 lastPlcSequence = plcSequence;
                 lastFresh = time;
                 int ack = ReadInt(image, 16);
@@ -81,6 +103,7 @@ public sealed class ImplicitImage
                         foreach (var (variable, version) in sent.Versions) variable.AcceptWrite(version, time);
                     } while (sent.Sequence != ack);
                 }
+                return true;
             }
             catch { foreach (var variable in model.Variables) variable.MarkBad(); throw; }
         }
@@ -97,7 +120,7 @@ public sealed class ImplicitImage
     }
     private void WriteHeader(Span<byte> image, int seq, int ack)
     {
-        WriteInt(image, 0, Magic); WriteInt(image, 4, 1); WriteInt(image, 8, schemaToken);
+        WriteInt(image, 0, Magic); WriteInt(image, 4, ProtocolVersion); WriteInt(image, 8, schemaToken);
         WriteInt(image, 12, seq); WriteInt(image, 16, ack); WriteInt(image, 20, 1);
     }
     public static int ReadInt(ReadOnlySpan<byte> image, int offset) => BinaryPrimitives.ReadInt32LittleEndian(image[offset..]);

@@ -30,7 +30,7 @@ __declspec(dllexport) int __cdecl ltr_abi_version(void) { return 1; }
 __declspec(dllexport) int __cdecl ltr_start(const char *interface_name, int input_size, int output_size,
   int input_instance, int output_instance, int config_instance, unsigned serial_number, unsigned short connection_seed) {
   uint8_t mac[6];
-  if (!interface_name || input_size < 24 || input_size > 480 || output_size < 24 || output_size > 480 ||
+  if (!interface_name || input_size != output_size || input_size < 24 || input_size > 480 || output_size < 24 || output_size > 480 ||
       input_instance < 1 || output_instance < 1 || config_instance < 1 || input_instance == output_instance ||
       input_instance == config_instance || output_instance == config_instance ||
       input_instance > 65535 || output_instance > 65535 || config_instance > 65535) return -1;

@@ -1,0 +1,327 @@
+{
+  "schemaHash": "E004DC1EC7C6DBE70992ACC77F6D843DE46FC447F573D62D2CF981BCEA0DAA26",
+  "fields": [
+    {
+      "path": "Metrics.Title",
+      "type": "STRING",
+      "direction": "PlcToApp",
+      "offset": 24,
+      "access": "Read Only",
+      "stringCapacity": 82
+    },
+    {
+      "path": "Metrics.Code",
+      "type": "STRING",
+      "direction": "PlcToApp",
+      "offset": 112,
+      "access": "Read Only",
+      "stringCapacity": 12
+    },
+    {
+      "path": "Values[0,0]",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 128,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Values[0,1]",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 132,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Values[0,2]",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 136,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Values[1,0]",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 140,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Values[1,1]",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 144,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Values[1,2]",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 148,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Cubes[0,0,0]",
+      "type": "LINT",
+      "direction": "PlcToApp",
+      "offset": 152,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Cubes[0,0,1]",
+      "type": "LINT",
+      "direction": "PlcToApp",
+      "offset": 160,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Cubes[0,1,0]",
+      "type": "LINT",
+      "direction": "PlcToApp",
+      "offset": 168,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Cubes[0,1,1]",
+      "type": "LINT",
+      "direction": "PlcToApp",
+      "offset": 176,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Cubes[1,0,0]",
+      "type": "LINT",
+      "direction": "PlcToApp",
+      "offset": 184,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Cubes[1,0,1]",
+      "type": "LINT",
+      "direction": "PlcToApp",
+      "offset": 192,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Cubes[1,1,0]",
+      "type": "LINT",
+      "direction": "PlcToApp",
+      "offset": 200,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Cubes[1,1,1]",
+      "type": "LINT",
+      "direction": "PlcToApp",
+      "offset": 208,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[0,0].Name",
+      "type": "STRING",
+      "direction": "PlcToApp",
+      "offset": 216,
+      "access": "Read Only",
+      "stringCapacity": 12
+    },
+    {
+      "path": "Stations[0,0].Enabled",
+      "type": "BOOL",
+      "direction": "PlcToApp",
+      "offset": 232,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[0,0].Measured",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 236,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[0,0].History[0]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 240,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[0,0].History[1]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 244,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[0,1].Name",
+      "type": "STRING",
+      "direction": "PlcToApp",
+      "offset": 248,
+      "access": "Read Only",
+      "stringCapacity": 12
+    },
+    {
+      "path": "Stations[0,1].Enabled",
+      "type": "BOOL",
+      "direction": "PlcToApp",
+      "offset": 264,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[0,1].Measured",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 268,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[0,1].History[0]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 272,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[0,1].History[1]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 276,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[1,0].Name",
+      "type": "STRING",
+      "direction": "PlcToApp",
+      "offset": 280,
+      "access": "Read Only",
+      "stringCapacity": 12
+    },
+    {
+      "path": "Stations[1,0].Enabled",
+      "type": "BOOL",
+      "direction": "PlcToApp",
+      "offset": 296,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[1,0].Measured",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 300,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[1,0].History[0]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 304,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[1,0].History[1]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 308,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[1,1].Name",
+      "type": "STRING",
+      "direction": "PlcToApp",
+      "offset": 312,
+      "access": "Read Only",
+      "stringCapacity": 12
+    },
+    {
+      "path": "Stations[1,1].Enabled",
+      "type": "BOOL",
+      "direction": "PlcToApp",
+      "offset": 328,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[1,1].Measured",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 332,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[1,1].History[0]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 336,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Stations[1,1].History[1]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 340,
+      "access": "Read Only",
+      "stringCapacity": 0
+    },
+    {
+      "path": "Request.Recipe",
+      "type": "STRING",
+      "direction": "AppToPlc",
+      "offset": 344,
+      "access": "Read/Write",
+      "stringCapacity": 128
+    },
+    {
+      "path": "Request.Execute",
+      "type": "BOOL",
+      "direction": "AppToPlc",
+      "offset": 476,
+      "access": "Read/Write",
+      "stringCapacity": 0
+    }
+  ],
+  "plcToAppBytes": 480,
+  "appToPlcBytes": 480,
+  "gateway": "192.168.1.10",
+  "route": "1,0",
+  "explicit": {
+    "intervalMs": 100,
+    "triggerTag": null,
+    "triggerPollMs": 20,
+    "acknowledgeTag": null
+  },
+  "implicit": {
+    "plcInputAssembly": 101,
+    "plcOutputAssembly": 100,
+    "configurationAssembly": 102,
+    "rpiMs": 20,
+    "maxAssemblyBytes": 480
+  },
+  "schemaVersion": 2
+}

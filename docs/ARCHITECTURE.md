@@ -37,22 +37,34 @@ dirty. This is not an atomic CIP multi-tag transaction. Whole UDT transfers and 
 packing can be added behind the transport once native template offsets, access and
 preservation have been established; they are not inferred from L5X member order.
 
-## Implicit payload contract v1
+## Implicit payload contract v2
 
-All values use little-endian encoding. Offsets are generated separately for each direction.
+All values use little-endian encoding. Both directions use one shared layout and equal sizes.
 The contract is independent of CLR and PLC UDT memory layout. Fields start on 4-byte
-boundaries; unused padding is zero. BOOL uses a DINT wire value (0/1); SINT is signed
+boundaries. A fresh image has zero padding; echoed/native string padding is preserved. BOOL uses a DINT wire value (0/1); SINT is signed
 8-bit, INT is signed 16-bit, DINT signed 32-bit, LINT signed 64-bit and REAL IEEE binary32.
 
 | Byte offset | Type | Meaning |
 | --- | --- | --- |
 | 0 | DINT | Magic `0x50535031` |
-| 4 | DINT | Protocol version 1 |
+| 4 | DINT | Protocol version 2 |
 | 8 | DINT | First 32 bits of SHA-256 mapping hash, interpreted little-endian |
 | 12 | DINT | Nonnegative 31-bit sender sequence |
 | 16 | DINT | Last accepted peer sequence |
 | 20 | DINT | Valid = 1 |
-| 24 onward | mapped fields | Selected leaves and zero padding |
+| 24 onward | mapped fields | Every selected leaf at the same offset in both directions |
+
+STRING occupies a DINT LEN followed by exactly its declared SINT DATA[N] capacity,
+then tail alignment to four bytes. The schema hash includes the string capacity.
+Text maps byte values 0..255 losslessly to U+0000..U+00FF. LEN, rather than a null byte,
+controls decoding. Over-capacity text, invalid LEN, truncated data and unrepresentable
+characters are rejected. All fields are decoded before any image observations are published.
+Explicit transfers use one native whole-string buffer, validate its expected size,
+and preserve native tail padding during a write.
+
+Array coordinates use Logix comma syntax and rightmost-index-fastest order. Generated
+models use C# rectangular arrays. Tag arrays may have one, two or three dimensions;
+UDT member arrays may have one dimension, following the native Logix restriction.
 
 The full SHA-256 hash is stored in JSON; the wire token is a 32-bit mismatch detector,
 not authentication or a collision-proof identity. C# output sequences start at a
@@ -62,19 +74,25 @@ the host must restart after a PLC reset/disconnection rather than treating a new
 sequence epoch as the old one. Network integrity/security is a deployment concern;
 this preview does not implement CIP Security or CIP Safety.
 
-Input/output naming follows the PLC. The PLC output assembly contains status for the
-PC; the PLC input assembly contains app-owned commands for the PLC. OpENer consumes
+Input/output naming follows the PLC. Both assemblies contain the entire contract.
+The PLC output assembly contains actual values, including command readback. The PC
+echoes that image, overlays captured app-owned values and updates its header. OpENer consumes
 the former and produces the latter. CIP connection sequence and Run/Idle headers are
 handled by OpENer and excluded from configured SINT payload lengths.
 
 The PLC routine CPS-copies the input assembly into a local SINT buffer, validates its
-header and permission, converts BOOLs through DINT storage, copies numeric leaves
+header, every command STRING length, and permission, converts BOOLs through DINT storage, copies numeric leaves
 individually, and echoes acceptance after those copies. Numeric receive CPS has
 length 1 because its destination is a single native scalar. Transmit CPS length is
 the number of bytes because its destination is SINT. The routine then builds its
 outgoing image, including status leaves and the acknowledgement, and CPS-copies it
 into the module output. This supports arbitrary selected UDT members without copying
-unknown padding or packed BOOL storage back over unrelated fields.
+unknown padding or packed BOOL storage back over unrelated fields. STRING is the
+special case with a declared native LEN/DATA layout and four-byte alignment; it is
+copied as one string element after validating capacity and LEN. Incoming echoed
+PLC-owned slots are never applied to PLC destinations, preventing stale echo overwrite.
+PLC-owned bytes can refresh under an unchanged command sequence while a command
+acknowledgement is pending; the captured app-owned bytes remain immutable for that sequence.
 
 Field-wise CPS does not freeze all source tags across a PLC scan or other tasks.
 Applications needing a consistent process snapshot should create a dedicated PLC
@@ -95,6 +113,13 @@ another process, force-terminates the worker or unloads a live native stack.
 The library has no PLC project service dependency. It does not open Studio 5000,
 download logic, edit an online project or automatically import generated L5X.
 
+Module generation uses a native exported template and retains its raw source SHA-256.
+It rejects separate status connections, nonzero configuration payloads, mismatched
+instances and unequal image sizes. It changes only known name/address/RPI/size/data
+fields. Opaque CommMethod, configuration prefix and parent routing remain source-bound.
+The native export stays outside public source control. Synthetic template tests establish
+XML/mapping behavior, not Studio 5000 import acceptance.
+
 ## Reference review
 
 The old PiperXMLRelay code supplied the useful concepts of trigger-driven transactions,
@@ -112,3 +137,5 @@ Primary references checked during implementation:
 - [OpENer](https://github.com/EIPStackGroup/OpENer): adapter stack, Windows integration API and application callbacks.
 - [Rockwell CPS reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/array-file-misc-instructions/copy-synchronous-copy-file--cps-.html): destination-element lengths and synchronous copies.
 - [Microsoft .NET lifecycle](https://learn.microsoft.com/en-us/lifecycle/products/microsoft-net-and-net-core): choose a supported host runtime for deployment.
+- [Rockwell data type editor](https://www.rockwellautomation.com/en-ro/docs/studio-5000-logix-designer/37-02/contents-ditamap/studio-5000-logix-designer/data-type-editor/data-type-editor-settings.html): UDT member array limits and custom string capacities.
+- [libplctag string layout](https://github.com/libplctag/libplctag/wiki/Strings-and-String-Handling): counted strings and native alignment.

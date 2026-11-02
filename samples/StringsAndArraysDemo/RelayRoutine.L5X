@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.03" TargetName="LogixRelay_PS_Sync" TargetType="Routine" ContainsContext="true" ExportOptions="References NoRawData DecoratedData Context Dependencies">
+  <Controller Use="Context" Name="LogixRelayContext">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags />
+    <Programs>
+      <Program Use="Context" Name="MainProgram">
+        <Tags>
+          <Tag Name="LogixRelay_PS_Rx" TagType="Base" DataType="SINT" Dimensions="480" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Tx" TagType="Base" DataType="SINT" Dimensions="480" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Magic" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Version" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Schema" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Valid" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_CommandSequence" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_AcceptedSequence" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Sequence" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Bool" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_HeaderMagic" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_HeaderVersion" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_HeaderSchema" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_HeaderValid" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_ApplyCommands" TagType="Base" DataType="BOOL" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Watchdog" TagType="Base" DataType="TIMER" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_FrameValid" TagType="Base" DataType="BOOL" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_StringLen0" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+        </Tags>
+        <Routines>
+          <Routine Use="Target" Name="LogixRelay_PS_Sync" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Comment><![CDATA[Snapshot PC-to-PLC assembly once before decoding. Module I is input TO the PLC.]]></Comment>
+                <Text><![CDATA[CPS(LogixRelay:I.Data[0],LogixRelay_PS_Rx[0],480);]]></Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[0],LogixRelay_PS_Magic,1);]]></Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[4],LogixRelay_PS_Version,1);]]></Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[8],LogixRelay_PS_Schema,1);]]></Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[12],LogixRelay_PS_CommandSequence,1);]]></Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[20],LogixRelay_PS_Valid,1);]]></Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[344],LogixRelay_PS_StringLen0,1);]]></Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Comment><![CDATA[Validate every command STRING LEN before any application destination is changed.]]></Comment>
+                <Text><![CDATA[XIC(LogixRelay_PS_ApplyCommands)EQU(LogixRelay_PS_Magic,1347637297)EQU(LogixRelay_PS_Version,2)EQU(LogixRelay_PS_Schema,517735648)EQU(LogixRelay_PS_Valid,1)GEQ(LogixRelay_PS_StringLen0,0)LEQ(LogixRelay_PS_StringLen0,128)OTE(LogixRelay_PS_FrameValid);]]></Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text><![CDATA[XIC(LogixRelay_PS_FrameValid)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)RES(LogixRelay_PS_Watchdog);]]></Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Comment><![CDATA[A managed application stall cannot refresh this watchdog by retransmitting the same sequence.]]></Comment>
+                <Text><![CDATA[TON(LogixRelay_PS_Watchdog,1000,0);]]></Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Comment><![CDATA[One native counted string: LEN + declared SINT DATA + DINT alignment; capacity validated before copying.]]></Comment>
+                <Text><![CDATA[XIC(LogixRelay_PS_FrameValid)XIO(LogixRelay_PS_Watchdog.DN)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)CPS(LogixRelay_PS_Rx[344],Request.Recipe,1);]]></Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Text><![CDATA[XIC(LogixRelay_PS_FrameValid)XIO(LogixRelay_PS_Watchdog.DN)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)CPS(LogixRelay_PS_Rx[476],LogixRelay_PS_Bool,1);]]></Text>
+              </Rung>
+              <Rung Number="12" Type="N">
+                <Text><![CDATA[XIC(LogixRelay_PS_FrameValid)XIO(LogixRelay_PS_Watchdog.DN)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)[NEQ(LogixRelay_PS_Bool,0)OTL(Request.Execute),EQU(LogixRelay_PS_Bool,0)OTU(Request.Execute)];]]></Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Comment><![CDATA[Acknowledgement follows all command copies; application logic should consume staging values deliberately.]]></Comment>
+                <Text><![CDATA[XIC(LogixRelay_PS_FrameValid)XIO(LogixRelay_PS_Watchdog.DN)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)MOV(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence);]]></Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text><![CDATA[FLL(0,LogixRelay_PS_Tx[0],480);]]></Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text><![CDATA[MOV(1,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="16" Type="N">
+                <Text><![CDATA[CPS(Metrics.Title,LogixRelay_PS_Tx[24],88);]]></Text>
+              </Rung>
+              <Rung Number="17" Type="N">
+                <Text><![CDATA[LES(Metrics.Title.LEN,0)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="18" Type="N">
+                <Text><![CDATA[GRT(Metrics.Title.LEN,82)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="19" Type="N">
+                <Text><![CDATA[CPS(Metrics.Code,LogixRelay_PS_Tx[112],16);]]></Text>
+              </Rung>
+              <Rung Number="20" Type="N">
+                <Text><![CDATA[LES(Metrics.Code.LEN,0)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="21" Type="N">
+                <Text><![CDATA[GRT(Metrics.Code.LEN,12)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="22" Type="N">
+                <Text><![CDATA[CPS(Values[0,0],LogixRelay_PS_Tx[128],4);]]></Text>
+              </Rung>
+              <Rung Number="23" Type="N">
+                <Text><![CDATA[CPS(Values[0,1],LogixRelay_PS_Tx[132],4);]]></Text>
+              </Rung>
+              <Rung Number="24" Type="N">
+                <Text><![CDATA[CPS(Values[0,2],LogixRelay_PS_Tx[136],4);]]></Text>
+              </Rung>
+              <Rung Number="25" Type="N">
+                <Text><![CDATA[CPS(Values[1,0],LogixRelay_PS_Tx[140],4);]]></Text>
+              </Rung>
+              <Rung Number="26" Type="N">
+                <Text><![CDATA[CPS(Values[1,1],LogixRelay_PS_Tx[144],4);]]></Text>
+              </Rung>
+              <Rung Number="27" Type="N">
+                <Text><![CDATA[CPS(Values[1,2],LogixRelay_PS_Tx[148],4);]]></Text>
+              </Rung>
+              <Rung Number="28" Type="N">
+                <Text><![CDATA[CPS(Cubes[0,0,0],LogixRelay_PS_Tx[152],8);]]></Text>
+              </Rung>
+              <Rung Number="29" Type="N">
+                <Text><![CDATA[CPS(Cubes[0,0,1],LogixRelay_PS_Tx[160],8);]]></Text>
+              </Rung>
+              <Rung Number="30" Type="N">
+                <Text><![CDATA[CPS(Cubes[0,1,0],LogixRelay_PS_Tx[168],8);]]></Text>
+              </Rung>
+              <Rung Number="31" Type="N">
+                <Text><![CDATA[CPS(Cubes[0,1,1],LogixRelay_PS_Tx[176],8);]]></Text>
+              </Rung>
+              <Rung Number="32" Type="N">
+                <Text><![CDATA[CPS(Cubes[1,0,0],LogixRelay_PS_Tx[184],8);]]></Text>
+              </Rung>
+              <Rung Number="33" Type="N">
+                <Text><![CDATA[CPS(Cubes[1,0,1],LogixRelay_PS_Tx[192],8);]]></Text>
+              </Rung>
+              <Rung Number="34" Type="N">
+                <Text><![CDATA[CPS(Cubes[1,1,0],LogixRelay_PS_Tx[200],8);]]></Text>
+              </Rung>
+              <Rung Number="35" Type="N">
+                <Text><![CDATA[CPS(Cubes[1,1,1],LogixRelay_PS_Tx[208],8);]]></Text>
+              </Rung>
+              <Rung Number="36" Type="N">
+                <Text><![CDATA[CPS(Stations[0,0].Name,LogixRelay_PS_Tx[216],16);]]></Text>
+              </Rung>
+              <Rung Number="37" Type="N">
+                <Text><![CDATA[LES(Stations[0,0].Name.LEN,0)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="38" Type="N">
+                <Text><![CDATA[GRT(Stations[0,0].Name.LEN,12)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="39" Type="N">
+                <Text><![CDATA[MOV(0,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="40" Type="N">
+                <Text><![CDATA[XIC(Stations[0,0].Enabled)MOV(1,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="41" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Bool,LogixRelay_PS_Tx[232],4);]]></Text>
+              </Rung>
+              <Rung Number="42" Type="N">
+                <Text><![CDATA[CPS(Stations[0,0].Measured,LogixRelay_PS_Tx[236],4);]]></Text>
+              </Rung>
+              <Rung Number="43" Type="N">
+                <Text><![CDATA[CPS(Stations[0,0].History[0],LogixRelay_PS_Tx[240],4);]]></Text>
+              </Rung>
+              <Rung Number="44" Type="N">
+                <Text><![CDATA[CPS(Stations[0,0].History[1],LogixRelay_PS_Tx[244],4);]]></Text>
+              </Rung>
+              <Rung Number="45" Type="N">
+                <Text><![CDATA[CPS(Stations[0,1].Name,LogixRelay_PS_Tx[248],16);]]></Text>
+              </Rung>
+              <Rung Number="46" Type="N">
+                <Text><![CDATA[LES(Stations[0,1].Name.LEN,0)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="47" Type="N">
+                <Text><![CDATA[GRT(Stations[0,1].Name.LEN,12)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="48" Type="N">
+                <Text><![CDATA[MOV(0,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="49" Type="N">
+                <Text><![CDATA[XIC(Stations[0,1].Enabled)MOV(1,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="50" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Bool,LogixRelay_PS_Tx[264],4);]]></Text>
+              </Rung>
+              <Rung Number="51" Type="N">
+                <Text><![CDATA[CPS(Stations[0,1].Measured,LogixRelay_PS_Tx[268],4);]]></Text>
+              </Rung>
+              <Rung Number="52" Type="N">
+                <Text><![CDATA[CPS(Stations[0,1].History[0],LogixRelay_PS_Tx[272],4);]]></Text>
+              </Rung>
+              <Rung Number="53" Type="N">
+                <Text><![CDATA[CPS(Stations[0,1].History[1],LogixRelay_PS_Tx[276],4);]]></Text>
+              </Rung>
+              <Rung Number="54" Type="N">
+                <Text><![CDATA[CPS(Stations[1,0].Name,LogixRelay_PS_Tx[280],16);]]></Text>
+              </Rung>
+              <Rung Number="55" Type="N">
+                <Text><![CDATA[LES(Stations[1,0].Name.LEN,0)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="56" Type="N">
+                <Text><![CDATA[GRT(Stations[1,0].Name.LEN,12)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="57" Type="N">
+                <Text><![CDATA[MOV(0,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="58" Type="N">
+                <Text><![CDATA[XIC(Stations[1,0].Enabled)MOV(1,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="59" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Bool,LogixRelay_PS_Tx[296],4);]]></Text>
+              </Rung>
+              <Rung Number="60" Type="N">
+                <Text><![CDATA[CPS(Stations[1,0].Measured,LogixRelay_PS_Tx[300],4);]]></Text>
+              </Rung>
+              <Rung Number="61" Type="N">
+                <Text><![CDATA[CPS(Stations[1,0].History[0],LogixRelay_PS_Tx[304],4);]]></Text>
+              </Rung>
+              <Rung Number="62" Type="N">
+                <Text><![CDATA[CPS(Stations[1,0].History[1],LogixRelay_PS_Tx[308],4);]]></Text>
+              </Rung>
+              <Rung Number="63" Type="N">
+                <Text><![CDATA[CPS(Stations[1,1].Name,LogixRelay_PS_Tx[312],16);]]></Text>
+              </Rung>
+              <Rung Number="64" Type="N">
+                <Text><![CDATA[LES(Stations[1,1].Name.LEN,0)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="65" Type="N">
+                <Text><![CDATA[GRT(Stations[1,1].Name.LEN,12)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="66" Type="N">
+                <Text><![CDATA[MOV(0,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="67" Type="N">
+                <Text><![CDATA[XIC(Stations[1,1].Enabled)MOV(1,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="68" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Bool,LogixRelay_PS_Tx[328],4);]]></Text>
+              </Rung>
+              <Rung Number="69" Type="N">
+                <Text><![CDATA[CPS(Stations[1,1].Measured,LogixRelay_PS_Tx[332],4);]]></Text>
+              </Rung>
+              <Rung Number="70" Type="N">
+                <Text><![CDATA[CPS(Stations[1,1].History[0],LogixRelay_PS_Tx[336],4);]]></Text>
+              </Rung>
+              <Rung Number="71" Type="N">
+                <Text><![CDATA[CPS(Stations[1,1].History[1],LogixRelay_PS_Tx[340],4);]]></Text>
+              </Rung>
+              <Rung Number="72" Type="N">
+                <Text><![CDATA[CPS(Request.Recipe,LogixRelay_PS_Tx[344],132);]]></Text>
+              </Rung>
+              <Rung Number="73" Type="N">
+                <Text><![CDATA[LES(Request.Recipe.LEN,0)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="74" Type="N">
+                <Text><![CDATA[GRT(Request.Recipe.LEN,128)MOV(0,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="75" Type="N">
+                <Text><![CDATA[MOV(0,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="76" Type="N">
+                <Text><![CDATA[XIC(Request.Execute)MOV(1,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="77" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Bool,LogixRelay_PS_Tx[476],4);]]></Text>
+              </Rung>
+              <Rung Number="78" Type="N">
+                <Text><![CDATA[EQU(LogixRelay_PS_Sequence,2147483647)MOV(-1,LogixRelay_PS_Sequence);]]></Text>
+              </Rung>
+              <Rung Number="79" Type="N">
+                <Comment><![CDATA[Wrap to zero before signed ADD overflow. Sequence advances on each routine execution.]]></Comment>
+                <Text><![CDATA[ADD(LogixRelay_PS_Sequence,1,LogixRelay_PS_Sequence);]]></Text>
+              </Rung>
+              <Rung Number="80" Type="N">
+                <Text><![CDATA[MOV(1347637297,LogixRelay_PS_HeaderMagic)MOV(2,LogixRelay_PS_HeaderVersion)MOV(517735648,LogixRelay_PS_HeaderSchema);]]></Text>
+              </Rung>
+              <Rung Number="81" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_HeaderMagic,LogixRelay_PS_Tx[0],4);]]></Text>
+              </Rung>
+              <Rung Number="82" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_HeaderVersion,LogixRelay_PS_Tx[4],4);]]></Text>
+              </Rung>
+              <Rung Number="83" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_HeaderSchema,LogixRelay_PS_Tx[8],4);]]></Text>
+              </Rung>
+              <Rung Number="84" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Sequence,LogixRelay_PS_Tx[12],4);]]></Text>
+              </Rung>
+              <Rung Number="85" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_AcceptedSequence,LogixRelay_PS_Tx[16],4);]]></Text>
+              </Rung>
+              <Rung Number="86" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_HeaderValid,LogixRelay_PS_Tx[20],4);]]></Text>
+              </Rung>
+              <Rung Number="87" Type="N">
+                <Comment><![CDATA[Module O is output FROM the PLC. Only one routine/task should own these bytes.]]></Comment>
+                <Text><![CDATA[CPS(LogixRelay_PS_Tx[0],LogixRelay:O.Data[0],480);]]></Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+  </Controller>
+</RSLogix5000Content>

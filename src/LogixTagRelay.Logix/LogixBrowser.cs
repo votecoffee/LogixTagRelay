@@ -80,14 +80,16 @@ public sealed class LogixBrowser(string gateway, string route = "1,0", int timeo
     private async Task<TagNode> BuildAsync(string name, string path, ushort type, uint[] dimensions, int depth, CancellationToken cancellationToken)
     {
         if (++expanded > 20000 || depth > 32) throw new FormatException("Online expansion limit exceeded.");
-        var nonzero = dimensions.Where(d => d != 0).ToArray();
-        if (nonzero.Length > 0)
+        var dims = dimensions.ToList();
+        while (dims.Count > 0 && dims[^1] == 0) dims.RemoveAt(dims.Count - 1);
+        if (dims.Count > 0)
         {
-            if (nonzero.Length != 1 || nonzero[0] > 4096)
+            if (dims.Count > 3 || dims.Any(d => d == 0 || d > 20000))
                 return new(name, path, "Array", "Unknown", [], true, "Unsupported array dimensions.");
+            int[] shape = dims.Select(d => checked((int)d)).ToArray();
             var elements = new List<TagNode>();
-            for (int i = 0; i < nonzero[0]; i++) elements.Add(await BuildAsync($"Element{i}", $"{path}[{i}]", (ushort)(type & ~0x6000), [], depth + 1, cancellationToken).ConfigureAwait(false));
-            return new(name, path, elements[0].DataType, "Unknown", elements, true);
+            for (int i = 0; i < ArrayShape.Count(shape); i++) elements.Add(await BuildAsync($"[{ArrayShape.Subscript(i, shape)}]", $"{path}[{ArrayShape.Subscript(i, shape)}]", (ushort)(type & ~0x6000), [], depth + 1, cancellationToken).ConfigureAwait(false));
+            return new(name, path, elements[0].DataType, "Unknown", elements, true, Dimensions: shape);
         }
         string? atomic = (type & 0xFFF) switch { 0xC1 => "BOOL", 0xC2 => "SINT", 0xC3 => "INT", 0xC4 => "DINT", 0xC5 => "LINT", 0xCA => "REAL", _ => null };
         if ((type & 0x8000) == 0) return atomic is null
@@ -95,12 +97,17 @@ public sealed class LogixBrowser(string gateway, string route = "1,0", int timeo
             : new(name, path, atomic, "Unknown", []);
         if ((type & 0x1000) != 0) return new(name, path, "SystemType", "Unknown", [], false, "System templates require an offline export.");
         var template = await TemplateAsync(type & 0xFFF, cancellationToken).ConfigureAwait(false);
+        var visible = template.Members.Where(m => !m.Name.StartsWith("ZZZZ", StringComparison.Ordinal)).ToArray();
+        var len = visible.SingleOrDefault(m => m.Name == "LEN" && (m.Type & 0x7FFF) == 0xC4);
+        var data = visible.SingleOrDefault(m => m.Name == "DATA" && (m.Type & 0x9FFF) == 0xC2 && ((m.Type >> 13) & 3) == 1);
+        if (visible.Length == 2 && len != null && data != null && visible[0] == len && visible[1] == data && data.Metadata > 0)
+            return new(name, path, template.Name, "Unknown", [], StringCapacity: data.Metadata);
         var children = new List<TagNode>();
         foreach (var member in template.Members)
         {
             if (member.Name.StartsWith("ZZZZ", StringComparison.Ordinal)) continue; // compiler's hidden BOOL storage
             int dimensionsCount = (member.Type >> 13) & 3;
-            if (dimensionsCount > 1) { children.Add(new(member.Name, path + "." + member.Name, "Array", "Unknown", [], true, "Offline export required for multidimensional members.")); continue; }
+            if (dimensionsCount > 1) { children.Add(new(member.Name, path + "." + member.Name, "Array", "Unknown", [], true, "Logix UDT array members support one dimension.")); continue; }
             children.Add(await BuildAsync(member.Name, path + "." + member.Name, member.Type,
                 dimensionsCount == 1 ? [(uint)member.Metadata] : [], depth + 1, cancellationToken).ConfigureAwait(false));
         }

@@ -3,7 +3,7 @@
 Typed C# access to Logix PLC tags, with a tag browser, generated models/configuration,
 explicit synchronization, and an experimental OpENer implicit I/O adapter.
 
-**Status: 0.1.0-preview.1.** The managed code and Windows native bridge build locally.
+**Status: 0.2.0-preview.1.** The managed code and Windows native bridge build locally.
 Offline tests and the generated consumer run. PLC communication, native L5X import,
 RPI behavior and controller acceptance have not been tested. See [validation](docs/VALIDATION.md).
 
@@ -31,6 +31,7 @@ cd LogixTagRelay
 dotnet build -c Release
 dotnet run --project tests/LogixTagRelay.Tests -c Release
 dotnet run --project samples/GeneratedDemo -c Release
+dotnet run --project samples/StringsAndArraysDemo -c Release
 .\scripts\pack.ps1
 ```
 
@@ -64,6 +65,27 @@ The download contains:
 - `logixrelay.json`: field paths, directions, offsets, schema hash and transport settings.
 - `RelayRoutine.L5X`: generated routine and program-local staging tags, when implicit files are selected.
 - `ModuleSetup.txt`: the Generic Ethernet Module assembly numbers, lengths and commissioning steps.
+- `GenericEthernetModule.L5X` and source-hash provenance when a matching native module template is supplied.
+
+The browser defaults to a 480-byte image in both directions. Enter 0 to use the
+smallest complete image, or another aligned size large enough for all selected fields.
+Both directions use the same field offsets and include the entire contract, rather
+than separate status-only and command-only layouts.
+
+Load `samples/StringsAndArrays.L5X` to try standard STRING, custom strings, rectangular
+2D/3D arrays, arrays of strings and arrays of UDTs. For the 480-byte demo contract,
+select Metrics, Values, Cubes and Stations as PLC → app, and Request as app → PLC.
+Arrays inside a Logix UDT are limited to one dimension; the generator enforces this
+native restriction. Multidimensional arrays are controller/program tags, including
+tags whose element type is a UDT or a custom string.
+
+For module generation, inspect a native Data - SINT module export with no separate
+status connection. It must match the configured assemblies (defaults: input 101,
+output 100, configuration 102), equal input/output sizes, and configuration size zero.
+Generation resizes known I/O metadata and initial data together, updates name/address/RPI,
+and preserves opaque CommMethod/configuration data and parent routing. A mismatched
+template is rejected with specific corrections. A configuration tag may retain native
+placeholder storage even when its active configuration payload size is zero.
 
 Online browsing is a read-only operation initiated with the address and route entered
 in the browser. It reads symbols and templates; it does not write tags. Online discovery
@@ -99,6 +121,22 @@ on shutdown, then dispose the transport. Each variable exposes `Value`, `Quality
 `Timestamp`, `Dirty` and `Version`. PLC-owned setters reject app writes. App-owned
 values remain authoritative; their PLC acceptance is tracked separately.
 Changes made while a write is in flight remain dirty for the following update.
+`ObservedValue`, `HasObservation` and `PlcTimestamp` expose typed PLC readback separately
+from the desired app-owned value. Explicit mode reads all contract fields before
+flushing dirty commands. Implicit mode receives all fields in one complete image.
+
+STRING properties use `PlcVariable<string>`. Standard STRING has capacity 82; custom
+capacity is read from the declared DINT LEN / SINT DATA[N] definition. Values use a
+lossless byte-to-character Latin-1 mapping, including embedded nulls and bytes 128..255.
+Characters above U+00FF and over-capacity values are rejected; no truncation or character
+replacement occurs. Explicit native string transfers preserve trailing native padding.
+
+```csharp
+tags.Tag_Request.Tag_Recipe.Value = "Recipe A"; // custom capacity 128 in the extended demo
+float value = tags.Tag_Values[1, 2].Value;
+long count = tags.Tag_Cubes[1, 1, 1].Value;
+string name = tags.Tag_Stations[1, 1].Tag_Name.Value;
+```
 
 Explicit mode polls at a fixed cadence by default. For a larger triggered group:
 
@@ -139,31 +177,36 @@ Cancel and await `RunAsync` before disposal. The bridge supports one start per p
 restart the host after failure/disconnection. It uses the selected NIC's existing
 configuration and does not change NIC addresses or firewall rules.
 
-For the included example, configure a Generic Ethernet Module with:
+For the extended STRING/array example, configure a Generic Ethernet Module with:
 
 | PLC setting | Value | Direction |
 | --- | --- | --- |
 | Name | `LogixRelay` | Referenced by generated logic |
 | Address | PC adapter NIC IPv4 address | The PC, rather than the PLC address |
 | Comm Format | Data - SINT | 8-bit data elements |
-| Input assembly / size | 101 / 32 | PC → PLC |
-| Output assembly / size | 100 / 52 | PLC → PC |
+| Input assembly / size | 101 / 480 | PC → PLC |
+| Output assembly / size | 100 / 480 | PLC → PC |
 | Configuration assembly / size | 102 / 0 | No configuration payload |
+| Separate status connection | Disabled | Status is carried in the application header and PLC module diagnostics |
 | Requested packet interval | 20 ms | Initial setting, still requires bench testing |
 
-Import `samples/GeneratedDemo/RelayRoutine.L5X` into the applicable program and call
+Import `samples/StringsAndArraysDemo/RelayRoutine.L5X` into the applicable program and call
 `LogixRelay_PS_Sync` from a scheduled task. Existing application tags must already
-exist. The preview does **not** generate a native module import; add the module with
-the supplied settings. A future module importer should use a native export template
-from the target Studio 5000/controller revision rather than an invented module format.
+exist. Supply a matching native module export to generate a module import copy, or add
+the module with the supplied settings. Generated module and routine files still require
+Studio 5000 import, verification and re-export/readback; structural checks do not prove
+native acceptance. The smaller original Demo contract uses 60 bytes in both directions.
 
 Drive `LogixRelay_PS_ApplyCommands` from your application permission logic. It defaults
 false. The generated 1000 ms watchdog blocks application of stale command frames.
 The application must use `LogixRelay_PS_Watchdog.DN` and module status to choose the
 appropriate hold/reset behavior for commands already copied into its tags.
 
-The adapter sends a whole app-owned image, waits for its echoed sequence after PLC
-copying, then publishes the next image. This is cyclic I/O with application-level
+The adapter echoes the whole received PLC image and overlays app-owned fields. It
+waits for the command sequence acknowledgement before publishing another command
+generation; PLC-owned echo bytes continue refreshing while that acknowledgement is
+pending. The PLC applies only app-owned fields and publishes every field back,
+including command readback. This is cyclic I/O with application-level
 acknowledgements, not real-time C# execution. A 20 ms RPI does not guarantee a 20 ms
 app/PLC round trip. The native sender may repeat the latest complete image while
 the managed app is delayed; only a new sequence refreshes the PLC watchdog.
@@ -172,13 +215,15 @@ the managed app is delayed; only a new sequence refreshes the PLC watchdog.
 
 See [architecture](docs/ARCHITECTURE.md) for the byte contract and engineering decisions.
 
-- Supported atoms: BOOL, SINT, INT, DINT, LINT, REAL; nested UDTs and one-dimensional arrays.
-- STRING/custom strings, TIMER/COUNTER application members, multidimensional arrays,
-  alias resolution and safety-tag workflows are not supported for mapping in this preview.
+- Supported values: BOOL, SINT, INT, DINT, LINT, REAL, standard/custom STRING, nested UDTs,
+  and 1D/2D/3D tag arrays. String capacities range from 1 to 65535 bytes. Array expansion
+  is bounded to 20000 catalog nodes. UDT member arrays follow Logix's one-dimension limit.
+- TIMER/COUNTER application members, alias resolution and safety-tag workflows are not
+  supported for mapping in this preview.
 - One owner per field. For a UDT containing status and commands, select different
   members with different directions. Whole-UDT selection assigns one direction to all leaves.
 - Implicit groups are capped at 480 payload bytes per direction, including a 24-byte header.
-  Split larger selections into groups; multiple native adapter instances in one process
+  Both images include all fields, so the combined contract must fit. Split larger selections into groups; multiple native adapter instances in one process
   are not supported yet. Explicit-only generation does not impose the I/O payload cap.
 - PLC native UDT padding/BOOL packing is never inferred from CLR layout. Generated
   field copies use explicit wire offsets. No `Marshal.StructureToPtr` or arbitrary
@@ -189,10 +234,12 @@ See [architecture](docs/ARCHITECTURE.md) for the byte contract and engineering d
   Import/verify/re-export/readback and controller testing remain necessary.
 - The pinned OpENer WIN32 code emits upstream MSVC warnings, including socket-width
   conversions on x64. Native build success is not a claim of production readiness.
-- There is no automatic schema re-browse, native module import, reconnect/replay,
+- There is no automatic schema re-browse, automatic native project import, reconnect/replay,
   distributed conflict resolution, durable delivery journal or public NuGet release yet.
 - Model/config hash checks do not verify the running PLC's type definitions. Refresh
   the catalog after PLC changes; live type-contract validation remains to be added.
+- Version 0.2 uses JSON schema/wire protocol 2. Regenerate C#, JSON and PLC routine
+  together when upgrading from 0.1; old directional images are deliberately rejected.
 
 ## Maintainers
 

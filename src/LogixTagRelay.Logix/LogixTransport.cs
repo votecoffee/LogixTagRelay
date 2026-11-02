@@ -26,29 +26,40 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
         }
         return tag;
     }
-    public async ValueTask<object> ReadAsync(string path, RelayType type, CancellationToken cancellationToken)
+    public ValueTask<object> ReadAsync(string path, RelayType type, CancellationToken cancellationToken) =>
+        ReadAsync(new FieldMap(path, type, Direction.PlcToApp, 24, StringCapacity: type == RelayType.STRING ? 82 : 0), cancellationToken);
+    public async ValueTask<object> ReadAsync(FieldMap field, CancellationToken cancellationToken)
     {
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var tag = await GetAsync(path, cancellationToken).ConfigureAwait(false);
+            var tag = await GetAsync(field.Path, cancellationToken).ConfigureAwait(false);
             await tag.ReadAsync(cancellationToken).ConfigureAwait(false);
-            return type switch
+            if (field.Type == RelayType.STRING) return LogixStringBuffer.Decode(field, tag.GetBuffer());
+            return field.Type switch
             {
                 RelayType.BOOL => tag.GetBit(0), RelayType.SINT => tag.GetInt8(0), RelayType.INT => tag.GetInt16(0),
                 RelayType.DINT => tag.GetInt32(0), RelayType.LINT => tag.GetInt64(0), RelayType.REAL => tag.GetFloat32(0),
-                _ => throw new ArgumentOutOfRangeException(nameof(type))
+                _ => throw new ArgumentOutOfRangeException(nameof(field))
             };
         }
         finally { gate.Release(); }
     }
-    public async ValueTask WriteAsync(string path, RelayType type, object value, CancellationToken cancellationToken)
+    public ValueTask WriteAsync(string path, RelayType type, object value, CancellationToken cancellationToken) =>
+        WriteAsync(new FieldMap(path, type, Direction.AppToPlc, 24, StringCapacity: type == RelayType.STRING ? 82 : 0), value, cancellationToken);
+    public async ValueTask WriteAsync(FieldMap field, object value, CancellationToken cancellationToken)
     {
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var tag = await GetAsync(path, cancellationToken).ConfigureAwait(false);
-            switch (type)
+            if (field.Type == RelayType.STRING) PlcTypes.ValidateString((string)value, field.StringCapacity);
+            var tag = await GetAsync(field.Path, cancellationToken).ConfigureAwait(false);
+            if (field.Type == RelayType.STRING)
+            {
+                await tag.ReadAsync(cancellationToken).ConfigureAwait(false);
+                tag.SetBuffer(LogixStringBuffer.Encode(field, (string)value, tag.GetBuffer()));
+            }
+            else switch (field.Type)
             {
                 case RelayType.BOOL: tag.SetBit(0, (bool)value); break;
                 case RelayType.SINT: tag.SetInt8(0, (sbyte)value); break;
@@ -56,7 +67,7 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
                 case RelayType.DINT: tag.SetInt32(0, (int)value); break;
                 case RelayType.LINT: tag.SetInt64(0, (long)value); break;
                 case RelayType.REAL: tag.SetFloat32(0, (float)value); break;
-                default: throw new ArgumentOutOfRangeException(nameof(type));
+                default: throw new ArgumentOutOfRangeException(nameof(field));
             }
             await tag.WriteAsync(cancellationToken).ConfigureAwait(false);
         }

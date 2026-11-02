@@ -4,6 +4,7 @@ using System.Xml.Linq;
 using LogixTagRelay;
 using LogixTagRelay.Design;
 using LogixTagRelay.Opener;
+using LogixTagRelay.Logix;
 
 int passed = 0;
 void Check(bool condition, string name) { if (!condition) throw new Exception("FAILED: " + name); Console.WriteLine("PASS " + name); passed++; }
@@ -14,10 +15,10 @@ var catalog = L5xCatalog.Read(fixture);
 var selections = new[] { new TagSelection("Status", Direction.PlcToApp), new TagSelection("Command", Direction.AppToPlc) };
 var bundle = Generator.Generate(catalog, selections);
 Check(bundle.Configuration.Fields.Count == 8, "UDT and array leaves expand correctly");
-Check(bundle.Configuration.PlcToAppBytes == 52 && bundle.Configuration.AppToPlcBytes == 32, "directional assembly sizes");
+Check(bundle.Configuration.PlcToAppBytes == 60 && bundle.Configuration.AppToPlcBytes == 60, "symmetric complete assembly sizes");
 Check(bundle.ModelCs.Contains("PlcVariable<long> Tag_Count") && bundle.ModelCs.Contains("PlcVariable<int>[] Tag_Faults"), "typed nested UDT/array model generated");
 Check(SyncConfiguration.FromJson(bundle.Configuration.ToJson()).SchemaHash == bundle.Configuration.SchemaHash, "configuration consumer round trip");
-Throws<FormatException>(() => SyncConfiguration.FromJson(bundle.Configuration.ToJson().Replace("\"schemaVersion\": 1", "\"schemaVersion\": 1, \"schemaVersion\": 1")), "duplicate JSON keys rejected");
+Throws<FormatException>(() => SyncConfiguration.FromJson(bundle.Configuration.ToJson().Replace("\"schemaVersion\": 2", "\"schemaVersion\": 2, \"schemaVersion\": 2")), "duplicate JSON keys rejected");
 Throws<FormatException>(() => (bundle.Configuration with { SchemaHash = new string('0', 64) }).Validate(), "schema drift rejected");
 Throws<FormatException>(() => Generator.Generate(catalog, [new("Status", Direction.AppToPlc)]), "read-only UDT cannot become writable");
 Throws<FormatException>(() => Generator.Generate(catalog, [new("Status", Direction.PlcToApp), new("Status.Speed", Direction.PlcToApp)]), "overlapping parent and child selections rejected");
@@ -25,7 +26,7 @@ Throws<ArgumentException>(() => Generator.Generate(catalog, selections, moduleNa
 Throws<ArgumentException>(() => Generator.Generate(catalog with { SoftwareRevision = "unknown" }, selections), "unknown import revision is not guessed");
 var xml = XDocument.Parse(bundle.RoutineL5x);
 string rungs = string.Join("\n", xml.Descendants("Text").Select(x => x.Value));
-Check(rungs.Contains("CPS(Status.Count,LogixRelay_PS_Tx[32],8)") && rungs.Contains("CPS(LogixRelay_PS_Rx[28],Command.Setpoint,1)"), "CPS length uses destination element units");
+Check(rungs.Contains("CPS(Status.Count,LogixRelay_PS_Tx[32],8)") && rungs.Contains("CPS(LogixRelay_PS_Rx[56],Command.Setpoint,1)"), "CPS length uses destination element units");
 Check(rungs.Contains("XIC(LogixRelay_PS_ApplyCommands)") && rungs.IndexOf("Command.Setpoint", StringComparison.Ordinal) < rungs.IndexOf("MOV(LogixRelay_PS_CommandSequence", StringComparison.Ordinal), "command gate and acknowledgement ordering");
 Check(xml.Root?.Attribute("TargetType")?.Value == "Routine", "L5X identifies routine import");
 Check(rungs.Contains("TON(LogixRelay_PS_Watchdog,1000,0)") && rungs.Contains("NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)"), "PLC watchdog requires fresh generations");
@@ -54,7 +55,7 @@ int schema = BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(bundle
 byte[] PlcFrame(int sequence, int ack)
 {
     var result = new byte[bundle.Configuration.PlcToAppBytes];
-    int[] header = [ImplicitImage.Magic, 1, schema, sequence, ack, 1];
+    int[] header = [ImplicitImage.Magic, ImplicitImage.ProtocolVersion, schema, sequence, ack, 1];
     for (int i = 0; i < header.Length; i++) ImplicitImage.WriteInt(result, i * 4, header[i]);
     PlcTypes.Encode(PlcType.REAL, 47.25f, result.AsSpan(statusSpeed.Map.Offset));
     return result;
@@ -98,6 +99,119 @@ using (var cancel = new CancellationTokenSource())
     Check(Equals(transport.Values["AckSequence"], 42), "trigger group echoes sequence after successful transfer");
 }
 Check(OpenerAdapter.NativeAbiVersion == 1, "real native DLL loads through PInvoke without opening network ports");
+Check(NativePreflight.Start("not-a-real-interface", 480, 476, 101, 100, 102, 1, 1) == -1,
+    "native bridge rejects unequal image sizes before NIC/network initialization");
+
+using var extendedStream = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "StringsAndArrays.L5X"));
+var extended = L5xCatalog.Read(extendedStream);
+var extendedBundle = Generator.Generate(extended, [new("Metrics", Direction.PlcToApp), new("Values", Direction.PlcToApp),
+    new("Cubes", Direction.PlcToApp), new("Stations", Direction.PlcToApp), new("Request", Direction.AppToPlc)], assemblyBytes: 480);
+var extendedConfig = extendedBundle.Configuration;
+Check(extendedConfig.PlcToAppBytes == 480 && extendedConfig.AppToPlcBytes == 480, "fixed-size complete round-trip contract");
+Check(extendedConfig.Fields.Single(f => f.Path == "Metrics.Title").StringCapacity == 82 &&
+    extendedConfig.Fields.Single(f => f.Path == "Request.Recipe").StringCapacity == 128, "default and custom STRING capacities retained");
+Check(extendedConfig.Fields.Any(f => f.Path == "Values[1,2]") && extendedConfig.Fields.Any(f => f.Path == "Cubes[1,1,1]") &&
+    extendedConfig.Fields.Any(f => f.Path == "Stations[1,1].Name"), "2D/3D primitives and UDT arrays use Logix comma subscripts");
+Check(extendedConfig.Fields.Any(f => f.Path == "Stations[1,1].History[1]"), "multidimensional UDT arrays retain legal one-dimensional member arrays");
+using (var invalidMember = new MemoryStream(Encoding.UTF8.GetBytes("""
+<RSLogix5000Content SoftwareRevision="35.03"><Controller Name="Invalid"><DataTypes><DataType Name="Bad"><Members><Member Name="Grid" DataType="DINT" Dimension="2,2"/></Members></DataType></DataTypes><Tags><Tag Name="BadTag" DataType="Bad"/></Tags></Controller></RSLogix5000Content>
+""")))
+    Check(!L5xCatalog.Read(invalidMember).Tags.Single().Selectable, "unsupported native multidimensional UDT member is rejected");
+Check(extendedBundle.ModelCs.Contains("PlcVariable<float>[,] Tag_Values") && extendedBundle.ModelCs.Contains("PlcVariable<long>[,,] Tag_Cubes"), "generated C# rectangular array declarations");
+var stringsArray = Generator.Generate(extended, [new("Names", Direction.AppToPlc)]);
+Check(stringsArray.ModelCs.Contains("PlcVariable<string>[,]") && stringsArray.Configuration.Fields.All(f => f.StringCapacity == 12), "multidimensional custom STRING array");
+Check(extendedConfig.Fields.OrderBy(f => f.Offset).Zip(extendedConfig.Fields.OrderBy(f => f.Offset).Skip(1)).All(pair =>
+    pair.First.Offset + pair.First.WireBytes <= pair.Second.Offset), "shared offsets have no overlap across owners");
+Throws<ArgumentException>(() => Generator.Generate(extended, [new("Metrics", Direction.PlcToApp)], assemblyBytes: 100), "too-small fixed assembly rejected");
+Throws<FormatException>(() => (extendedConfig with { AppToPlcBytes = 476 }).Validate(), "asymmetric images rejected");
+Throws<FormatException>(() => (extendedConfig with { SchemaVersion = 1 }).Validate(), "old wire contracts require regeneration");
+Check(ArrayShape.Subscript(5, [2,3]) == "1,2" && ArrayShape.Subscript(7, [2,2,2]) == "1,1,1", "array order is rightmost-index fastest");
+Throws<ArgumentException>(() => ArrayShape.Count([1,1,1,1]), "rank above three rejected");
+using (var reversedString = new MemoryStream(Encoding.UTF8.GetBytes("""
+<RSLogix5000Content SoftwareRevision="35.03"><Controller Name="Invalid"><DataTypes><DataType Name="WrongOrder" Family="StringFamily"><Members><Member Name="DATA" DataType="SINT" Dimension="12"/><Member Name="LEN" DataType="DINT" Dimension="0"/></Members></DataType></DataTypes><Tags><Tag Name="BadString" DataType="WrongOrder"/></Tags></Controller></RSLogix5000Content>
+""")))
+    Check(!L5xCatalog.Read(reversedString).Tags.Single().Selectable, "string definitions must have native LEN-before-DATA layout");
+var stringField = new FieldMap("Text", PlcType.STRING, Direction.AppToPlc, 24, StringCapacity: 82);
+byte[] nativeString = Enumerable.Repeat((byte)0xCC, 88).ToArray();
+string text = "A\0éÿ";
+var encodedString = LogixStringBuffer.Encode(stringField, text, nativeString);
+Check(LogixStringBuffer.Decode(stringField, encodedString) == text && encodedString[86] == 0xCC && encodedString[87] == 0xCC,
+    "counted strings preserve null/8-bit data and native tail padding");
+Throws<ArgumentException>(() => LogixStringBuffer.Encode(stringField, new string('A', 83), nativeString), "over-capacity STRING rejected without truncation");
+Throws<ArgumentException>(() => LogixStringBuffer.Encode(stringField, "漢", nativeString), "unrepresentable characters rejected without substitution");
+var badString = encodedString.ToArray(); BinaryPrimitives.WriteInt32LittleEndian(badString, -1);
+Throws<FormatException>(() => LogixStringBuffer.Decode(stringField, badString), "negative native STRING LEN rejected");
+BinaryPrimitives.WriteInt32LittleEndian(badString, 83);
+Throws<FormatException>(() => LogixStringBuffer.Decode(stringField, badString), "native STRING LEN above capacity rejected");
+Throws<FormatException>(() => LogixStringBuffer.Decode(stringField, new byte[84]), "wrong native STRING buffer size rejected");
+var extendedModel = new TestModel(extendedConfig);
+var recipe = (PlcVariable<string>)extendedModel.Variables.Single(v => v.Map.Path == "Request.Recipe");
+var execute = (PlcVariable<bool>)extendedModel.Variables.Single(v => v.Map.Path == "Request.Execute");
+recipe.Value = new string('R', 128); execute.Value = true;
+Throws<ArgumentException>(() => recipe.Value = new string('R', 129), "typed custom STRING setter enforces declared capacity");
+var extendedCodec = new ImplicitImage(extendedConfig, extendedModel);
+var firstOutput = extendedCodec.BuildAppToPlc();
+byte[] plcImage = new byte[480];
+int[] extHeader = [ImplicitImage.Magic, ImplicitImage.ProtocolVersion, BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(extendedConfig.SchemaHash)), 1, ImplicitImage.ReadInt(firstOutput, 12), 1];
+for (int i = 0; i < 6; i++) ImplicitImage.WriteInt(plcImage, i * 4, extHeader[i]);
+foreach (var variable in extendedModel.Variables) PlcTypes.Encode(variable.Map, variable.Map.Type == PlcType.STRING ? "PLC" : variable.BoxedValue, plcImage.AsSpan(variable.Map.Offset));
+extendedCodec.ReceivePlcToApp(plcImage, now);
+Check(recipe.Value == new string('R', 128) && recipe.ObservedValue == "PLC", "PLC readback is typed and does not overwrite desired app STRING");
+var echoed = extendedCodec.BuildAppToPlc();
+var title = extendedConfig.Fields.Single(f => f.Path == "Metrics.Title");
+Check(echoed.AsSpan(title.Offset, title.WireBytes).SequenceEqual(plcImage.AsSpan(title.Offset, title.WireBytes)), "PLC-owned bytes round trip unchanged");
+Check((string)PlcTypes.Decode(recipe.Map, echoed.AsSpan(recipe.Map.Offset)) == recipe.Value, "app-owned STRING overlays the full received image");
+var nextPlc = plcImage.ToArray(); ImplicitImage.WriteInt(nextPlc, 12, 2); ImplicitImage.WriteInt(nextPlc, 16, 0);
+PlcTypes.Encode(title, "NEW PLC", nextPlc.AsSpan(title.Offset));
+extendedCodec.ReceivePlcToApp(nextPlc, now.AddMilliseconds(1));
+var refresh = extendedCodec.RefreshPlcEcho(echoed);
+Check((string)PlcTypes.Decode(title, refresh.AsSpan(title.Offset)) == "NEW PLC" &&
+    refresh.AsSpan(recipe.Map.Offset, recipe.Map.WireBytes).SequenceEqual(echoed.AsSpan(recipe.Map.Offset, recipe.Map.WireBytes)) &&
+    ImplicitImage.ReadInt(refresh, 12) == ImplicitImage.ReadInt(echoed, 12), "fresh PLC bytes round trip while unacknowledged command bytes and generation stay immutable");
+Check(!extendedCodec.ReceivePlcToApp(nextPlc, now.AddMilliseconds(2)), "duplicate frames cannot advance native command acknowledgements");
+var badImage = plcImage.ToArray(); ImplicitImage.WriteInt(badImage, 12, 2);
+PlcTypes.Encode(title, "INVALID IMAGE", badImage.AsSpan(title.Offset));
+ImplicitImage.WriteInt(badImage, 12, 3); BinaryPrimitives.WriteInt32LittleEndian(badImage.AsSpan(recipe.Map.Offset), 129);
+Throws<FormatException>(() => extendedCodec.ReceivePlcToApp(badImage, now), "malformed implicit STRING rejects entire image");
+Check((string)extendedModel.Variables.Single(v => v.Map.Path == title.Path).BoxedValue == "NEW PLC", "late STRING error publishes none of the staged image");
+var extRungs = string.Join("\n", XDocument.Parse(extendedBundle.RoutineL5x).Descendants("Text").Select(e => e.Value));
+Check(extRungs.Contains("LEQ(LogixRelay_PS_StringLen0,128)") && extRungs.Contains("OTE(LogixRelay_PS_FrameValid)"), "PLC validates every command STRING length before applying fields");
+Check(extRungs.Contains("CPS(Request.Recipe,LogixRelay_PS_Tx[") && extRungs.Contains("CPS(Values[1,2],"), "PLC transmits command readbacks and multidimensional elements");
+var extTransport = new FakeTransport();
+foreach (var variable in extendedModel.Variables) extTransport.Values[variable.Map.Path] = variable.Map.Type == PlcType.STRING ? "EXPLICIT" : variable.BoxedValue;
+recipe.Value = "NEW";
+await new ExplicitSession(extendedConfig, extendedModel, extTransport).SynchronizeOnceAsync();
+Check(Equals(extTransport.Values[recipe.Map.Path], "NEW") && !recipe.Dirty, "explicit custom STRING changes synchronize through field-aware transport");
+Check(recipe.ObservedValue == "EXPLICIT", "explicit command readback does not replace desired value");
+var longString = stringField with { StringCapacity = 65535 };
+var longBuffer = new byte[65540]; var maximumText = new string('L', 65535);
+PlcTypes.Encode(longString, maximumText, longBuffer);
+Check((string)PlcTypes.Decode(longString, longBuffer) == maximumText, "maximum custom STRING capacity is supported by the codec");
+var longCatalog = new TagCatalog("LongString", "35.03", [new("LongText", "LongText", "LargeText", "Read/Write", [], StringCapacity: 65535)]);
+Throws<FormatException>(() => Generator.Generate(longCatalog, [new("LongText", Direction.AppToPlc)]), "oversize STRING requires explicit mode or a split protocol");
+Check(Generator.Generate(longCatalog, [new("LongText", Direction.AppToPlc)], includeImplicit: false).Configuration.AppToPlcBytes > 65535,
+    "explicit-only generation supports custom strings beyond one I/O assembly");
+byte[] syntheticModule = Encoding.UTF8.GetBytes("""
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.03" TargetName="Template" TargetType="Module"><Controller Name="SyntheticContext"><Modules>
+<Module Use="Target" Name="Template" CatalogNumber="ETHERNET-MODULE" ParentModule="Local" ParentModPortId="2"><EKey State="Disabled"/><Ports><Port Id="2" Address="192.0.2.2" Type="Ethernet"/></Ports>
+<Communications CommMethod="native-mode-sentinel" PrimCxnInputSize="480" PrimCxnOutputSize="480"><ConfigTag ConfigSize="0"><Data Format="L5K"><![CDATA[[5,102,[0,0]]]]></Data></ConfigTag>
+<Connections><Connection Name="Standard" RPI="10000" Type="Output" InputCxnPoint="101" OutputCxnPoint="100" InputSize="480" OutputSize="480">
+<InputTag><Data Format="Decorated"><Structure DataType="AB:ETHERNET_MODULE_SINT_480Bytes:I:0"><ArrayMember Name="Data" DataType="SINT" Dimensions="480"/></Structure></Data></InputTag>
+<OutputTag><Data Format="L5K"><![CDATA[[[0]]]]></Data><Data Format="Decorated"><Structure DataType="AB:ETHERNET_MODULE_SINT_480Bytes:O:0"><ArrayMember Name="Data" DataType="SINT" Dimensions="480"/></Structure></Data></OutputTag>
+</Connection></Connections></Communications></Module></Modules></Controller></RSLogix5000Content>
+""");
+var moduleInfo = ModuleTemplate.Inspect(syntheticModule);
+Check(moduleInfo.Errors.Count == 0 && moduleInfo.ConfigurationAssembly == 102, "module template structural inspection (synthetic fixture, not native evidence)");
+var generatedModule = ModuleTemplate.Generate(syntheticModule, bundle.Configuration, "RelayTest", "192.0.2.10");
+var moduleDoc = XDocument.Parse(generatedModule.Xml);
+Check(moduleDoc.Descendants("Communications").Single().Attribute("CommMethod")!.Value == "native-mode-sentinel" &&
+    moduleDoc.Descendants("ConfigTag").Single().Element("Data")!.Value == "[5,102,[0,0]]", "module generation preserves opaque native mode and configuration prefix");
+Check(moduleDoc.Descendants("ArrayMember").All(a => (string?)a.Attribute("Dimensions") == "60" && a.Elements("Element").Count() == 60), "module data images and decorated elements resize together");
+Check(moduleDoc.Descendants("Connection").Single().Attribute("RPI")!.Value == "20000" && moduleDoc.Root!.Attribute("TargetName")!.Value == "RelayTest", "module RPI, name, and PC address are emitted from settings");
+var mismatchedModule = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(syntheticModule).Replace("OutputCxnPoint=\"100\"", "OutputCxnPoint=\"150\""));
+Throws<ArgumentException>(() => ModuleTemplate.Generate(mismatchedModule, bundle.Configuration, "RelayTest", "192.0.2.10"), "unmatched native assembly instances require a new export");
+var statusModule = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(syntheticModule).Replace("</Connections>", "<Connection Name=\"Status\" /></Connections>"));
+Throws<ArgumentException>(() => ModuleTemplate.Generate(statusModule, bundle.Configuration, "RelayTest", "192.0.2.10"), "unsupported separate status connection is not silently removed");
 
 if (args.Length == 2 && args[0] == "--generate")
 {
@@ -107,6 +221,14 @@ if (args.Length == 2 && args[0] == "--generate")
     await File.WriteAllTextAsync(Path.Combine(args[1], "RelayRoutine.L5X"), bundle.RoutineL5x, new UTF8Encoding(false));
     await File.WriteAllTextAsync(Path.Combine(args[1], "ModuleSetup.txt"), bundle.ModuleInstructions, new UTF8Encoding(false));
 }
+if (args.Length == 2 && args[0] == "--generate-extended")
+{
+    Directory.CreateDirectory(args[1]);
+    await File.WriteAllTextAsync(Path.Combine(args[1], "GeneratedTags.g.cs"), extendedBundle.ModelCs, new UTF8Encoding(false));
+    await File.WriteAllTextAsync(Path.Combine(args[1], "logixrelay.json"), extendedConfig.ToJson(), new UTF8Encoding(false));
+    await File.WriteAllTextAsync(Path.Combine(args[1], "RelayRoutine.L5X"), extendedBundle.RoutineL5x, new UTF8Encoding(false));
+    await File.WriteAllTextAsync(Path.Combine(args[1], "ModuleSetup.txt"), extendedBundle.ModuleInstructions, new UTF8Encoding(false));
+}
 Console.WriteLine($"{passed} checks passed. Runtime: {Environment.Version}");
 
 sealed class TestModel : IPlcModel
@@ -115,7 +237,7 @@ sealed class TestModel : IPlcModel
     public TestModel(SyncConfiguration config) => Variables = config.Fields.Select(f => (IPlcVariable)(f.Type switch
     {
         PlcType.BOOL => (IPlcVariable)new PlcVariable<bool>(f), PlcType.SINT => new PlcVariable<sbyte>(f), PlcType.INT => new PlcVariable<short>(f),
-        PlcType.DINT => new PlcVariable<int>(f), PlcType.LINT => new PlcVariable<long>(f), PlcType.REAL => new PlcVariable<float>(f), _ => throw new Exception()
+        PlcType.DINT => new PlcVariable<int>(f), PlcType.LINT => new PlcVariable<long>(f), PlcType.REAL => new PlcVariable<float>(f), PlcType.STRING => new PlcVariable<string>(f), _ => throw new Exception()
     })).ToArray();
 }
 sealed class FakeTransport : IExplicitTransport
@@ -134,4 +256,9 @@ sealed class FakeTransport : IExplicitTransport
         return ValueTask.CompletedTask;
     }
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+}
+static class NativePreflight
+{
+    [System.Runtime.InteropServices.DllImport("LogixTagRelayOpener", EntryPoint = "ltr_start", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl, CharSet = System.Runtime.InteropServices.CharSet.Ansi)]
+    internal static extern int Start(string nic, int inputBytes, int outputBytes, int inputAssembly, int outputAssembly, int configAssembly, uint serial, ushort seed);
 }

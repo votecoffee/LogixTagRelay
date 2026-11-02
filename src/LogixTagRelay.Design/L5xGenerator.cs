@@ -29,6 +29,9 @@ internal static class L5xGenerator
             Tag(prefix + "_" + suffix, "DINT");
         Tag(prefix + "_ApplyCommands", "BOOL"); // Integrator must drive this permission from connection/watchdog policy.
         Tag(prefix + "_Watchdog", "TIMER");
+        Tag(prefix + "_FrameValid", "BOOL");
+        var commandStrings = config.Fields.Where(f => f.Direction == Direction.AppToPlc && f.Type == PlcType.STRING).ToArray();
+        for (int i = 0; i < commandStrings.Length; i++) Tag(prefix + "_StringLen" + i, "DINT");
         var rungs = new List<(string Text, string Comment)>();
         void Rung(string text, string comment = "") => rungs.Add((text, comment));
         Rung($"CPS({module}:I.Data[0],{rx}[0],{config.AppToPlcBytes});", "Snapshot PC-to-PLC assembly once before decoding. Module I is input TO the PLC.");
@@ -39,10 +42,16 @@ internal static class L5xGenerator
             if (i == 4) continue;
             Rung($"CPS({rx}[{i * 4}],{prefix}_{suffix},1);");
         }
-        string headerValid = $"XIC({prefix}_ApplyCommands)EQU({prefix}_Magic,{ImplicitImage.Magic})EQU({prefix}_Version,1)EQU({prefix}_Schema,{token})EQU({prefix}_Valid,1)";
-        Rung($"{headerValid}NEQ({prefix}_CommandSequence,{prefix}_AcceptedSequence)RES({prefix}_Watchdog);");
+        string headerValid = $"XIC({prefix}_ApplyCommands)EQU({prefix}_Magic,{ImplicitImage.Magic})EQU({prefix}_Version,{ImplicitImage.ProtocolVersion})EQU({prefix}_Schema,{token})EQU({prefix}_Valid,1)";
+        for (int i = 0; i < commandStrings.Length; i++)
+        {
+            Rung($"CPS({rx}[{commandStrings[i].Offset}],{prefix}_StringLen{i},1);");
+            headerValid += $"GEQ({prefix}_StringLen{i},0)LEQ({prefix}_StringLen{i},{commandStrings[i].StringCapacity})";
+        }
+        Rung($"{headerValid}OTE({prefix}_FrameValid);", "Validate every command STRING LEN before any application destination is changed.");
+        Rung($"XIC({prefix}_FrameValid)NEQ({prefix}_CommandSequence,{prefix}_AcceptedSequence)RES({prefix}_Watchdog);");
         Rung($"TON({prefix}_Watchdog,1000,0);", "A managed application stall cannot refresh this watchdog by retransmitting the same sequence.");
-        string valid = headerValid + $"XIO({prefix}_Watchdog.DN)NEQ({prefix}_CommandSequence,{prefix}_AcceptedSequence)";
+        string valid = $"XIC({prefix}_FrameValid)XIO({prefix}_Watchdog.DN)NEQ({prefix}_CommandSequence,{prefix}_AcceptedSequence)";
         foreach (var field in config.Fields.Where(f => f.Direction == Direction.AppToPlc))
         {
             string path = LocalPath(field.Path);
@@ -52,11 +61,13 @@ internal static class L5xGenerator
                 // Gate the OTE in a branch so an invalid frame does not clear a prior command.
                 Rung($"{valid}[NEQ({prefix}_Bool,0)OTL({path}),EQU({prefix}_Bool,0)OTU({path})];");
             }
-            else Rung($"{valid}CPS({rx}[{field.Offset}],{path},1);");
+            else Rung($"{valid}CPS({rx}[{field.Offset}],{path},1);", field.Type == PlcType.STRING ?
+                "One native counted string: LEN + declared SINT DATA + DINT alignment; capacity validated before copying." : "");
         }
         Rung($"{valid}MOV({prefix}_CommandSequence,{prefix}_AcceptedSequence);", "Acknowledgement follows all command copies; application logic should consume staging values deliberately.");
         Rung($"FLL(0,{tx}[0],{config.PlcToAppBytes});");
-        foreach (var field in config.Fields.Where(f => f.Direction == Direction.PlcToApp))
+        Rung($"MOV(1,{prefix}_HeaderValid);");
+        foreach (var field in config.Fields)
         {
             string path = LocalPath(field.Path);
             if (field.Type == PlcType.BOOL)
@@ -64,11 +75,16 @@ internal static class L5xGenerator
                 Rung($"MOV(0,{prefix}_Bool);"); Rung($"XIC({path})MOV(1,{prefix}_Bool);");
                 Rung($"CPS({prefix}_Bool,{tx}[{field.Offset}],4);");
             }
-            else Rung($"CPS({path},{tx}[{field.Offset}],{PlcTypes.Size(field.Type)});");
+            else Rung($"CPS({path},{tx}[{field.Offset}],{(field.Type == PlcType.STRING ? (field.WireBytes + 3) / 4 * 4 : field.WireBytes)});");
+            if (field.Type == PlcType.STRING)
+            {
+                Rung($"LES({path}.LEN,0)MOV(0,{prefix}_HeaderValid);");
+                Rung($"GRT({path}.LEN,{field.StringCapacity})MOV(0,{prefix}_HeaderValid);");
+            }
         }
         Rung($"EQU({prefix}_Sequence,2147483647)MOV(-1,{prefix}_Sequence);");
         Rung($"ADD({prefix}_Sequence,1,{prefix}_Sequence);", "Wrap to zero before signed ADD overflow. Sequence advances on each routine execution.");
-        Rung($"MOV({ImplicitImage.Magic},{prefix}_HeaderMagic)MOV(1,{prefix}_HeaderVersion)MOV({token},{prefix}_HeaderSchema)MOV(1,{prefix}_HeaderValid);");
+        Rung($"MOV({ImplicitImage.Magic},{prefix}_HeaderMagic)MOV({ImplicitImage.ProtocolVersion},{prefix}_HeaderVersion)MOV({token},{prefix}_HeaderSchema);");
         var headers = new[] { "HeaderMagic", "HeaderVersion", "HeaderSchema", "Sequence", "AcceptedSequence", "HeaderValid" };
         for (int i = 0; i < headers.Length; i++) Rung($"CPS({prefix}_{headers[i]},{tx}[{i * 4}],4);");
         Rung($"CPS({tx}[0],{module}:O.Data[0],{config.PlcToAppBytes});", "Module O is output FROM the PLC. Only one routine/task should own these bytes.");

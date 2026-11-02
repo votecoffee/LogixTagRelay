@@ -11,7 +11,7 @@ public sealed record GeneratedBundle(string ModelCs, SyncConfiguration Configura
 public static partial class Generator
 {
     public static GeneratedBundle Generate(TagCatalog catalog, IReadOnlyList<TagSelection> selections,
-        bool includeImplicit = true, string moduleName = "LogixRelay", string softwareRevision = "")
+        bool includeImplicit = true, string moduleName = "LogixRelay", string softwareRevision = "", int assemblyBytes = 0)
     {
         if (!Identifier().IsMatch(moduleName) || moduleName.Length > 16) throw new ArgumentException("Module name must be an identifier of at most 16 characters.");
         var nodes = new List<(TagNode Node, Direction Direction)>();
@@ -23,19 +23,21 @@ public static partial class Generator
             nodes.Add((node, selection.Direction));
         }
         var fields = new List<FieldMap>();
-        int fromPlc = ImplicitImage.HeaderBytes, toPlc = ImplicitImage.HeaderBytes;
+        int imageBytes = ImplicitImage.HeaderBytes;
         foreach (var (node, direction) in nodes)
         {
             foreach (var leaf in node.Leaves())
             {
-                int offset = direction == Direction.PlcToApp ? fromPlc : toPlc;
-                var type = Enum.Parse<PlcType>(leaf.DataType);
-                fields.Add(new(leaf.Path, type, direction, offset, leaf.Access));
-                int next = offset + ((PlcTypes.Size(type) + 3) / 4 * 4);
-                if (direction == Direction.PlcToApp) fromPlc = next; else toPlc = next;
+                var type = leaf.AtomicType ?? throw new ArgumentException("Selection has no supported leaf type.");
+                var field = new FieldMap(leaf.Path, type, direction, imageBytes, leaf.Access, leaf.StringCapacity);
+                fields.Add(field);
+                imageBytes += ((field.WireBytes + 3) / 4 * 4);
             }
         }
-        var config = new SyncConfiguration(SyncConfiguration.ComputeHash(fields), fields, fromPlc, toPlc,
+        if (assemblyBytes != 0 && (assemblyBytes < imageBytes || assemblyBytes % 4 != 0))
+            throw new ArgumentException($"Assembly length must be a multiple of 4 and at least {imageBytes} bytes for this contract.");
+        imageBytes = Math.Max(imageBytes, assemblyBytes);
+        var config = new SyncConfiguration(SyncConfiguration.ComputeHash(fields), fields, imageBytes, imageBytes,
             Explicit: new(), Implicit: includeImplicit ? new() : null);
         config.Validate(); // Includes duplicate parent/child selections and incompatible access.
         if (includeImplicit)
@@ -61,13 +63,15 @@ public static partial class Generator
             Name: {moduleName}
             IP address: the PC NIC serving the adapter (not the PLC IP)
             Comm Format: Data - SINT
-            Input assembly: {config.Implicit?.PlcInputAssembly ?? 101}; size: {toPlc} bytes (PC -> PLC)
-            Output assembly: {config.Implicit?.PlcOutputAssembly ?? 100}; size: {fromPlc} bytes (PLC -> PC)
+            Input assembly: {config.Implicit?.PlcInputAssembly ?? 101}; size: {imageBytes} bytes (PC -> PLC)
+            Output assembly: {config.Implicit?.PlcOutputAssembly ?? 100}; size: {imageBytes} bytes (PLC -> PC)
             Configuration assembly: {config.Implicit?.ConfigurationAssembly ?? 102}; size: 0
+            Separate status connection: disabled (not exposed by this OpENer application)
             RPI: {config.Implicit?.RpiMs ?? 20} ms; actual supported RPI must be negotiated/tested with the chosen adapter.
             Unicast preferred; adapter transport headers are NOT included in these payload sizes.
 
-            The preview generates a ROUTINE import, not a native module import. Add the module using these settings.
+            The routine export is always included. A matching native template optionally supplies a separate module import.
+            Without that template, add the module manually using these settings.
             Import into the program containing any selected program-scoped tags. One program scope per group.
             Explicitly call the imported routine from a scheduled task (JSR). It is not automatically scheduled.
             All selected application tags must already exist. Import creates only module-prefixed staging tags.
@@ -81,11 +85,11 @@ public static partial class Generator
     private static string GenerateModel(List<(TagNode Node, Direction Direction)> nodes, SyncConfiguration config)
     {
         var classes = new Dictionary<string, (string Name, TagNode Node)>();
-        string Shape(TagNode n) => n.DataType + (n.IsArray ? "[]" : "{" + string.Join(";", n.Children.Select(c => c.Name + ":" + Shape(c))) + "}");
+        string Shape(TagNode n) => n.DataType + ":" + n.StringCapacity + (n.IsArray ? "[" + string.Join(",", n.ArrayDimensions) + "]" + Shape(n.Children[0]) : "{" + string.Join(";", n.Children.Select(c => c.Name + ":" + Shape(c))) + "}");
         string Type(TagNode n)
         {
-            if (n.IsArray) return Type(n.Children[0]) + "[]";
-            if (n.Children.Count == 0) return $"PlcVariable<{PlcTypes.CSharp(Enum.Parse<PlcType>(n.DataType))}>";
+            if (n.IsArray) return Type(n.Children[0]) + "[" + new string(',', n.ArrayDimensions.Length - 1) + "]";
+            if (n.Children.Count == 0) return $"PlcVariable<{PlcTypes.CSharp(n.AtomicType!.Value)}>";
             string key = Shape(n);
             if (!classes.TryGetValue(key, out var item))
             {
@@ -97,10 +101,18 @@ public static partial class Generator
         string Literal(string s) => JsonSerializer.Serialize(s);
         string Init(TagNode n)
         {
-            if (n.IsArray) return "new " + Type(n.Children[0]) + "[] { " + string.Join(", ", n.Children.Select(Init)) + " }";
+            if (n.IsArray)
+            {
+                var dims = n.ArrayDimensions;
+                if (ArrayShape.Count(dims) != n.Children.Count) throw new ArgumentException("Array shape does not match catalog elements.");
+                int index = 0;
+                string Initializer(int depth) => "{ " + string.Join(", ", Enumerable.Range(0, dims[depth]).Select(_ =>
+                    depth == dims.Length - 1 ? Init(n.Children[index++]) : Initializer(depth + 1))) + " }";
+                return "new " + Type(n.Children[0]) + "[" + string.Join(",", dims) + "] " + Initializer(0);
+            }
             if (n.Children.Count != 0) return "new " + Type(n) + " { " + string.Join(", ", n.Children.Select(c => Id(c.Name) + " = " + Init(c))) + " }";
             var f = config.Fields.Single(f => f.Path == n.Path);
-            return $"new {Type(n)}(new FieldMap({Literal(f.Path)}, PlcType.{f.Type}, Direction.{f.Direction}, {f.Offset}, {Literal(f.Access)}))";
+            return $"new {Type(n)}(new FieldMap({Literal(f.Path)}, PlcType.{f.Type}, Direction.{f.Direction}, {f.Offset}, {Literal(f.Access)}, {f.StringCapacity}))";
         }
         var names = nodes.Select(n => Id(n.Node.Path)).ToArray();
         if (names.Distinct(StringComparer.Ordinal).Count() != names.Length) throw new ArgumentException("C# identifier collision.");
@@ -111,7 +123,7 @@ public static partial class Generator
         {
             if (node.Children.Count == 0) refs.Add(expression);
             else for (int i = 0; i < node.Children.Count; i++)
-                References(node.Children[i], node.IsArray ? $"{expression}[{i}]" : expression + "." + Id(node.Children[i].Name));
+                References(node.Children[i], node.IsArray ? $"{expression}[{ArrayShape.Subscript(i, node.ArrayDimensions)}]" : expression + "." + Id(node.Children[i].Name));
         }
         for (int i = 0; i < nodes.Count; i++) References(nodes[i].Node, names[i]);
         builder.AppendLine("    public IReadOnlyList<IPlcVariable> Variables => new IPlcVariable[] { " + string.Join(", ", refs) + " };\n}");

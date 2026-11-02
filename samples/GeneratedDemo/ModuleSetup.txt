@@ -2,13 +2,15 @@ Generic Ethernet Module settings (PLC perspective)
 Name: LogixRelay
 IP address: the PC NIC serving the adapter (not the PLC IP)
 Comm Format: Data - SINT
-Input assembly: 101; size: 32 bytes (PC -> PLC)
-Output assembly: 100; size: 52 bytes (PLC -> PC)
+Input assembly: 101; size: 60 bytes (PC -> PLC)
+Output assembly: 100; size: 60 bytes (PLC -> PC)
 Configuration assembly: 102; size: 0
+Separate status connection: disabled (not exposed by this OpENer application)
 RPI: 20 ms; actual supported RPI must be negotiated/tested with the chosen adapter.
 Unicast preferred; adapter transport headers are NOT included in these payload sizes.
 
-The preview generates a ROUTINE import, not a native module import. Add the module using these settings.
+The routine export is always included. A matching native template optionally supplies a separate module import.
+Without that template, add the module manually using these settings.
 Import into the program containing any selected program-scoped tags. One program scope per group.
 Explicitly call the imported routine from a scheduled task (JSR). It is not automatically scheduled.
 All selected application tags must already exist. Import creates only module-prefixed staging tags.

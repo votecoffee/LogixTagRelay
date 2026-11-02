@@ -4,6 +4,8 @@ public interface IExplicitTransport : IAsyncDisposable
 {
     ValueTask<object> ReadAsync(string path, PlcType type, CancellationToken cancellationToken);
     ValueTask WriteAsync(string path, PlcType type, object value, CancellationToken cancellationToken);
+    ValueTask<object> ReadAsync(FieldMap field, CancellationToken cancellationToken) => ReadAsync(field.Path, field.Type, cancellationToken);
+    ValueTask WriteAsync(FieldMap field, object value, CancellationToken cancellationToken) => WriteAsync(field.Path, field.Type, value, cancellationToken);
 }
 
 /// <summary>Single serialized group. Owns no transport lifetime; the caller disposes its transport.</summary>
@@ -27,16 +29,20 @@ public sealed class ExplicitSession
         {
             // Stage ALL reads before publishing them. No multi-tag PLC atomicity is implied.
             var reads = new List<(IPlcVariable Variable, object Value)>();
-            foreach (var variable in model.Variables.Where(v => v.Map.Direction == Direction.PlcToApp))
-                reads.Add((variable, await transport.ReadAsync(variable.Map.Path, variable.Map.Type, cancellationToken).ConfigureAwait(false)));
+            foreach (var variable in model.Variables)
+            {
+                var value = await transport.ReadAsync(variable.Map, cancellationToken).ConfigureAwait(false);
+                if (variable.Map.Type == PlcType.STRING) PlcTypes.ValidateString((string)value, variable.Map.StringCapacity);
+                reads.Add((variable, value));
+            }
             var time = DateTimeOffset.UtcNow;
-            foreach (var (variable, value) in reads) variable.AcceptRead(value, time);
+            foreach (var (variable, value) in reads) variable.Observe(value, time);
             foreach (var variable in model.Variables.Where(v => v.Map.Direction == Direction.AppToPlc && v.Dirty))
             {
                 var captured = variable.Capture();
                 try
                 {
-                    await transport.WriteAsync(variable.Map.Path, variable.Map.Type, captured.Value, cancellationToken).ConfigureAwait(false);
+                    await transport.WriteAsync(variable.Map, captured.Value, cancellationToken).ConfigureAwait(false);
                     variable.AcceptWrite(captured.Version, DateTimeOffset.UtcNow);
                 }
                 catch { variable.MarkBad(); throw; }
@@ -44,7 +50,7 @@ public sealed class ExplicitSession
         }
         catch
         {
-            foreach (var variable in model.Variables.Where(v => v.Map.Direction == Direction.PlcToApp)) variable.MarkBad();
+            foreach (var variable in model.Variables) variable.MarkBad();
             throw;
         }
         finally { cycleGate.Release(); }

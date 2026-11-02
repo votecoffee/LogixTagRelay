@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/LogixTagRelay.Design/LogixTagRelay.Design.csproj" />
     <ProjectReference Include="../../src/LogixTagRelay.Opener/LogixTagRelay.Opener.csproj" />
+    <ProjectReference Include="../../src/LogixTagRelay.Logix/LogixTagRelay.Logix.csproj" />
     <None Include="../../samples/Demo.L5X" Link="Demo.L5X" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../samples/StringsAndArrays.L5X" Link="StringsAndArrays.L5X" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.03" TargetName="StringsAndArrays" TargetType="Controller" ContainsContext="false">
+  <Controller Name="StringsAndArrays">
+    <DataTypes>
+      <DataType Name="Text12" Family="StringFamily" Class="User"><Members>
+        <Member Name="LEN" DataType="DINT" Dimension="0" />
+        <Member Name="DATA" DataType="SINT" Dimension="12" />
+      </Members></DataType>
+      <DataType Name="Text128" Family="StringFamily" Class="User"><Members>
+        <Member Name="LEN" DataType="DINT" Dimension="0" />
+        <Member Name="DATA" DataType="SINT" Dimension="128" />
+      </Members></DataType>
+      <DataType Name="Station" Family="NoFamily" Class="User"><Members>
+        <Member Name="Name" DataType="Text12" Dimension="0" />
+        <Member Name="Enabled" DataType="BOOL" Dimension="0" />
+        <Member Name="Measured" DataType="REAL" Dimension="0" />
+        <Member Name="History" DataType="DINT" Dimension="2" />
+      </Members></DataType>
+      <DataType Name="MetricsType" Family="NoFamily" Class="User"><Members>
+        <Member Name="Title" DataType="STRING" Dimension="0" />
+        <Member Name="Code" DataType="Text12" Dimension="0" />
+      </Members></DataType>
+      <DataType Name="RequestType" Family="NoFamily" Class="User"><Members>
+        <Member Name="Recipe" DataType="Text128" Dimension="0" />
+        <Member Name="Execute" DataType="BOOL" Dimension="0" />
+      </Members></DataType>
+    </DataTypes>
+    <Tags>
+      <Tag Name="Metrics" TagType="Base" DataType="MetricsType" ExternalAccess="Read Only" />
+      <Tag Name="Values" TagType="Base" DataType="REAL" Dimensions="2,3" ExternalAccess="Read Only" />
+      <Tag Name="Cubes" TagType="Base" DataType="LINT" Dimensions="2,2,2" ExternalAccess="Read Only" />
+      <Tag Name="Stations" TagType="Base" DataType="Station" Dimensions="2,2" ExternalAccess="Read Only" />
+      <Tag Name="Request" TagType="Base" DataType="RequestType" ExternalAccess="Read/Write" />
+      <Tag Name="Names" TagType="Base" DataType="Text12" Dimensions="2,2" ExternalAccess="Read/Write" />
+    </Tags>
+    <Programs />
+  </Controller>
+</RSLogix5000Content>

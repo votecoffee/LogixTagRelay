@@ -47,13 +47,16 @@ public sealed class OpenerAdapter : IAsyncDisposable
                     if (received && status == 0) throw new IOException("PLC connection closed or entered idle. Restart the host before reconnecting.");
                     if (status == 1 && observedGeneration != generation)
                     {
-                        image.ReceivePlcToApp(incoming, DateTimeOffset.UtcNow);
+                        bool accepted = image.ReceivePlcToApp(incoming, DateTimeOffset.UtcNow);
                         received = true;
                         generation = observedGeneration;
                         // Only publish another generation after the current generation is acknowledged.
                         int ack = ImplicitImage.ReadInt(incoming, 16);
-                        if (ack == ImplicitImage.ReadInt(frame, 12))
-                        { frame = image.BuildAppToPlc(); Check(Native.SetImage(frame, frame.Length)); }
+                        if (accepted)
+                        {
+                            frame = ack == ImplicitImage.ReadInt(frame, 12) ? image.BuildAppToPlc() : image.RefreshPlcEcho(frame);
+                            Check(Native.SetImage(frame, frame.Length));
+                        }
                     }
                     if (image.CheckStale(DateTimeOffset.UtcNow, TimeSpan.FromMilliseconds(Math.Max(1000L, (long)io.RpiMs * 10))) && received)
                         throw new IOException("PLC data became stale. Adapter stopped; restart the host to reconnect.");

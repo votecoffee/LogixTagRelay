@@ -31,9 +31,19 @@ app.MapPost("/api/catalog", async (HttpRequest request) =>
 });
 app.MapPost("/api/online", async (OnlineRequest request, CancellationToken cancellationToken) =>
     Results.Json(await new LogixBrowser(request.Gateway, request.Route).BrowseAsync(cancellationToken)));
+app.MapPost("/api/module-template", async (HttpRequest request) =>
+{
+    var form = await request.ReadFormAsync();
+    var file = form.Files.GetFile("file") ?? throw new ArgumentException("Choose a native module L5X export.");
+    using var stream = new MemoryStream(); await file.CopyToAsync(stream);
+    var bytes = stream.ToArray();
+    return Results.Json(new { info = ModuleTemplate.Inspect(bytes), templateBase64 = Convert.ToBase64String(bytes) });
+});
 app.MapPost("/api/generate", (GenerateRequest request) =>
 {
-    var bundle = Generator.Generate(request.Catalog, request.Selections, request.Implicit, request.ModuleName, request.SoftwareRevision);
+    var bundle = Generator.Generate(request.Catalog, request.Selections, request.Implicit, request.ModuleName, request.SoftwareRevision, request.AssemblyBytes);
+    ModuleImport? module = request.Implicit && request.ModuleTemplateBase64 != null ?
+        ModuleTemplate.Generate(Convert.FromBase64String(request.ModuleTemplateBase64), bundle.Configuration, request.ModuleName, request.PcAddress) : null;
     using var bytes = new MemoryStream();
     using (var zip = new ZipArchive(bytes, ZipArchiveMode.Create, true))
     {
@@ -41,9 +51,15 @@ app.MapPost("/api/generate", (GenerateRequest request) =>
         { using var writer = new StreamWriter(zip.CreateEntry(name).Open(), new UTF8Encoding(false)); writer.Write(content); }
         Add("GeneratedTags.cs", bundle.ModelCs); Add("logixrelay.json", bundle.Configuration.ToJson());
         if (request.Implicit) { Add("RelayRoutine.L5X", bundle.RoutineL5x); Add("ModuleSetup.txt", bundle.ModuleInstructions); }
+        if (module != null)
+        {
+            Add("GenericEthernetModule.L5X", module.Xml);
+            Add("ModuleProvenance.txt", $"Native template SHA-256: {module.SourceSha256}\nGenerated as an offline review copy. Studio 5000 import/verify/re-export acceptance is still required.\n");
+        }
     }
     return Results.File(bytes.ToArray(), "application/zip", "LogixTagRelay.Generated.zip");
 });
 app.Run();
 public sealed record OnlineRequest(string Gateway, string Route = "1,0");
-public sealed record GenerateRequest(TagCatalog Catalog, List<TagSelection> Selections, bool Implicit = true, string ModuleName = "LogixRelay", string SoftwareRevision = "");
+public sealed record GenerateRequest(TagCatalog Catalog, List<TagSelection> Selections, bool Implicit = true, string ModuleName = "LogixRelay", string SoftwareRevision = "",
+    int AssemblyBytes = 0, string? ModuleTemplateBase64 = null, string PcAddress = "192.168.1.200");
