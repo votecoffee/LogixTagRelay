@@ -62,7 +62,9 @@ $('load-module').onclick = async () => {
 $('generate').onclick = async () => {
   try {
     const response = await post('/api/generate', { catalog, selections: [...selected].map(([path,direction]) => ({path,direction})), implicit: $('mode').value === 'implicit', moduleName: $('module').value, softwareRevision: $('revision').value,
-      assemblyBytes: $('mode').value === 'implicit' ? Number($('assembly-bytes').value) : 0, moduleTemplateBase64, pcAddress: $('pc-address').value });
+      assemblyBytes: $('mode').value === 'implicit' ? Number($('assembly-bytes').value) : 0, moduleTemplateBase64, pcAddress: $('pc-address').value,
+      explicit: { intervalMs: Number($('interval-ms').value), triggerTag: $('trigger-tag').value.trim() || null,
+        triggerPollMs: Number($('trigger-poll-ms').value), handledTriggerTag: $('handled-tag').value.trim() || null, responseTag: $('response-tag').value.trim() || null } });
     const url = URL.createObjectURL(await response.blob()); const a = document.createElement('a'); a.href = url; a.download = 'LogixTagRelay.Generated.zip'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     status('Generated interface downloaded. Keep the C# model and JSON together.');
   } catch(e) { status(e.message); }

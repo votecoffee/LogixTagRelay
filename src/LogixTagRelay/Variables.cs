@@ -10,9 +10,11 @@ public interface IPlcVariable
     long Version { get; }
     bool Dirty { get; }
     (object Value, long Version) Capture();
+    (object Value, long Version, bool Dirty) CaptureForMerge();
     void AcceptRead(object value, DateTimeOffset timestamp);
     void Observe(object value, DateTimeOffset timestamp);
     void AcceptWrite(long version, DateTimeOffset timestamp);
+    void AcceptMergedWrite(long version, object value, DateTimeOffset timestamp);
     void MarkBad();
 }
 
@@ -47,6 +49,7 @@ public sealed class PlcVariable<T>(FieldMap map) : IPlcVariable
     public long Version { get { lock (gate) return version; } }
     public bool Dirty { get { lock (gate) return version != acceptedVersion; } }
     public (object Value, long Version) Capture() { lock (gate) return (value!, version); }
+    public (object Value, long Version, bool Dirty) CaptureForMerge() { lock (gate) return (value!, version, version != acceptedVersion); }
     public void AcceptRead(object newValue, DateTimeOffset time)
     {
         if (Map.Direction != Direction.PlcToApp) throw new InvalidOperationException("App owns this variable.");
@@ -67,6 +70,18 @@ public sealed class PlcVariable<T>(FieldMap map) : IPlcVariable
         lock (gate) { acceptedVersion = writtenVersion; quality = Quality.Good; timestamp = time; }
     }
     public void MarkBad() { lock (gate) quality = Quality.Bad; }
+    public void AcceptMergedWrite(long writtenVersion, object mergedValue, DateTimeOffset time)
+    {
+        if (Map.Type == PlcType.STRING) PlcTypes.ValidateString((string)mergedValue, Map.StringCapacity);
+        lock (gate)
+        {
+            // PLC may win byte conflicts. Preserve edits made after this request was captured.
+            if (version == writtenVersion) value = (T)mergedValue;
+            acceptedVersion = writtenVersion;
+            plcValue = (T)mergedValue; plcTimestamp = time;
+            quality = Quality.Good; timestamp = time;
+        }
+    }
 }
 
 public interface IPlcModel { IReadOnlyList<IPlcVariable> Variables { get; } }

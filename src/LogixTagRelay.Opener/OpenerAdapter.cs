@@ -26,8 +26,7 @@ public sealed class OpenerAdapter : IAsyncDisposable
             ObjectDisposedException.ThrowIf(disposed, this);
             if (started) throw new InvalidOperationException("OpENer supports one start per process in this bridge.");
             var io = config.Implicit!;
-            // Build first so uninitialized commands fail before opening any ports.
-            byte[] frame = image.BuildAppToPlc();
+            byte[] frame = image.BuildBootstrap();
             started = true;
             int result = Native.Start(nicNameOrIndex, config.AppToPlcBytes, config.PlcToAppBytes,
                 io.PlcInputAssembly, io.PlcOutputAssembly, io.ConfigurationAssembly, deviceSerialNumber,
@@ -51,10 +50,9 @@ public sealed class OpenerAdapter : IAsyncDisposable
                         received = true;
                         generation = observedGeneration;
                         // Only publish another generation after the current generation is acknowledged.
-                        int ack = ImplicitImage.ReadInt(incoming, 16);
                         if (accepted)
                         {
-                            frame = ack == ImplicitImage.ReadInt(frame, 12) ? image.BuildAppToPlc() : image.RefreshPlcEcho(frame);
+                            frame = image.BuildAppToPlc();
                             Check(Native.SetImage(frame, frame.Length));
                         }
                     }

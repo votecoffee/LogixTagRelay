@@ -2,25 +2,23 @@ using System.Buffers.Binary;
 
 namespace LogixTagRelay;
 
-/// <summary>
-/// Pure assembly codec. It does NOT implement an EtherNet/IP adapter or send UDP.
-/// Native adapters must supply complete immutable assembly payloads, excluding CIP headers.
-/// </summary>
+/// <summary>Complete assembly codec; no network activity. One request per matching PLC snapshot.</summary>
 public sealed class ImplicitImage
 {
     public const int HeaderBytes = 24;
     public const int Magic = 0x50535031;
-    public const int ProtocolVersion = 2;
+    public const int ProtocolVersion = 3;
     private readonly SyncConfiguration config;
     private readonly IPlcModel model;
     private readonly int schemaToken;
     private readonly object gate = new();
-    private readonly Queue<SentImage> pending = new();
+    private SentImage? pending;
     private int sequence = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, int.MaxValue - 32);
     private int? lastPlcSequence;
     private DateTimeOffset? lastFresh;
     private byte[]? lastReceived;
     private sealed record SentImage(int Sequence, List<(IPlcVariable Variable, long Version)> Versions);
+    public bool HasPendingCommand { get { lock (gate) return pending is not null; } }
 
     public ImplicitImage(SyncConfiguration config, IPlcModel model)
     {
@@ -28,44 +26,27 @@ public sealed class ImplicitImage
         this.config = config; this.model = model;
         schemaToken = BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(config.SchemaHash).AsSpan(0, 4));
     }
+    /// <summary>Invalid startup frame: cannot authorize PLC writes before a baseline is received.</summary>
+    public byte[] BuildBootstrap() => new byte[config.AppToPlcBytes];
     public byte[] BuildAppToPlc()
     {
         lock (gate)
         {
-            // At most 32 outstanding generations; resending a captured frame is the adapter's responsibility.
-            if (pending.Count >= 32) throw new InvalidOperationException("PLC acknowledgement has stalled.");
-            if (model.Variables.Any(v => v.Map.Direction == Direction.AppToPlc && v.Version == 0))
-                throw new InvalidOperationException("Assign every app-owned value before publishing an implicit image.");
-            var image = lastReceived?.ToArray() ?? new byte[config.AppToPlcBytes];
-            int next = sequence = (sequence + 1) & int.MaxValue;
-            WriteHeader(image, next, lastPlcSequence ?? 0);
+            if (pending is not null) throw new InvalidOperationException("Resend the captured frame until its PLC acknowledgement arrives.");
+            if (lastReceived is null) throw new InvalidOperationException("Receive a valid PLC snapshot before publishing commands.");
+            var image = lastReceived.ToArray();
+            int next = sequence = sequence == int.MaxValue ? 1 : sequence + 1;
+            WriteHeader(image, next, lastPlcSequence!.Value);
             var versions = new List<(IPlcVariable, long)>();
             foreach (var variable in model.Variables.Where(v => v.Map.Direction == Direction.AppToPlc))
             {
-                var captured = variable.Capture();
-                PlcTypes.Encode(variable.Map, captured.Value, image.AsSpan(variable.Map.Offset));
+                var captured = variable.CaptureForMerge();
+                // Unedited values echo the PLC. No CLR default can overwrite startup values.
+                if (captured.Dirty) PlcTypes.Encode(variable.Map, captured.Value, image.AsSpan(variable.Map.Offset));
                 versions.Add((variable, captured.Version));
             }
-            pending.Enqueue(new(next, versions));
+            pending = new(next, versions);
             return image;
-        }
-    }
-    public byte[] RefreshPlcEcho(byte[] commandImage)
-    {
-        lock (gate)
-        {
-            if (commandImage.Length != config.AppToPlcBytes || ReadInt(commandImage, 0) != Magic ||
-                ReadInt(commandImage, 4) != ProtocolVersion || ReadInt(commandImage, 8) != schemaToken)
-                throw new FormatException("Command image does not match this contract.");
-            var refreshed = lastReceived?.ToArray() ?? commandImage.ToArray();
-            commandImage.AsSpan(0, HeaderBytes).CopyTo(refreshed);
-            WriteInt(refreshed, 16, lastPlcSequence ?? 0);
-            foreach (var variable in model.Variables.Where(v => v.Map.Direction == Direction.AppToPlc))
-            {
-                int length = (variable.Map.WireBytes + 3) / 4 * 4;
-                commandImage.AsSpan(variable.Map.Offset, length).CopyTo(refreshed.AsSpan(variable.Map.Offset));
-            }
-            return refreshed;
         }
     }
     public bool ReceivePlcToApp(ReadOnlySpan<byte> image, DateTimeOffset time)
@@ -78,31 +59,25 @@ public sealed class ImplicitImage
                     ReadInt(image, 4) != ProtocolVersion || ReadInt(image, 8) != schemaToken || ReadInt(image, 20) != 1)
                     throw new FormatException("Assembly size, version, schema, or valid flag mismatch.");
                 int plcSequence = ReadInt(image, 12);
-                if (plcSequence < 0) throw new FormatException("Expected a nonnegative 31-bit sequence.");
+                if (plcSequence <= 0) throw new FormatException("Expected a positive 31-bit PLC sequence.");
                 if (lastPlcSequence.HasValue)
                 {
                     int delta = unchecked(plcSequence - lastPlcSequence.Value) & int.MaxValue;
                     if (delta == 0 || delta > int.MaxValue / 2) return false;
+                    if (pending is null || ReadInt(image, 16) != pending.Sequence)
+                        throw new FormatException("PLC snapshot advanced without acknowledging the pending command. Restart the session after reconciling PLC state.");
                 }
                 var decoded = new List<(IPlcVariable Variable, object Value)>();
                 foreach (var variable in model.Variables)
                     decoded.Add((variable, PlcTypes.Decode(variable.Map, image[variable.Map.Offset..])));
-                // A malformed STRING rejects the entire image before any values are published.
-                foreach (var (variable, value) in decoded) variable.Observe(value, time);
-                lastReceived = image.ToArray();
-                lastPlcSequence = plcSequence;
-                lastFresh = time;
-                int ack = ReadInt(image, 16);
-                // A transport send is not PLC acceptance. Only an exact echoed generation confirms it.
-                if (pending.Any(p => p.Sequence == ack))
+                // Decode the entire frame before publishing any values or accepting a generation.
+                foreach (var (variable, value) in decoded)
                 {
-                    SentImage sent;
-                    do
-                    {
-                        sent = pending.Dequeue();
-                        foreach (var (variable, version) in sent.Versions) variable.AcceptWrite(version, time);
-                    } while (sent.Sequence != ack);
+                    var sent = pending?.Versions.SingleOrDefault(p => ReferenceEquals(p.Variable, variable));
+                    if (sent is { Variable: not null } written) variable.AcceptMergedWrite(written.Version, value, time);
+                    else variable.Observe(value, time);
                 }
+                lastReceived = image.ToArray(); lastPlcSequence = plcSequence; lastFresh = time; pending = null;
                 return true;
             }
             catch { foreach (var variable in model.Variables) variable.MarkBad(); throw; }

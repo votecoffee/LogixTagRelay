@@ -11,8 +11,8 @@ ModelValidation.Validate(config, tags);
 // Without arguments this consumer is an offline, deterministic codec demo.
 if (args.Length == 0)
 {
-    byte[] image = new ImplicitImage(config, tags).BuildAppToPlc();
-    Console.WriteLine($"Generated nested UDT model consumed; {image.Length}-byte PC-to-PLC image.");
+    byte[] image = new ImplicitImage(config, tags).BuildBootstrap();
+    Console.WriteLine($"Generated nested UDT model consumed; {image.Length}-byte invalid startup image waits for the PLC baseline.");
     Console.WriteLine($"Enable={tags.Tag_Command.Tag_Enable.Value}, Setpoint={tags.Tag_Command.Tag_Setpoint.Value}");
     return;
 }

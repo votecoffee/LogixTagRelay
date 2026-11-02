@@ -37,3 +37,23 @@ do not establish matching baselines.
 Offline tests execute the emitted ST with a bounded subset interpreter and compare
 it against independent expected merge results. That establishes source/model behavior,
 not Studio 5000 verification, scan timing or controller acceptance.
+
+## Generated wrapper
+
+Each implicit contract routine embeds this AOI and creates one instance plus payload
+arrays named `<module>_PS_LastSent`, `_Current` and `_Received`. The 24-byte protocol
+header is excluded from these arrays. Tag-to-byte and byte-to-tag CPS instructions
+remain in the generated ladder wrapper; the AOI receives no type information.
+
+The wrapper writes a snapshot to module output and immediately saves its payload.
+It freezes that snapshot until the API returns a fresh command referencing that exact
+PLC sequence. It packs live PLC values, stages the API payload, protects PLC-only
+slots, calls the AOI, then copies merged writable leaves back to the selected tags.
+Incoming and merged STRING LENs must be valid before any destination copy occurs.
+It acknowledges only after those copies and publishes the next matching baseline.
+This handshake prevents a scan from silently replacing LastSent with a newer snapshot
+while the API is still replying to an older one.
+
+Only one task should own the module output and staging arrays. Other tasks can still
+change application tags between individual copies; use application interlocks or
+dedicated staging tags when a coherent multi-tag snapshot is required.

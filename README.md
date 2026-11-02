@@ -3,7 +3,7 @@
 Typed C# access to Logix PLC tags, with a tag browser, generated models/configuration,
 explicit synchronization, and an experimental OpENer implicit I/O adapter.
 
-**Status: 0.2.0-preview.1.** The managed code and Windows native bridge build locally.
+**Status: 0.3.0-preview.1.** The managed code and Windows native bridge build locally.
 Offline tests and the generated consumer run. PLC communication, native L5X import,
 RPI behavior and controller acceptance have not been tested. See [validation](docs/VALIDATION.md).
 
@@ -64,6 +64,7 @@ The download contains:
 - `GeneratedTags.cs`: nested classes, typed variables and arrays.
 - `logixrelay.json`: field paths, directions, offsets, schema hash and transport settings.
 - `RelayRoutine.L5X`: generated routine and program-local staging tags, when implicit files are selected.
+- `LTR_SintMerge.L5X` and `.st`: standalone Structured Text AOI and source; the routine also embeds the AOI dependency.
 - `ModuleSetup.txt`: the Generic Ethernet Module assembly numbers, lengths and commissioning steps.
 - `GenericEthernetModule.L5X` and source-hash provenance when a matching native module template is supplied.
 
@@ -118,12 +119,22 @@ await session.RunAsync(cancellationToken);
 `RunAsync` is awaited for the session lifetime. In an application, run it as an owned
 background task, use the same `tags` instance from the consumer, cancel and await it
 on shutdown, then dispose the transport. Each variable exposes `Value`, `Quality`,
-`Timestamp`, `Dirty` and `Version`. PLC-owned setters reject app writes. App-owned
-values remain authoritative; their PLC acceptance is tracked separately.
+`Timestamp`, `Dirty` and `Version`. PLC-owned setters reject app writes. Explicit writes
+track acceptance separately. Implicit merges adopt the PLC result after acknowledgement,
+including bytes where the PLC won a conflict.
 Changes made while a write is in flight remain dirty for the following update.
 `ObservedValue`, `HasObservation` and `PlcTimestamp` expose typed PLC readback separately
 from the desired app-owned value. Explicit mode reads all contract fields before
 flushing dirty commands. Implicit mode receives all fields in one complete image.
+
+The generated C# is ordinary compiled source, so its properties and array element
+types appear in IntelliSense, compiler checks and consumer analyzers. Put it and the
+JSON in a separate class library to make a reusable contract module, then reference
+or package that library for consumers. `IPlcModel` is the runtime extension point;
+sessions accept any matching implementation. A DI container can register the generated
+model as a singleton and pass that same instance to the session and application.
+Runtime-only dynamic loading cannot add compile-time properties to already compiled
+consumer code; a referenced contract assembly supplies those types.
 
 STRING properties use `PlcVariable<string>`. Standard STRING has capacity 82; custom
 capacity is read from the declared DINT LEN / SINT DATA[N] definition. Values use a
@@ -150,6 +161,9 @@ config = config with
 };
 ```
 
+These controls can also be selected by entering their catalog paths in the browser's
+explicit update settings. Generation checks DINT types and reply write access.
+
 The trigger is a DINT. Each observed change to a nonzero value executes a group; zero
 never executes a group and re-arms the same subsequent nonzero value. Hold requests
 until completion: polling cannot detect changes that occur entirely between polls.
@@ -170,8 +184,8 @@ a triggered session can repeat work; the handshake is not durable exactly-once e
 ### Implicit I/O
 
 The PLC is the scanner/originator; the consuming PC runs the OpENer adapter/target.
-Assign **every** app-owned value before starting so implicit startup cannot publish
-uninitialized commands.
+Startup sends an invalid frame until a valid PLC snapshot arrives. Unedited app-owned
+values echo that snapshot, so CLR defaults cannot overwrite PLC startup values.
 
 ```csharp
 using LogixTagRelay.Opener;
@@ -207,15 +221,23 @@ Studio 5000 import, verification and re-export/readback; structural checks do no
 native acceptance. The smaller original Demo contract uses 60 bytes in both directions.
 
 Drive `LogixRelay_PS_ApplyCommands` from your application permission logic. It defaults
-false. The generated 1000 ms watchdog blocks application of stale command frames.
-The application must use `LogixRelay_PS_Watchdog.DN` and module status to choose the
-appropriate hold/reset behavior for commands already copied into its tags.
+false. The generated 1000 ms watchdog reports a lack of fresh matching command frames.
+The application must use `LogixRelay_PS_Watchdog.DN` and module status to choose hold/reset
+behavior for commands already copied into its tags. Fresh matching generations reset
+the watchdog. Hold `LogixRelay_PS_Reset` during state reconciliation, then release it
+and restart the API session; PLC/app restarts require deliberate reconciliation.
 
-The adapter echoes the whole received PLC image and overlays app-owned fields. It
-waits for the command sequence acknowledgement before publishing another command
-generation; PLC-owned echo bytes continue refreshing while that acknowledgement is
-pending. The PLC applies only app-owned fields and publishes every field back,
-including command readback. This is cyclic I/O with application-level
+The adapter echoes the whole received PLC image and overlays dirty app-owned fields.
+The PLC holds that snapshot and its saved payload until a fresh API command references
+its exact sequence. The AOI compares LastSent, current PLC bytes and received API bytes:
+when a current byte equals LastSent it accepts the API byte; otherwise the PLC retains
+its byte. This is deliberately type ignorant and can combine bytes within a multi-byte
+value. The wrapper preserves PLC-only fields, validates incoming and merged STRING LENs,
+and copies accepted bytes back to the selected tags. Invalid merged strings cause no
+destination copies or acknowledgement. After a completed merge it writes the next
+module output and immediately saves that payload as LastSent. The API adopts the merge
+result unless a newer local edit is pending. Duplicate packets cannot reapply a command.
+This is cyclic I/O with application-level
 acknowledgements, not real-time C# execution. A 20 ms RPI does not guarantee a 20 ms
 app/PLC round trip. The native sender may repeat the latest complete image while
 the managed app is delayed; only a new sequence refreshes the PLC watchdog.
@@ -224,7 +246,8 @@ the managed app is delayed; only a new sequence refreshes the PLC watchdog.
 
 See [architecture](docs/ARCHITECTURE.md) for the byte contract and engineering decisions.
 The standalone [Structured Text SINT merge AOI](plc/README.md) implements a type-ignorant,
-PLC-first three-way merge for arbitrary-sized arrays; its native import remains to be verified.
+PLC-first three-way merge for arbitrary-sized arrays; generated routines include it.
+Its native import remains to be verified.
 
 - Supported values: BOOL, SINT, INT, DINT, LINT, REAL, standard/custom STRING, nested UDTs,
   and 1D/2D/3D tag arrays. String capacities range from 1 to 65535 bytes. Array expansion
@@ -249,8 +272,8 @@ PLC-first three-way merge for arbitrary-sized arrays; its native import remains 
   distributed conflict resolution, durable delivery journal or public NuGet release yet.
 - Model/config hash checks do not verify the running PLC's type definitions. Refresh
   the catalog after PLC changes; live type-contract validation remains to be added.
-- Version 0.2 uses JSON schema/wire protocol 2. Regenerate C#, JSON and PLC routine
-  together when upgrading from 0.1; old directional images are deliberately rejected.
+- Version 0.3 uses JSON schema 2 and wire protocol 3. Regenerate C#, JSON and PLC routine
+  together when upgrading; prior wire versions are deliberately rejected.
 
 ## Maintainers
 

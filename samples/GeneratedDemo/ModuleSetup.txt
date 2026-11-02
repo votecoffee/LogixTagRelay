@@ -9,12 +9,19 @@ Separate status connection: disabled (not exposed by this OpENer application)
 RPI: 20 ms; actual supported RPI must be negotiated/tested with the chosen adapter.
 Unicast preferred; adapter transport headers are NOT included in these payload sizes.
 
-The routine export is always included. A matching native template optionally supplies a separate module import.
+Implicit generation includes the routine export. A matching native template optionally supplies a separate module import.
 Without that template, add the module manually using these settings.
 Import into the program containing any selected program-scoped tags. One program scope per group.
 Explicitly call the imported routine from a scheduled task (JSR). It is not automatically scheduled.
 All selected application tags must already exist. Import creates only module-prefixed staging tags.
+The routine embeds the LTR_SintMerge Structured Text AOI; separate AOI L5X/ST are supplied for review.
+LastSent/Current/Received are payload-only SINT arrays. LastSent is saved immediately after module output is written.
+PLC output remains frozen until a new API command references that exact snapshot and completes its byte merge.
+PLC wins each byte changed since LastSent; multi-byte values may combine bytes from both writers.
+Invalid incoming or merged STRING LENs prevent all command copies and acknowledgement.
 Drive LogixRelay_PS_ApplyCommands from application permission logic. Its initial value is FALSE.
-The generated 1000 ms watchdog blocks stale frames. Application logic must handle its DN bit
-and module connection faults to choose a suitable hold/reset behavior for previously copied values.
+The 1000 ms watchdog reports a lack of fresh matching generations. Repeated packets cannot refresh it.
+Application logic must handle its DN bit and module faults to choose hold/reset behavior for prior commands.
+Hold LogixRelay_PS_Reset while reconciling connection/state, then release it. Restart the API session after reset.
+Wire protocol 3 requires regeneration of the PLC routine and API together; JSON schema remains version 2.
 Studio 5000 import, verify, export/readback, then PLC bench validation are still required.

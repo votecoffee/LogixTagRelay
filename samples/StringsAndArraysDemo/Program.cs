@@ -6,10 +6,12 @@ var tags = new GeneratedTags();
 tags.Tag_Request.Tag_Recipe.Value = new string('R', 128);
 tags.Tag_Request.Tag_Execute.Value = true;
 var codec = new ImplicitImage(config, tags);
-var outgoing = codec.BuildAppToPlc();
-var incoming = outgoing.ToArray();
+var incoming = codec.BuildBootstrap();
+ImplicitImage.WriteInt(incoming, 0, ImplicitImage.Magic);
+ImplicitImage.WriteInt(incoming, 4, ImplicitImage.ProtocolVersion);
+ImplicitImage.WriteInt(incoming, 8, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(config.SchemaHash)));
 ImplicitImage.WriteInt(incoming, 12, 1);
-ImplicitImage.WriteInt(incoming, 16, ImplicitImage.ReadInt(outgoing, 12));
+ImplicitImage.WriteInt(incoming, 20, 1);
 foreach (var field in config.Fields)
 {
     if (field.Path == "Metrics.Title") PlcTypes.Encode(field, "PLC label", incoming.AsSpan(field.Offset));
@@ -18,6 +20,7 @@ foreach (var field in config.Fields)
     if (field.Path == "Stations[1,1].Name") PlcTypes.Encode(field, "Station11", incoming.AsSpan(field.Offset));
 }
 codec.ReceivePlcToApp(incoming, DateTimeOffset.UtcNow);
+var outgoing = codec.BuildAppToPlc();
 if (tags.Tag_Metrics.Tag_Title.Value != "PLC label" || tags.Tag_Values[1,2].Value != 12.5f ||
     tags.Tag_Cubes[1,1,1].Value != 9007199254740993L || tags.Tag_Stations[1,1].Tag_Name.Value != "Station11")
     throw new Exception("Typed string/rectangular-array consumer failed.");

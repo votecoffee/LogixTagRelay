@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using LogixTagRelay.Design;
 using LogixTagRelay.Logix;
+using LogixTagRelay;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://127.0.0.1:5274");
@@ -41,7 +42,7 @@ app.MapPost("/api/module-template", async (HttpRequest request) =>
 });
 app.MapPost("/api/generate", (GenerateRequest request) =>
 {
-    var bundle = Generator.Generate(request.Catalog, request.Selections, request.Implicit, request.ModuleName, request.SoftwareRevision, request.AssemblyBytes);
+    var bundle = Generator.Generate(request.Catalog, request.Selections, request.Implicit, request.ModuleName, request.SoftwareRevision, request.AssemblyBytes, request.Explicit);
     ModuleImport? module = request.Implicit && request.ModuleTemplateBase64 != null ?
         ModuleTemplate.Generate(Convert.FromBase64String(request.ModuleTemplateBase64), bundle.Configuration, request.ModuleName, request.PcAddress) : null;
     using var bytes = new MemoryStream();
@@ -50,7 +51,11 @@ app.MapPost("/api/generate", (GenerateRequest request) =>
         void Add(string name, string content)
         { using var writer = new StreamWriter(zip.CreateEntry(name).Open(), new UTF8Encoding(false)); writer.Write(content); }
         Add("GeneratedTags.cs", bundle.ModelCs); Add("logixrelay.json", bundle.Configuration.ToJson());
-        if (request.Implicit) { Add("RelayRoutine.L5X", bundle.RoutineL5x); Add("ModuleSetup.txt", bundle.ModuleInstructions); }
+        if (request.Implicit)
+        {
+            Add("RelayRoutine.L5X", bundle.RoutineL5x); Add("ModuleSetup.txt", bundle.ModuleInstructions);
+            Add("LTR_SintMerge.L5X", bundle.MergeAoiL5x); Add("LTR_SintMerge.st", bundle.MergeStructuredText);
+        }
         if (module != null)
         {
             Add("GenericEthernetModule.L5X", module.Xml);
@@ -62,4 +67,4 @@ app.MapPost("/api/generate", (GenerateRequest request) =>
 app.Run();
 public sealed record OnlineRequest(string Gateway, string Route = "1,0");
 public sealed record GenerateRequest(TagCatalog Catalog, List<TagSelection> Selections, bool Implicit = true, string ModuleName = "LogixRelay", string SoftwareRevision = "",
-    int AssemblyBytes = 0, string? ModuleTemplateBase64 = null, string PcAddress = "192.168.1.200");
+    int AssemblyBytes = 0, string? ModuleTemplateBase64 = null, string PcAddress = "192.168.1.200", ExplicitOptions? Explicit = null);

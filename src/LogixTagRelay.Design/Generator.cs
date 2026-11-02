@@ -6,12 +6,17 @@ using System.Text.RegularExpressions;
 namespace LogixTagRelay.Design;
 
 public sealed record TagSelection(string Path, Direction Direction);
-public sealed record GeneratedBundle(string ModelCs, SyncConfiguration Configuration, string RoutineL5x, string ModuleInstructions);
+public sealed record GeneratedBundle(string ModelCs, SyncConfiguration Configuration, string RoutineL5x, string ModuleInstructions)
+{
+    public string MergeAoiL5x { get; init; } = "";
+    public string MergeStructuredText { get; init; } = "";
+}
 
 public static partial class Generator
 {
     public static GeneratedBundle Generate(TagCatalog catalog, IReadOnlyList<TagSelection> selections,
-        bool includeImplicit = true, string moduleName = "LogixRelay", string softwareRevision = "", int assemblyBytes = 0)
+        bool includeImplicit = true, string moduleName = "LogixRelay", string softwareRevision = "", int assemblyBytes = 0,
+        ExplicitOptions? explicitOptions = null)
     {
         if (!Identifier().IsMatch(moduleName) || moduleName.Length > 16) throw new ArgumentException("Module name must be an identifier of at most 16 characters.");
         var nodes = new List<(TagNode Node, Direction Direction)>();
@@ -38,8 +43,15 @@ public static partial class Generator
             throw new ArgumentException($"Assembly length must be a multiple of 4 and at least {imageBytes} bytes for this contract.");
         imageBytes = Math.Max(imageBytes, assemblyBytes);
         var config = new SyncConfiguration(SyncConfiguration.ComputeHash(fields), fields, imageBytes, imageBytes,
-            Explicit: new(), Implicit: includeImplicit ? new() : null);
+            Explicit: explicitOptions ?? new(), Implicit: includeImplicit ? new() : null);
         config.Validate(); // Includes duplicate parent/child selections and incompatible access.
+        foreach (var path in new[] { config.Explicit!.TriggerTag, config.Explicit.MirrorTag, config.Explicit.ResponseTag }.Where(p => p != null))
+        {
+            if (!allNodes.TryGetValue(path!, out var control) || control.IsArray || control.AtomicType != PlcType.DINT || control.Access == "None")
+                throw new ArgumentException($"Trigger controls must be existing accessible DINT leaves in the catalog: {path}");
+            if (!path!.Equals(config.Explicit.TriggerTag, StringComparison.OrdinalIgnoreCase) && control.Access != "Read/Write")
+                throw new ArgumentException($"Reply control must have Read/Write external access: {path}");
+        }
         if (includeImplicit)
         {
             string program = fields.Select(f => Regex.Match(f.Path, @"^Program:([^.]+)\."))
@@ -70,16 +82,27 @@ public static partial class Generator
             RPI: {config.Implicit?.RpiMs ?? 20} ms; actual supported RPI must be negotiated/tested with the chosen adapter.
             Unicast preferred; adapter transport headers are NOT included in these payload sizes.
 
-            The routine export is always included. A matching native template optionally supplies a separate module import.
+            Implicit generation includes the routine export. A matching native template optionally supplies a separate module import.
             Without that template, add the module manually using these settings.
             Import into the program containing any selected program-scoped tags. One program scope per group.
             Explicitly call the imported routine from a scheduled task (JSR). It is not automatically scheduled.
             All selected application tags must already exist. Import creates only module-prefixed staging tags.
+            The routine embeds the LTR_SintMerge Structured Text AOI; separate AOI L5X/ST are supplied for review.
+            LastSent/Current/Received are payload-only SINT arrays. LastSent is saved immediately after module output is written.
+            PLC output remains frozen until a new API command references that exact snapshot and completes its byte merge.
+            PLC wins each byte changed since LastSent; multi-byte values may combine bytes from both writers.
+            Invalid incoming or merged STRING LENs prevent all command copies and acknowledgement.
             Drive {moduleName}_PS_ApplyCommands from application permission logic. Its initial value is FALSE.
-            The generated 1000 ms watchdog blocks stale frames. Application logic must handle its DN bit
-            and module connection faults to choose a suitable hold/reset behavior for previously copied values.
+            The 1000 ms watchdog reports a lack of fresh matching generations. Repeated packets cannot refresh it.
+            Application logic must handle its DN bit and module faults to choose hold/reset behavior for prior commands.
+            Hold {moduleName}_PS_Reset while reconciling connection/state, then release it. Restart the API session after reset.
+            Wire protocol 3 requires regeneration of the PLC routine and API together; JSON schema remains version 2.
             Studio 5000 import, verify, export/readback, then PLC bench validation are still required.
-            """ + "\n");
+            """ + "\n")
+        {
+            MergeAoiL5x = includeImplicit ? SintMergeAoi.GenerateL5x(revision) : "",
+            MergeStructuredText = includeImplicit ? SintMergeAoi.StructuredText : ""
+        };
     }
     private static IEnumerable<TagNode> Flatten(IEnumerable<TagNode> nodes) => nodes.SelectMany(n => new[] { n }.Concat(Flatten(n.Children)));
     private static string GenerateModel(List<(TagNode Node, Direction Direction)> nodes, SyncConfiguration config)

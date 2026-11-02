@@ -23,7 +23,8 @@ Every selected leaf has one direction, from the consuming application's perspect
 PLC-to-app leaves are read-only to the consumer; app-to-PLC leaves are writable by
 the consumer. A mixed UDT can be selected member by member. This avoids read/modify/write
 races where a PLC scan and an application update own different bits of the same buffer.
-There is no last-writer-wins mode for the same field in this preview.
+For writable fields, the PLC-first SINT merge resolves concurrent byte changes against
+the exact frozen snapshot. The AOI itself has no field/type/ownership information.
 
 `PlcVariable<T>` locks value/version/quality changes. A captured version is acknowledged
 only after the explicit driver succeeds or the PLC echoes an implicit image sequence.
@@ -37,7 +38,7 @@ dirty. This is not an atomic CIP multi-tag transaction. Whole UDT transfers and 
 packing can be added behind the transport once native template offsets, access and
 preservation have been established; they are not inferred from L5X member order.
 
-## Implicit payload contract v2
+## Implicit payload contract v3
 
 All values use little-endian encoding. Both directions use one shared layout and equal sizes.
 The contract is independent of CLR and PLC UDT memory layout. Fields start on 4-byte
@@ -47,10 +48,10 @@ boundaries. A fresh image has zero padding; echoed/native string padding is pres
 | Byte offset | Type | Meaning |
 | --- | --- | --- |
 | 0 | DINT | Magic `0x50535031` |
-| 4 | DINT | Protocol version 2 |
+| 4 | DINT | Protocol version 3 |
 | 8 | DINT | First 32 bits of SHA-256 mapping hash, interpreted little-endian |
-| 12 | DINT | Nonnegative 31-bit sender sequence |
-| 16 | DINT | Last accepted peer sequence |
+| 12 | DINT | Positive 31-bit sender sequence, wraps from max to 1 |
+| 16 | DINT | API: referenced PLC baseline; PLC: accepted API command sequence |
 | 20 | DINT | Valid = 1 |
 | 24 onward | mapped fields | Every selected leaf at the same offset in both directions |
 
@@ -76,23 +77,37 @@ this preview does not implement CIP Security or CIP Safety.
 
 Input/output naming follows the PLC. Both assemblies contain the entire contract.
 The PLC output assembly contains actual values, including command readback. The PC
-echoes that image, overlays captured app-owned values and updates its header. OpENer consumes
+echoes that image, overlays captured dirty app-owned values and updates its header. OpENer consumes
 the former and produces the latter. CIP connection sequence and Run/Idle headers are
 handled by OpENer and excluded from configured SINT payload lengths.
 
-The PLC routine CPS-copies the input assembly into a local SINT buffer, validates its
-header, every command STRING length, and permission, converts BOOLs through DINT storage, copies numeric leaves
-individually, and echoes acceptance after those copies. Numeric receive CPS has
-length 1 because its destination is a single native scalar. Transmit CPS length is
-the number of bytes because its destination is SINT. The routine then builds its
-outgoing image, including status leaves and the acknowledgement, and CPS-copies it
-into the module output. This supports arbitrary selected UDT members without copying
-unknown padding or packed BOOL storage back over unrelated fields. STRING is the
-special case with a declared native LEN/DATA layout and four-byte alignment; it is
-copied as one string element after validating capacity and LEN. Incoming echoed
-PLC-owned slots are never applied to PLC destinations, preventing stale echo overwrite.
-PLC-owned bytes can refresh under an unchanged command sequence while a command
-acknowledgement is pending; the captured app-owned bytes remain immutable for that sequence.
+The PLC routine freezes each published output frame until a fresh API command
+references its exact sequence. Startup API frames are invalid and cannot write data.
+The API builds its first request only after receiving a valid baseline; it allows one
+outstanding command. Retransmissions preserve both payload and baseline reference.
+
+The wrapper packs current PLC leaves into a payload SINT array, stages the received
+payload and protects PLC-only slots by replacing those slots with current bytes.
+It calls the embedded Structured Text AOI with exactly three equal-length arrays:
+LastSent, Current and Received. Each byte follows `Current == LastSent ? Received : Current`.
+All type knowledge stays outside the AOI. Byte merging can produce a multi-byte value
+neither writer supplied. STRING LEN is checked both before and after merging; invalid
+length prevents every destination copy and acknowledgement, and the exchange times out.
+
+Only writable leaves are copied back. BOOLs use a DINT temporary; native scalar/string
+destinations use CPS length 1, while SINT destinations count bytes. UDTs and arrays are
+expanded into leaf copies without inferring native UDT padding or BOOL storage.
+After applying a merge, the wrapper builds a new frame with all actual tag readbacks
+and command acknowledgement, writes module output, and immediately saves its payload
+as LastSent. Sequence advances only at publication, so LastSent always belongs to the
+baseline referenced by the next accepted command. No API traffic means the published
+snapshot remains frozen, although local PLC tags can keep changing.
+
+Acknowledgement means the merge completed, including PLC-winning bytes. The API
+adopts the actual merged value only if its local version still matches the sent version;
+newer app edits remain dirty. Clean fields echo PLC bytes rather than reasserting a
+rejected desired value. A 1000 ms watchdog diagnoses missing fresh exchanges; application
+logic decides how to respond. Reset invalidates staging state and requires API restart.
 
 Field-wise CPS does not freeze all source tags across a PLC scan or other tasks.
 Applications needing a consistent process snapshot should create a dedicated PLC

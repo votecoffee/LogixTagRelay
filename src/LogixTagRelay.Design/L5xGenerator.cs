@@ -1,7 +1,5 @@
 using System.Buffers.Binary;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace LogixTagRelay.Design;
@@ -10,99 +8,99 @@ internal static class L5xGenerator
 {
     public static string Generate(SyncConfiguration config, string module, string revision)
     {
-        // No native UDT offsets: numeric fields copy directly at explicit wire offsets.
-        // BOOL is converted through a DINT temporary. CPS lengths count DESTINATION elements.
-        string prefix = module + "_PS";
-        var programScopes = config.Fields.Select(f => Regex.Match(f.Path, @"^Program:([^.]+)\."))
+        string p = module + "_PS";
+        var scopes = config.Fields.Select(f => Regex.Match(f.Path, @"^Program:([^.]+)\."))
             .Where(m => m.Success).Select(m => m.Groups[1].Value).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        if (programScopes.Length > 1) throw new ArgumentException("Implicit groups may reference only one program scope.");
-        string LocalPath(string path) => Regex.Replace(path, @"^Program:[^.]+\.", "");
-        string rx = prefix + "_Rx", tx = prefix + "_Tx";
+        if (scopes.Length > 1) throw new ArgumentException("Implicit groups may reference only one program scope.");
+        string PathOf(FieldMap f) => Regex.Replace(f.Path, @"^Program:[^.]+\.", "");
+        string rx = p + "_Rx", tx = p + "_Tx", current = p + "_Current", saved = p + "_LastSent", received = p + "_Received";
+        int bytes = config.PlcToAppBytes, payload = bytes - ImplicitImage.HeaderBytes;
         int token = BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(config.SchemaHash).AsSpan(0, 4));
         var tags = new XElement("Tags");
         void Tag(string name, string type, int count = 0) => tags.Add(new XElement("Tag", new XAttribute("Name", name),
-            new XAttribute("TagType", "Base"), new XAttribute("DataType", type),
-            count == 0 ? null : new XAttribute("Dimensions", count), new XAttribute("Radix", "Decimal"),
-            new XAttribute("Constant", "false"), new XAttribute("ExternalAccess", "Read/Write")));
-        Tag(rx, "SINT", config.AppToPlcBytes); Tag(tx, "SINT", config.PlcToAppBytes);
-        foreach (string suffix in new[] { "Magic", "Version", "Schema", "Valid", "CommandSequence", "AcceptedSequence", "Sequence", "Bool", "HeaderMagic", "HeaderVersion", "HeaderSchema", "HeaderValid" })
-            Tag(prefix + "_" + suffix, "DINT");
-        Tag(prefix + "_ApplyCommands", "BOOL"); // Integrator must drive this permission from connection/watchdog policy.
-        Tag(prefix + "_Watchdog", "TIMER");
-        Tag(prefix + "_FrameValid", "BOOL");
-        var commandStrings = config.Fields.Where(f => f.Direction == Direction.AppToPlc && f.Type == PlcType.STRING).ToArray();
-        for (int i = 0; i < commandStrings.Length; i++) Tag(prefix + "_StringLen" + i, "DINT");
+            new XAttribute("TagType", "Base"), new XAttribute("DataType", type), count == 0 ? null : new XAttribute("Dimensions", count),
+            type == SintMergeAoi.Name ? null : new XAttribute("Radix", "Decimal"), new XAttribute("Constant", "false"), new XAttribute("ExternalAccess", "Read/Write")));
+        Tag(rx, "SINT", bytes); Tag(tx, "SINT", bytes);
+        foreach (string a in new[] { current, saved, received }) Tag(a, "SINT", payload);
+        foreach (string s in new[] { "Magic", "Version", "Schema", "Valid", "CommandSequence", "BaselineSequence", "AcceptedSequence", "Sequence", "Bool", "HeaderMagic", "HeaderVersion", "HeaderSchema", "HeaderValid" }) Tag(p + "_" + s, "DINT");
+        foreach (string s in new[] { "ApplyCommands", "Initialized", "Reset", "FrameValid", "CurrentValid", "MergedValid", "Publish" }) Tag(p + "_" + s, "BOOL");
+        Tag(p + "_Watchdog", "TIMER"); Tag(p + "_Merge", SintMergeAoi.Name);
+        var strings = config.Fields.Where(f => f.Type == PlcType.STRING).ToArray();
+        for (int i = 0; i < strings.Length; i++) Tag(p + "_StringLen" + i, "DINT");
         var rungs = new List<(string Text, string Comment)>();
-        void Rung(string text, string comment = "") => rungs.Add((text, comment));
-        Rung($"CPS({module}:I.Data[0],{rx}[0],{config.AppToPlcBytes});", "Snapshot PC-to-PLC assembly once before decoding. Module I is input TO the PLC.");
-        for (int i = 0; i < 6; i++)
+        void R(string text, string comment = "") => rungs.Add((text, comment));
+        void Pack(string array, int subtract, string gate = "")
         {
-            string suffix = new[] { "Magic", "Version", "Schema", "CommandSequence", "AcceptedSequence", "Valid" }[i];
-            // Do not read peer acknowledgement into local AcceptedSequence.
-            if (i == 4) continue;
-            Rung($"CPS({rx}[{i * 4}],{prefix}_{suffix},1);");
-        }
-        string headerValid = $"XIC({prefix}_ApplyCommands)EQU({prefix}_Magic,{ImplicitImage.Magic})EQU({prefix}_Version,{ImplicitImage.ProtocolVersion})EQU({prefix}_Schema,{token})EQU({prefix}_Valid,1)";
-        for (int i = 0; i < commandStrings.Length; i++)
-        {
-            Rung($"CPS({rx}[{commandStrings[i].Offset}],{prefix}_StringLen{i},1);");
-            headerValid += $"GEQ({prefix}_StringLen{i},0)LEQ({prefix}_StringLen{i},{commandStrings[i].StringCapacity})";
-        }
-        Rung($"{headerValid}OTE({prefix}_FrameValid);", "Validate every command STRING LEN before any application destination is changed.");
-        Rung($"XIC({prefix}_FrameValid)NEQ({prefix}_CommandSequence,{prefix}_AcceptedSequence)RES({prefix}_Watchdog);");
-        Rung($"TON({prefix}_Watchdog,1000,0);", "A managed application stall cannot refresh this watchdog by retransmitting the same sequence.");
-        string valid = $"XIC({prefix}_FrameValid)XIO({prefix}_Watchdog.DN)NEQ({prefix}_CommandSequence,{prefix}_AcceptedSequence)";
-        foreach (var field in config.Fields.Where(f => f.Direction == Direction.AppToPlc))
-        {
-            string path = LocalPath(field.Path);
-            if (field.Type == PlcType.BOOL)
+            R($"{gate}FLL(0,{array}[0],{(subtract == 0 ? bytes : payload)});");
+            foreach (var f in config.Fields)
             {
-                Rung($"{valid}CPS({rx}[{field.Offset}],{prefix}_Bool,1);");
-                // Gate the OTE in a branch so an invalid frame does not clear a prior command.
-                Rung($"{valid}[NEQ({prefix}_Bool,0)OTL({path}),EQU({prefix}_Bool,0)OTU({path})];");
-            }
-            else Rung($"{valid}CPS({rx}[{field.Offset}],{path},1);", field.Type == PlcType.STRING ?
-                "One native counted string: LEN + declared SINT DATA + DINT alignment; capacity validated before copying." : "");
-        }
-        Rung($"{valid}MOV({prefix}_CommandSequence,{prefix}_AcceptedSequence);", "Acknowledgement follows all command copies; application logic should consume staging values deliberately.");
-        Rung($"FLL(0,{tx}[0],{config.PlcToAppBytes});");
-        Rung($"MOV(1,{prefix}_HeaderValid);");
-        foreach (var field in config.Fields)
-        {
-            string path = LocalPath(field.Path);
-            if (field.Type == PlcType.BOOL)
-            {
-                Rung($"MOV(0,{prefix}_Bool);"); Rung($"XIC({path})MOV(1,{prefix}_Bool);");
-                Rung($"CPS({prefix}_Bool,{tx}[{field.Offset}],4);");
-            }
-            else Rung($"CPS({path},{tx}[{field.Offset}],{(field.Type == PlcType.STRING ? (field.WireBytes + 3) / 4 * 4 : field.WireBytes)});");
-            if (field.Type == PlcType.STRING)
-            {
-                Rung($"LES({path}.LEN,0)MOV(0,{prefix}_HeaderValid);");
-                Rung($"GRT({path}.LEN,{field.StringCapacity})MOV(0,{prefix}_HeaderValid);");
+                string path = PathOf(f); int offset = f.Offset - subtract;
+                if (f.Type == PlcType.BOOL)
+                {
+                    R($"{gate}MOV(0,{p}_Bool);"); R($"{gate}XIC({path})MOV(1,{p}_Bool);");
+                    R($"{gate}CPS({p}_Bool,{array}[{offset}],4);");
+                }
+                else R($"{gate}CPS({path},{array}[{offset}],{(f.Type == PlcType.STRING ? (f.WireBytes + 3) / 4 * 4 : f.WireBytes)});");
             }
         }
-        Rung($"EQU({prefix}_Sequence,2147483647)MOV(-1,{prefix}_Sequence);");
-        Rung($"ADD({prefix}_Sequence,1,{prefix}_Sequence);", "Wrap to zero before signed ADD overflow. Sequence advances on each routine execution.");
-        Rung($"MOV({ImplicitImage.Magic},{prefix}_HeaderMagic)MOV({ImplicitImage.ProtocolVersion},{prefix}_HeaderVersion)MOV({token},{prefix}_HeaderSchema);");
-        var headers = new[] { "HeaderMagic", "HeaderVersion", "HeaderSchema", "Sequence", "AcceptedSequence", "HeaderValid" };
-        for (int i = 0; i < headers.Length; i++) Rung($"CPS({prefix}_{headers[i]},{tx}[{i * 4}],4);");
-        Rung($"CPS({tx}[0],{module}:O.Data[0],{config.PlcToAppBytes});", "Module O is output FROM the PLC. Only one routine/task should own these bytes.");
-        var routine = new XElement("Routine", new XAttribute("Use", "Target"), new XAttribute("Name", prefix + "_Sync"),
-            new XAttribute("Type", "RLL"), new XElement("RLLContent", rungs.Select((r, i) =>
-                new XElement("Rung", new XAttribute("Number", i), new XAttribute("Type", "N"),
-                    string.IsNullOrEmpty(r.Comment) ? null : new XElement("Comment", new XCData(r.Comment)),
-                    new XElement("Text", new XCData(r.Text))))));
-        var doc = new XDocument(new XDeclaration("1.0", "UTF-8", "yes"), new XElement("RSLogix5000Content",
-            new XAttribute("SchemaRevision", "1.0"), new XAttribute("SoftwareRevision", revision),
-            new XAttribute("TargetName", prefix + "_Sync"), new XAttribute("TargetType", "Routine"),
+        R($"XIC({p}_Reset)OTU({p}_Initialized)MOV(0,{p}_Sequence)MOV(0,{p}_AcceptedSequence);", "Hold Reset during connection/state reconciliation; release it before enabling commands. Restart the API session after reset.");
+        R($"CPS({module}:I.Data[0],{rx}[0],{bytes});", "Snapshot module input TO the PLC. Header is excluded from the three merge arrays.");
+        string[] inputHeaders = ["Magic", "Version", "Schema", "CommandSequence", "BaselineSequence", "Valid"];
+        for (int i = 0; i < 6; i++) R($"CPS({rx}[{i * 4}],{p}_{inputHeaders[i]},1);");
+        Pack(current, ImplicitImage.HeaderBytes);
+        string currentValid = $"XIO({p}_Reset)";
+        foreach (var f in strings) currentValid += $"GEQ({PathOf(f)}.LEN,0)LEQ({PathOf(f)}.LEN,{f.StringCapacity})";
+        R($"{currentValid}OTE({p}_CurrentValid);");
+        string frameValid = $"XIC({p}_ApplyCommands)XIC({p}_Initialized)XIC({p}_CurrentValid)EQU({p}_Magic,{ImplicitImage.Magic})EQU({p}_Version,{ImplicitImage.ProtocolVersion})EQU({p}_Schema,{token})EQU({p}_Valid,1)GRT({p}_CommandSequence,0)NEQ({p}_CommandSequence,{p}_AcceptedSequence)EQU({p}_BaselineSequence,{p}_Sequence)";
+        for (int i = 0; i < strings.Length; i++)
+        {
+            R($"CPS({rx}[{strings[i].Offset}],{p}_StringLen{i},1);");
+            frameValid += $"GEQ({p}_StringLen{i},0)LEQ({p}_StringLen{i},{strings[i].StringCapacity})";
+        }
+        R($"{frameValid}OTE({p}_FrameValid);", "Accept only a fresh command referencing the exact frozen snapshot last written to module output. Validate incoming string lengths before merge.");
+        R($"XIC({p}_FrameValid)RES({p}_Watchdog);");
+        R($"TON({p}_Watchdog,1000,0);", "Repeated wire packets cannot refresh this watchdog. Fresh matching generations can recover it.");
+        R($"XIC({p}_FrameValid)CPS({rx}[24],{received}[0],{payload});");
+        foreach (var f in config.Fields.Where(f => f.Direction == Direction.PlcToApp))
+            R($"XIC({p}_FrameValid)CPS({current}[{f.Offset - 24}],{received}[{f.Offset - 24}],{(f.WireBytes + 3) / 4 * 4});", "Preserve PLC-only ownership in the wrapper; the AOI has no type or direction metadata.");
+        R($"XIC({p}_FrameValid){SintMergeAoi.Name}({p}_Merge,{saved},{current},{received});", "The Structured Text AOI merges exactly three equally sized SINT payload arrays. PLC wins each changed byte.");
+        string mergedValid = $"XIC({p}_FrameValid)XIO({p}_Merge.Error)";
+        for (int i = 0; i < strings.Length; i++)
+        {
+            R($"CPS({current}[{strings[i].Offset - 24}],{p}_StringLen{i},1);");
+            mergedValid += $"GEQ({p}_StringLen{i},0)LEQ({p}_StringLen{i},{strings[i].StringCapacity})";
+        }
+        R($"{mergedValid}OTE({p}_MergedValid);", "Validate merged STRING LENs before changing any destination. Invalid merges are not applied or acknowledged.");
+        foreach (var f in config.Fields.Where(f => f.Direction == Direction.AppToPlc))
+        {
+            string path = PathOf(f), gate = $"XIC({p}_MergedValid)"; int offset = f.Offset - 24;
+            if (f.Type == PlcType.BOOL)
+            {
+                R($"{gate}CPS({current}[{offset}],{p}_Bool,1);");
+                R($"{gate}[NEQ({p}_Bool,0)OTL({path}),EQU({p}_Bool,0)OTU({path})];");
+            }
+            else R($"{gate}CPS({current}[{offset}],{path},1);");
+        }
+        R($"XIC({p}_MergedValid)MOV({p}_CommandSequence,{p}_AcceptedSequence);", "ACK means merge completed, including bytes retained by the PLC. It does not mean every requested API byte won.");
+        R($"XIC({p}_CurrentValid)[XIO({p}_Initialized),XIC({p}_MergedValid)]OTE({p}_Publish);");
+        string publish = $"XIC({p}_Publish)";
+        Pack(tx, 0, publish);
+        R($"{publish}EQU({p}_Sequence,2147483647)MOV(0,{p}_Sequence);");
+        R($"{publish}ADD({p}_Sequence,1,{p}_Sequence);", "Advance only after startup or a completed exchange; hold the snapshot while waiting for its reply.");
+        R($"{publish}MOV({ImplicitImage.Magic},{p}_HeaderMagic)MOV({ImplicitImage.ProtocolVersion},{p}_HeaderVersion)MOV({token},{p}_HeaderSchema)MOV(1,{p}_HeaderValid);");
+        string[] headers = ["HeaderMagic", "HeaderVersion", "HeaderSchema", "Sequence", "AcceptedSequence", "HeaderValid"];
+        for (int i = 0; i < headers.Length; i++) R($"{publish}CPS({p}_{headers[i]},{tx}[{i * 4}],4);");
+        R($"{publish}CPS({tx}[0],{module}:O.Data[0],{bytes});", "Write output FROM the PLC, then save exactly that payload as the baseline.");
+        R($"{publish}CPS({tx}[24],{saved}[0],{payload});");
+        R($"{publish}OTL({p}_Initialized);");
+        var routine = new XElement("Routine", new XAttribute("Use", "Target"), new XAttribute("Name", p + "_Sync"), new XAttribute("Type", "RLL"),
+            new XElement("RLLContent", rungs.Select((r, i) => new XElement("Rung", new XAttribute("Number", i), new XAttribute("Type", "N"),
+                string.IsNullOrEmpty(r.Comment) ? null : new XElement("Comment", new XCData(r.Comment)), new XElement("Text", new XCData(r.Text))))));
+        return SintMergeAoi.Serialize(new XDocument(new XDeclaration("1.0", "UTF-8", "yes"), new XElement("RSLogix5000Content",
+            new XAttribute("SchemaRevision", "1.0"), new XAttribute("SoftwareRevision", revision), new XAttribute("TargetName", p + "_Sync"), new XAttribute("TargetType", "Routine"),
             new XAttribute("ContainsContext", "true"), new XAttribute("ExportOptions", "References NoRawData DecoratedData Context Dependencies"),
-            new XElement("Controller", new XAttribute("Use", "Context"), new XAttribute("Name", "LogixRelayContext"),
-                new XElement("DataTypes"), new XElement("Modules"), new XElement("AddOnInstructionDefinitions"), new XElement("Tags"),
-                new XElement("Programs", new XElement("Program", new XAttribute("Use", "Context"),
-                    new XAttribute("Name", programScopes.FirstOrDefault() ?? "MainProgram"), tags, new XElement("Routines", routine))))));
-        using var stream = new MemoryStream();
-        using (var writer = XmlWriter.Create(stream, new XmlWriterSettings { Encoding = new UTF8Encoding(false), Indent = true, NewLineChars = "\n" })) doc.Save(writer);
-        return Encoding.UTF8.GetString(stream.ToArray()) + "\n";
+            new XElement("Controller", new XAttribute("Use", "Context"), new XAttribute("Name", "LogixRelayContext"), new XElement("DataTypes"), new XElement("Modules"),
+                new XElement("AddOnInstructionDefinitions", new XAttribute("Use", "Context"), SintMergeAoi.Definition(revision)), new XElement("Tags"),
+                new XElement("Programs", new XElement("Program", new XAttribute("Use", "Context"), new XAttribute("Name", scopes.FirstOrDefault() ?? "MainProgram"), tags, new XElement("Routines", routine)))))));
     }
 }

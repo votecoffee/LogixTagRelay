@@ -26,9 +26,16 @@ Throws<ArgumentException>(() => Generator.Generate(catalog, selections, moduleNa
 Throws<ArgumentException>(() => Generator.Generate(catalog with { SoftwareRevision = "unknown" }, selections), "unknown import revision is not guessed");
 var xml = XDocument.Parse(bundle.RoutineL5x);
 string rungs = string.Join("\n", xml.Descendants("Text").Select(x => x.Value));
-Check(rungs.Contains("CPS(Status.Count,LogixRelay_PS_Tx[32],8)") && rungs.Contains("CPS(LogixRelay_PS_Rx[56],Command.Setpoint,1)"), "CPS length uses destination element units");
+Check(rungs.Contains("CPS(Status.Count,LogixRelay_PS_Tx[32],8)") && rungs.Contains("CPS(LogixRelay_PS_Current[32],Command.Setpoint,1)"), "CPS length uses destination element units");
 Check(rungs.Contains("XIC(LogixRelay_PS_ApplyCommands)") && rungs.IndexOf("Command.Setpoint", StringComparison.Ordinal) < rungs.IndexOf("MOV(LogixRelay_PS_CommandSequence", StringComparison.Ordinal), "command gate and acknowledgement ordering");
 Check(xml.Root?.Attribute("TargetType")?.Value == "Routine", "L5X identifies routine import");
+Check(xml.Descendants("AddOnInstructionDefinition").Single().Attribute("Name")?.Value == SintMergeAoi.Name &&
+    bundle.MergeAoiL5x.Contains("TargetType=\"AddOnInstructionDefinition\"") && bundle.MergeStructuredText == SintMergeAoi.StructuredText,
+    "generated bundle embeds the ST AOI dependency and supplies standalone review sources");
+var triggerBundle = Generator.Generate(catalog, selections, explicitOptions: new(TriggerTag: "RequestSequence", ResponseTag: "AckSequence"));
+Check(triggerBundle.Configuration.Explicit?.ResponseTag == "AckSequence", "contract generation retains DINT trigger and response controls");
+Throws<ArgumentException>(() => Generator.Generate(catalog, selections, explicitOptions: new(TriggerTag: "Missing")), "unknown trigger catalog tag rejected");
+Throws<ArgumentException>(() => Generator.Generate(catalog, [new("Command", Direction.AppToPlc)], explicitOptions: new(TriggerTag: "Status.Speed")), "non-DINT trigger catalog tag rejected");
 Check(rungs.Contains("TON(LogixRelay_PS_Watchdog,1000,0)") && rungs.Contains("NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)"), "PLC watchdog requires fresh generations");
 var shadow = new TagNode("Status", "Program:MainProgram.Status", "DINT", "Read/Write", []);
 Throws<ArgumentException>(() => Generator.Generate(catalog with { Tags = [.. catalog.Tags, shadow] }, selections), "program tag shadowing rejected");
@@ -47,10 +54,8 @@ var enable = (PlcVariable<bool>)model.Variables.Single(v => v.Map.Path == "Comma
 var statusSpeed = (PlcVariable<float>)model.Variables.Single(v => v.Map.Path == "Status.Speed");
 Throws<InvalidOperationException>(() => statusSpeed.Value = 1, "PLC-owned values reject app writes");
 var codec = new ImplicitImage(bundle.Configuration, model);
-Throws<InvalidOperationException>(() => codec.BuildAppToPlc(), "implicit defaults cannot overwrite PLC commands");
+Throws<InvalidOperationException>(() => codec.BuildAppToPlc(), "implicit commands require a PLC baseline");
 command.Value = 12.5f; enable.Value = true;
-var frame = codec.BuildAppToPlc();
-Check(command.Dirty && command.Quality == Quality.Unknown, "publishing an image is not PLC acceptance");
 int schema = BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(bundle.Configuration.SchemaHash));
 byte[] PlcFrame(int sequence, int ack)
 {
@@ -60,14 +65,17 @@ byte[] PlcFrame(int sequence, int ack)
     PlcTypes.Encode(PlcType.REAL, 47.25f, result.AsSpan(statusSpeed.Map.Offset));
     return result;
 }
-command.Value = 33f;
 var now = DateTimeOffset.UtcNow;
+codec.ReceivePlcToApp(PlcFrame(int.MaxValue - 1, 0), now);
+var frame = codec.BuildAppToPlc();
+Check(command.Dirty && command.Quality == Quality.Unknown, "publishing an image is not PLC acceptance");
+command.Value = 33f;
 codec.ReceivePlcToApp(PlcFrame(int.MaxValue, ImplicitImage.ReadInt(frame, 12)), now);
 Check(command.Dirty && command.Value == 33f && statusSpeed.Value == 47.25f, "ack does not discard a newer app edit");
 var second = codec.BuildAppToPlc();
-codec.ReceivePlcToApp(PlcFrame(0, ImplicitImage.ReadInt(second, 12)), now.AddMilliseconds(1));
+codec.ReceivePlcToApp(PlcFrame(1, ImplicitImage.ReadInt(second, 12)), now.AddMilliseconds(1));
 Check(!command.Dirty && command.Quality == Quality.Good, "sequence wrap and exact echoed acknowledgement");
-codec.ReceivePlcToApp(PlcFrame(0, 0), now.AddSeconds(5));
+codec.ReceivePlcToApp(PlcFrame(1, 0), now.AddSeconds(5));
 Check(codec.CheckStale(now.AddSeconds(5), TimeSpan.FromSeconds(1)), "duplicate frames cannot refresh freshness");
 var invalid = PlcFrame(1, 0); invalid[8] ^= 1;
 Throws<FormatException>(() => codec.ReceivePlcToApp(invalid, now), "wrong wire schema rejected");
@@ -129,6 +137,7 @@ var extendedBundle = Generator.Generate(extended, [new("Metrics", Direction.PlcT
     new("Cubes", Direction.PlcToApp), new("Stations", Direction.PlcToApp), new("Request", Direction.AppToPlc)], assemblyBytes: 480);
 var extendedConfig = extendedBundle.Configuration;
 Check(extendedConfig.PlcToAppBytes == 480 && extendedConfig.AppToPlcBytes == 480, "fixed-size complete round-trip contract");
+ExchangeTests.Run(bundle, extendedBundle, Check);
 Check(extendedConfig.Fields.Single(f => f.Path == "Metrics.Title").StringCapacity == 82 &&
     extendedConfig.Fields.Single(f => f.Path == "Request.Recipe").StringCapacity == 128, "default and custom STRING capacities retained");
 Check(extendedConfig.Fields.Any(f => f.Path == "Values[1,2]") && extendedConfig.Fields.Any(f => f.Path == "Cubes[1,1,1]") &&
@@ -171,9 +180,8 @@ var execute = (PlcVariable<bool>)extendedModel.Variables.Single(v => v.Map.Path 
 recipe.Value = new string('R', 128); execute.Value = true;
 Throws<ArgumentException>(() => recipe.Value = new string('R', 129), "typed custom STRING setter enforces declared capacity");
 var extendedCodec = new ImplicitImage(extendedConfig, extendedModel);
-var firstOutput = extendedCodec.BuildAppToPlc();
 byte[] plcImage = new byte[480];
-int[] extHeader = [ImplicitImage.Magic, ImplicitImage.ProtocolVersion, BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(extendedConfig.SchemaHash)), 1, ImplicitImage.ReadInt(firstOutput, 12), 1];
+int[] extHeader = [ImplicitImage.Magic, ImplicitImage.ProtocolVersion, BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(extendedConfig.SchemaHash)), 1, 0, 1];
 for (int i = 0; i < 6; i++) ImplicitImage.WriteInt(plcImage, i * 4, extHeader[i]);
 foreach (var variable in extendedModel.Variables) PlcTypes.Encode(variable.Map, variable.Map.Type == PlcType.STRING ? "PLC" : variable.BoxedValue, plcImage.AsSpan(variable.Map.Offset));
 extendedCodec.ReceivePlcToApp(plcImage, now);
@@ -182,21 +190,20 @@ var echoed = extendedCodec.BuildAppToPlc();
 var title = extendedConfig.Fields.Single(f => f.Path == "Metrics.Title");
 Check(echoed.AsSpan(title.Offset, title.WireBytes).SequenceEqual(plcImage.AsSpan(title.Offset, title.WireBytes)), "PLC-owned bytes round trip unchanged");
 Check((string)PlcTypes.Decode(recipe.Map, echoed.AsSpan(recipe.Map.Offset)) == recipe.Value, "app-owned STRING overlays the full received image");
-var nextPlc = plcImage.ToArray(); ImplicitImage.WriteInt(nextPlc, 12, 2); ImplicitImage.WriteInt(nextPlc, 16, 0);
+Throws<InvalidOperationException>(() => extendedCodec.BuildAppToPlc(), "pending command cannot change bytes or baseline");
+var nextPlc = plcImage.ToArray(); ImplicitImage.WriteInt(nextPlc, 12, 2); ImplicitImage.WriteInt(nextPlc, 16, ImplicitImage.ReadInt(echoed, 12));
 PlcTypes.Encode(title, "NEW PLC", nextPlc.AsSpan(title.Offset));
 extendedCodec.ReceivePlcToApp(nextPlc, now.AddMilliseconds(1));
-var refresh = extendedCodec.RefreshPlcEcho(echoed);
-Check((string)PlcTypes.Decode(title, refresh.AsSpan(title.Offset)) == "NEW PLC" &&
-    refresh.AsSpan(recipe.Map.Offset, recipe.Map.WireBytes).SequenceEqual(echoed.AsSpan(recipe.Map.Offset, recipe.Map.WireBytes)) &&
-    ImplicitImage.ReadInt(refresh, 12) == ImplicitImage.ReadInt(echoed, 12), "fresh PLC bytes round trip while unacknowledged command bytes and generation stay immutable");
+Check(recipe.Value == "PLC" && !recipe.Dirty, "implicit merge acknowledgement adopts PLC-winning STRING instead of reasserting rejected edits");
 Check(!extendedCodec.ReceivePlcToApp(nextPlc, now.AddMilliseconds(2)), "duplicate frames cannot advance native command acknowledgements");
-var badImage = plcImage.ToArray(); ImplicitImage.WriteInt(badImage, 12, 2);
+var thirdOutput = extendedCodec.BuildAppToPlc();
+var badImage = plcImage.ToArray(); ImplicitImage.WriteInt(badImage, 16, ImplicitImage.ReadInt(thirdOutput, 12));
 PlcTypes.Encode(title, "INVALID IMAGE", badImage.AsSpan(title.Offset));
 ImplicitImage.WriteInt(badImage, 12, 3); BinaryPrimitives.WriteInt32LittleEndian(badImage.AsSpan(recipe.Map.Offset), 129);
 Throws<FormatException>(() => extendedCodec.ReceivePlcToApp(badImage, now), "malformed implicit STRING rejects entire image");
 Check((string)extendedModel.Variables.Single(v => v.Map.Path == title.Path).BoxedValue == "NEW PLC", "late STRING error publishes none of the staged image");
 var extRungs = string.Join("\n", XDocument.Parse(extendedBundle.RoutineL5x).Descendants("Text").Select(e => e.Value));
-Check(extRungs.Contains("LEQ(LogixRelay_PS_StringLen0,128)") && extRungs.Contains("OTE(LogixRelay_PS_FrameValid)"), "PLC validates every command STRING length before applying fields");
+Check(extRungs.Contains("LEQ(LogixRelay_PS_StringLen") && extRungs.Contains("OTE(LogixRelay_PS_FrameValid)") && extRungs.Contains("OTE(LogixRelay_PS_MergedValid)"), "PLC validates incoming and merged STRING lengths before applying fields");
 Check(extRungs.Contains("CPS(Request.Recipe,LogixRelay_PS_Tx[") && extRungs.Contains("CPS(Values[1,2],"), "PLC transmits command readbacks and multidimensional elements");
 var extTransport = new FakeTransport();
 foreach (var variable in extendedModel.Variables) extTransport.Values[variable.Map.Path] = variable.Map.Type == PlcType.STRING ? "EXPLICIT" : variable.BoxedValue;

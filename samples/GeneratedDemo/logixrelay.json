@@ -74,7 +74,9 @@
     "intervalMs": 100,
     "triggerTag": null,
     "triggerPollMs": 20,
-    "acknowledgeTag": null
+    "acknowledgeTag": null,
+    "handledTriggerTag": null,
+    "responseTag": null
   },
   "implicit": {
     "plcInputAssembly": 101,

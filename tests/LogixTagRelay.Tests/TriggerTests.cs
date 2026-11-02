@@ -41,6 +41,16 @@ static class TriggerTests
         transport.FailPaths.Clear(); transport.Values["RequestSequence"] = int.MinValue;
         try { await session.PollTriggerOnceAsync(); throw new Exception("Expected DINT boundary rejection"); } catch (ArgumentOutOfRangeException) { }
         check(Equals(transport.Values["Response"], int.MinValue) && Equals(transport.Values["Handled"], int.MinValue), "minimum DINT is NACKed before data work when signed replies are enabled");
+        using (var cancel = new CancellationTokenSource())
+        {
+            var canceledSession = new ExplicitSession(config, model, transport);
+            transport.Values["RequestSequence"] = 9; command.Value = 88;
+            transport.DuringWrite = () => { cancel.Cancel(); cancel.Token.ThrowIfCancellationRequested(); };
+            try { await canceledSession.PollTriggerOnceAsync(cancel.Token); throw new Exception("Expected cancellation"); } catch (OperationCanceledException) { }
+            check(Equals(transport.Values["Response"], 0) && Equals(transport.Values["Handled"], int.MinValue) && canceledSession.LastTriggerResult is null,
+                "canceled data work cannot fabricate an ACK, NACK or handled mirror");
+            transport.DuringWrite = null;
+        }
         foreach (var invalid in new[] { new ExplicitOptions(ResponseTag: "R"), new ExplicitOptions(TriggerTag: "R", ResponseTag: "R"),
             new ExplicitOptions(TriggerTag: "R", HandledTriggerTag: "Command.Setpoint"), new ExplicitOptions(TriggerTag: "bad();") })
         {
