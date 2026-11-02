@@ -145,17 +145,26 @@ config = config with
 {
     Explicit = new ExplicitOptions(
         TriggerTag: "RequestSequence", TriggerPollMs: 20,
-        AcknowledgeTag: "AckSequence")
+        HandledTriggerTag: "HandledSequence", // optional exact DINT mirror
+        ResponseTag: "ResponseSequence")      // optional signed DINT ACK/NACK
 };
 ```
 
-Request and acknowledgement are separate DINT sequence tags. The first observed request
-causes an update, including zero; subsequent changes cause another update. The PLC
-must hold request data stable and wait for the echoed acknowledgement before issuing
-the next request. Short BOOL pulses are not supported by this preview. The timer
+The trigger is a DINT. Each observed change to a nonzero value executes a group; zero
+never executes a group and re-arms the same subsequent nonzero value. Hold requests
+until completion: polling cannot detect changes that occur entirely between polls.
+Use positive request counters and roll back to 1 at a chosen threshold (for example
+200000000). An optional response is set to zero before work, then the positive request
+magnitude for ACK or negative magnitude for NACK. The optional handled mirror receives
+the exact request after the response. All control tags are separate DINTs outside the
+data mapping. `AcknowledgeTag` remains an alias for the exact handled mirror.
+The minimum DINT is rejected before data work when signed responses are enabled,
+because its magnitude cannot fit in a positive DINT. The timer
 coalesces overruns and never overlaps cycles. A failure faults the session; there is
 no automatic replay after an indeterminate write. Read/write groups are not atomic
-PLC transactions and a failed group can contain partial successful writes. Restarting
+PLC transactions and a failed group can contain partial successful writes. A NACK
+therefore does not mean rollback. Notification failure also faults the session;
+`LastTriggerResult` distinguishes the data result from notification delivery. Restarting
 a triggered session can repeat work; the handshake is not durable exactly-once execution.
 
 ### Implicit I/O

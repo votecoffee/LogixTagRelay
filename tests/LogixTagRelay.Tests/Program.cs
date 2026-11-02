@@ -99,6 +99,7 @@ using (var cancel = new CancellationTokenSource())
     Check(Equals(transport.Values["AckSequence"], 42), "trigger group echoes sequence after successful transfer");
 }
 Check(OpenerAdapter.NativeAbiVersion == 1, "real native DLL loads through PInvoke without opening network ports");
+await TriggerTests.Run(bundle.Configuration, Check);
 var aoiXml = XDocument.Parse(SintMergeAoi.GenerateL5x());
 Check(aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").Count() == 3 &&
     aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").All(p => (string?)p.Attribute("DataType") == "SINT" && (string?)p.Attribute("Dimensions") == "1"), "merge AOI exposes exactly three arbitrary-size SINT InOut arrays");
@@ -271,10 +272,13 @@ sealed class FakeTransport : IExplicitTransport
     public Action? DuringWrite { get; set; }
     public Action? OnAcknowledged { get; set; }
     public bool FailWrites { get; set; }
+    public HashSet<string> FailPaths { get; } = [];
+    public List<(string Path, object Value)> Writes { get; } = [];
     public ValueTask<object> ReadAsync(string path, PlcType type, CancellationToken cancellationToken) => ValueTask.FromResult(Values[path]);
     public ValueTask WriteAsync(string path, PlcType type, object value, CancellationToken cancellationToken)
     {
-        if (FailWrites) throw new IOException("Injected failure");
+        if (FailWrites || FailPaths.Contains(path)) throw new IOException("Injected failure");
+        Writes.Add((path, value));
         if (path == "Command.Setpoint") DuringWrite?.Invoke();
         Values[path] = value;
         if (path == "AckSequence") OnAcknowledged?.Invoke();

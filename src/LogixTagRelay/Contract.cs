@@ -78,7 +78,11 @@ public sealed record FieldMap(string Path, PlcType Type, Direction Direction, in
     [JsonIgnore] public int WireBytes => PlcTypes.Size(Type, StringCapacity);
 }
 public sealed record ExplicitOptions(int IntervalMs = 100, string? TriggerTag = null, int TriggerPollMs = 20,
-    string? AcknowledgeTag = null);
+    string? AcknowledgeTag = null, string? HandledTriggerTag = null, string? ResponseTag = null)
+{
+    // AcknowledgeTag is the original API name for the exact handled-trigger mirror.
+    [JsonIgnore] public string? MirrorTag => HandledTriggerTag ?? AcknowledgeTag;
+}
 public sealed record ImplicitOptions(int PlcInputAssembly = 101, int PlcOutputAssembly = 100,
     int ConfigurationAssembly = 102, int RpiMs = 20, int MaxAssemblyBytes = 480);
 public sealed record SyncConfiguration(string SchemaHash, List<FieldMap> Fields,
@@ -141,12 +145,18 @@ public sealed record SyncConfiguration(string SchemaHash, List<FieldMap> Fields,
             if (ordered[i - 1].Offset + ordered[i - 1].WireBytes > ordered[i].Offset)
                 throw new FormatException("Overlapping field mappings in the shared image.");
         }
-        if (Explicit is { } e && (e.IntervalMs <= 0 || e.TriggerPollMs <= 0 ||
-            (e.AcknowledgeTag != null && e.TriggerTag == null) ||
-            (e.TriggerTag != null && (Fields.Any(f => f.Path.Equals(e.TriggerTag, StringComparison.OrdinalIgnoreCase)) ||
-                string.Equals(e.TriggerTag, e.AcknowledgeTag, StringComparison.OrdinalIgnoreCase))) ||
-            (e.AcknowledgeTag != null && Fields.Any(f => f.Path.Equals(e.AcknowledgeTag, StringComparison.OrdinalIgnoreCase)))))
-            throw new FormatException("Invalid explicit schedule or trigger/ack overlaps a mapped field.");
+        if (Explicit is { } e)
+        {
+            if (e.IntervalMs <= 0 || e.TriggerPollMs <= 0 ||
+                (e.TriggerTag == null && (e.MirrorTag != null || e.ResponseTag != null)) ||
+                (e.AcknowledgeTag != null && e.HandledTriggerTag != null && !e.AcknowledgeTag.Equals(e.HandledTriggerTag, StringComparison.OrdinalIgnoreCase)))
+                throw new FormatException("Invalid explicit trigger/mirror/response settings.");
+            var controls = new[] { e.TriggerTag, e.MirrorTag, e.ResponseTag }.Where(p => p != null).Cast<string>().ToArray();
+            if (controls.Distinct(StringComparer.OrdinalIgnoreCase).Count() != controls.Length || controls.Any(p =>
+                !Regex.IsMatch(p, @"^(?:Program:[A-Za-z_][A-Za-z0-9_]*\.)?[A-Za-z_][A-Za-z0-9_]*(?:\[\d+(?:,\d+){0,2}\])?(?:\.[A-Za-z_][A-Za-z0-9_]*(?:\[\d+(?:,\d+){0,2}\])?)*$") ||
+                Fields.Any(f => f.Path.Equals(p, StringComparison.OrdinalIgnoreCase))))
+                throw new FormatException("Trigger, mirror and response tags must be valid, distinct DINT addresses outside the data mapping.");
+        }
         if (Implicit is { } io && (io.RpiMs <= 0 || io.MaxAssemblyBytes < 24 || io.MaxAssemblyBytes > 480 ||
             PlcToAppBytes > io.MaxAssemblyBytes || AppToPlcBytes > io.MaxAssemblyBytes ||
             io.PlcInputAssembly <= 0 || io.PlcOutputAssembly <= 0 || io.ConfigurationAssembly <= 0 ||
