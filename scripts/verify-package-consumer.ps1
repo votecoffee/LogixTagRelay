@@ -15,8 +15,10 @@ foreach ($id in $packageIds) {
 $runId = [Guid]::NewGuid().ToString('N')
 $consumerRoot = Join-Path ([IO.Path]::GetTempPath()) "LogixTagRelay-consumer-$runId"
 New-Item -ItemType Directory -Path $consumerRoot | Out-Null
-Copy-Item -LiteralPath (Join-Path $repoRoot 'tests/PackageConsumer/Contracts') -Destination $consumerRoot -Recurse
-Copy-Item -LiteralPath (Join-Path $repoRoot 'tests/PackageConsumer/App') -Destination $consumerRoot -Recurse
+foreach ($folder in @('Contracts', 'App')) { New-Item -ItemType Directory -Path (Join-Path $consumerRoot $folder) | Out-Null }
+foreach ($file in @('Contracts/Contracts.csproj', 'Contracts/contract.ltrx.json', 'Contracts/Contract.L5X', 'App/App.csproj', 'App/Program.cs')) {
+  Copy-Item -LiteralPath (Join-Path $repoRoot "tests/PackageConsumer/$file") -Destination (Join-Path $consumerRoot $file)
+}
 $utf8 = [Text.UTF8Encoding]::new($false)
 function Write-Utf8([string]$Path, [string]$Text) { [IO.File]::WriteAllText($Path, $Text, $utf8) }
 # Block ancestor build customization and all user/machine NuGet feeds.

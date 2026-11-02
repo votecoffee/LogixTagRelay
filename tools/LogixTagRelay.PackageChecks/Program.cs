@@ -157,8 +157,12 @@ static int CheckPdb(MetadataReader reader, string commit, string? repository)
                 content = bytes.ToArray();
             }
             Guid algorithm = reader.GetGuid(document.HashAlgorithm);
-            Require(algorithm == new Guid("8829d00f-11b8-4213-878b-770e8597ac16"), "Expected SHA-256 source checksums: " + name);
-            Require(SHA256.HashData(content).SequenceEqual(reader.GetBlobBytes(document.Hash)), "Source checksum differs from its committed or embedded bytes: " + name);
+            // SDK regex generators can supply SHA-1 SourceText even when ordinary source files use SHA-256.
+            // Honor the declared PDB algorithm and verify the actual bytes in either case.
+            byte[] hash = algorithm == new Guid("8829d00f-11b8-4213-878b-770e8597ac16") ? SHA256.HashData(content)
+                : algorithm == new Guid("ff1816ec-aa5e-4d10-87f7-6f4963833460") ? SHA1.HashData(content)
+                : throw new InvalidDataException("Unsupported source checksum algorithm: " + name);
+            Require(hash.SequenceEqual(reader.GetBlobBytes(document.Hash)), "Source checksum differs from its committed or embedded bytes: " + name);
         }
     }
     Require(reader.Documents.Count > 0, "Empty source document table.");

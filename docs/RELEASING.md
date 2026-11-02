@@ -54,8 +54,10 @@ Source Link is supplied by the .NET 8+ SDK. Metadata points at immutable GitHub
 commits, including the pinned native submodule. C# sources use LF through
 `.gitattributes` so compiler checksums match Git source bytes on Windows as well.
 Generated, untracked compiler sources are embedded in the PDB. The release checker
-verifies DLL/PDB identity, portable source paths, commit-pinned URLs and SHA-256
-checksums against committed or embedded source bytes.
+verifies DLL/PDB identity, portable source paths, commit-pinned URLs and document
+checksums against committed or embedded source bytes. Ordinary source uses
+SHA-256; upstream regex generators can record SHA-1, which is checked using the
+algorithm declared by the document. Package-file hashes always use SHA-256.
 
 For a local feed, extract library PDBs from the `.snupkg` files to a debugger symbol
 directory. Ordinary folder feeds do not provide a NuGet symbol server. Once packages

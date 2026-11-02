@@ -25,5 +25,13 @@ try {
     & "$PSScriptRoot/verify-package-consumer.ps1" -Version $version -Framework $framework
   }
   if (& git status --porcelain --untracked-files=normal) { throw 'Release verification modified tracked or unignored source.' }
+  $receipt = [ordered]@{
+    version = $version; sourceCommit = $commit; sdk = ((& dotnet --version).Trim());
+    apiPackageBaseline = $BaselineVersion; packageCount = 6; symbolPackageCount = 5;
+    sourceChecksumsVerified = $true; releaseGuardChecks = 9; consumerFrameworks = $ConsumerFrameworks;
+    nativeBuildSkipped = $SkipNativeBuild.IsPresent; liveControllerAcceptance = $false;
+    environment = $(if ($env:GITHUB_ACTIONS -eq 'true') { 'GitHub Actions' } else { 'Local machine' })
+  }
+  [IO.File]::WriteAllText((Join-Path $repoRoot "artifacts/packages/release-receipt-$version.json"), (($receipt | ConvertTo-Json) + "`n"), [Text.UTF8Encoding]::new($false))
   Write-Output "PASS release $version at $commit. No packages published and no PLC contacted."
 } finally { Pop-Location }

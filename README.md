@@ -71,6 +71,7 @@ matching native module template can supply the module import.
 
 Saved `.ltrx.json` projects retain catalog inputs, selections and settings. The
 `LogixTagRelay.Build` package generates C# during compilation, with `LTR001` diagnostics.
+Generated IntelliSense descriptions use exported tag comments and UDT member defaults.
 See [contract projects](docs/CONTRACT_PROJECTS.md) and `samples/ContractProjectDemo`.
 
 ### Host multiple contracts

@@ -1,12 +1,12 @@
 # Validation and remaining acceptance
 
-Validation date: November 2, 2026. Version 0.8 preview; offline and loopback emulator evidence.
+Validation date: November 2, 2026. Version 0.8.1 preview; offline, loopback emulator and package evidence.
 
 ## Local evidence
 
 - C# solution builds in Release with warnings treated as errors.
 - Native bridge builds with MSVC x64 against OpENer commit `0e1ab7ee5c272950c0dc8daf7793008d7a518912`.
-- All 247 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
+- All 262 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
   JSON duplicate-key/hash checks, XML entity rejection, CPS destination lengths,
   exact scalar codecs (including LINT above 2^53), write races, failed writes,
   triggered acknowledgements, implicit sequence wrap, bad schema, stale/duplicate frames,
@@ -40,7 +40,7 @@ Validation date: November 2, 2026. Version 0.8 preview; offline and loopback emu
   assign directions, configure DINT trigger/response and download the C#/JSON/routine/
   AOI/settings ZIP. Download contents and trigger settings were inspected. No controller
   address was contacted.
-- The PLC memory emulator has 23 additional offline checks (included in 247 above)
+- The PLC memory emulator has 23 additional offline checks (included in 262 above)
   for typed shared memory, DINT control tags, PLC-first image merge, duplicate/baseline
   rejection, invalid merged STRING LEN, generated wrapper/ST model agreement, JavaScript
   motion, BigInt LINT precision, persistent state, bounded runaway scripts, atomic tick
@@ -108,7 +108,7 @@ Validation date: November 2, 2026. Version 0.8 preview; offline and loopback emu
 
 ## Liveness and error evidence (0.8)
 
-- 247 offline checks include explicit-only heartbeat while DINT triggers are idle,
+- 262 offline checks include explicit-only heartbeat while DINT triggers are idle,
   independent heartbeat for implicit-only hosting, unchanged image size/hash, observed
   BOOL phase, fixed reconnect delay, disabled reconnect, skipped intervals and serialized
   manual overlap requests. Native adapter construction automatically provisions its
@@ -126,6 +126,32 @@ Validation date: November 2, 2026. Version 0.8 preview; offline and loopback emu
 - A fresh 0.8 six-package consumer compiles four generated contract classes in a
   separate library, runs the implicit-only explicit heartbeat without image changes,
   verifies typed tag fault metadata, and loads the isolated native worker ABI 2.
+
+## Release readiness and IntelliSense descriptions (0.8.1)
+
+- Release builds pass without warnings on SDK 8.0.425 and SDK 9.0.318.
+- 262 offline checks include 15 description checks: instance overrides, UDT defaults,
+  nested and program-scoped members, multidimensional array operands, localization,
+  saved-project round trips and escaped multiline/Unicode text. Description edits do
+  not alter the wire configuration. Shared UDT types list differing instance comments
+  with their PLC paths in IntelliSense remarks.
+- Five public libraries enforce XML documentation and tracked nullable public API
+  declarations. All six packages are built, with five portable-PDB symbol packages
+  and embedded generator symbols. Source Link URLs and source checksums match the
+  committed or embedded source; DLL/PDB identities and native x64 packaging pass.
+- SDK binary package validation passes against the retained 0.8.0-preview.1 packages.
+  Nine release guard checks include a positive fixture and rejection of removed APIs,
+  unreviewed additions, changed optional defaults/nullability, missing documentation,
+  missing package XML, mismatched symbols and a missing native bridge.
+- Separate empty-cache consumers publish and run on .NET 8.0.31 and .NET 9.0.20.
+  Each passes 18 checks covering generated contracts in a separate class library,
+  dirty-member explicit writes, symmetric implicit images, explicit heartbeat,
+  JavaScript, typed faults and native ABI/owned worker startup. Compiled XML retains
+  actual PLC comments and UDT member defaults; invalid projects produce LTR001.
+- These consumers run on this development machine, not a fresh OS. The manual-only
+  Windows hosted-runner workflow is available but has not been dispatched. No package
+  has been published to nuget.org, and no PLC or Studio acceptance is implied.
+  See [release verification](RELEASING.md) for commands and deployment prerequisites.
 
 ## Required native/controller acceptance
 
