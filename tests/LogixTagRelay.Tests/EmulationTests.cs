@@ -94,6 +94,22 @@ static class EmulationTests
         check(runner.Step() && (float)scriptMemory.Read("Actual") == 42f, "scripts receive no CLR or network objects");
         var before = scriptMemory.Snapshot(); scriptMemory.Set("Actual", 1f);
         check(!scriptMemory.Apply([new("Actual", 7f)], "Script", before.Revision) && (float)scriptMemory.Read("Actual") == 1f, "stale script transaction cannot overwrite intervening memory changes");
+        long unchangedRevision = scriptMemory.Snapshot().Revision;
+        scriptMemory.Apply([new("Command", 3f)], "API cyclic", fromApi: true);
+        check(scriptMemory.Snapshot().Revision == unchangedRevision && scriptMemory.Snapshot().Tags.Single(t => t.Map.Path == "Command").LastApiWriteAt is not null,
+            "unchanged cyclic API writes retain diagnostics without invalidating script snapshots");
+        runner.Configure("plc.set('Actual', plc.get('Actual') + 1);");
+        bool committedEveryTick = true;
+        using (var stop = new CancellationTokenSource())
+        {
+            var writer = Task.Run(async () =>
+            {
+                while (!stop.IsCancellationRequested) { scriptMemory.Apply([new("Command", 3f)], "API cyclic", fromApi: true); await Task.Delay(1); }
+            });
+            try { for (int i = 0; i < 20; i++) committedEveryTick &= runner.Step(); }
+            finally { stop.Cancel(); await writer; }
+        }
+        check(committedEveryTick && (float)scriptMemory.Read("Actual") == 21f, "concurrent unchanged API traffic cannot starve scripted PLC updates");
         Reject<FormatException>(() => scriptMemory.SetText("InPosition", "not bool"));
         Reject<OverflowException>(() => scriptMemory.SetText("Counter", "9223372036854775808"));
         check(true, "manual emulator edits enforce BOOL and LINT type bounds");

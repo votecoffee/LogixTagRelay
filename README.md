@@ -4,7 +4,7 @@ Typed C# access to Logix PLC tags, with a tag browser, generated models/configur
 explicit synchronization, and an experimental OpENer implicit I/O adapter.
 Includes a PLC-side memory emulator with a local GUI and JavaScript response scripts.
 
-**Status: 0.3.0-preview.1.** The managed code and Windows native bridge build locally.
+**Status: 0.4.0-preview.1.** The managed code and Windows native bridge build locally.
 Offline tests and the generated consumer run. PLC communication, native L5X import,
 RPI behavior and controller acceptance have not been tested. See [validation](docs/VALIDATION.md).
 
@@ -296,7 +296,7 @@ Its native import remains to be verified.
   distributed conflict resolution, durable delivery journal or public NuGet release yet.
 - Model/config hash checks do not verify the running PLC's type definitions. Refresh
   the catalog after PLC changes; live type-contract validation remains to be added.
-- Version 0.3 uses JSON schema 2 and wire protocol 3. Regenerate C#, JSON and PLC routine
+- Versions 0.3 and 0.4 use JSON schema 2 and wire protocol 3. Regenerate C#, JSON and PLC routine
   together when upgrading; prior wire versions are deliberately rejected.
 
 ## Maintainers

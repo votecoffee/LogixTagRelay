@@ -110,6 +110,8 @@ A tick stages all writes before committing. Syntax errors, exceptions, invalid t
 invalid string lengths or execution-limit errors stop the script, expose diagnostics,
 and leave tag memory and saved script state unchanged. If memory changes concurrently
 during script evaluation, the tick is discarded and retried at the next interval.
+Unchanged cyclic writes update API diagnostics without changing the memory revision,
+so repeated frames cannot starve scripts that are responding to stable commands.
 Successful ticks commit atomically to emulator memory; this does not imply PLC atomicity.
 
 Use trusted local scripts. The engine exposes primitive JSON, not CLR/filesystem/network
@@ -145,3 +147,15 @@ prevent all implicit writes and acknowledgement, matching the generated wrapper.
 the script. Files stay on the user's machine. The service binds to loopback, uses no
 CORS allowances and requires a custom header on write routes. It is a local test tool,
 not an authenticated shared server. No state is retained automatically after process exit.
+
+## Local verification
+
+```powershell
+dotnet run --project tests/LogixTagRelay.Tests -c Release
+dotnet run --project tools/LogixTagRelay.Emulator -c Release -- --self-test true
+```
+
+The second command starts an owned HTTP host on an ephemeral loopback port, exercises
+the real routes/client and exits. It checks explicit, implicit and DINT-triggered motion,
+custom STRING/LINT/array paths, rejected stale clients, manual edits, script failures,
+memory restore and static GUI serving. It requires no PLC or EtherNet/IP adapter.

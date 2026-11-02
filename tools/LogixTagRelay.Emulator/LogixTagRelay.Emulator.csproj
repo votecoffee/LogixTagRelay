@@ -2,6 +2,7 @@
   <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/LogixTagRelay.Emulation/LogixTagRelay.Emulation.csproj" /></ItemGroup>
   <ItemGroup>
+    <Content Update="wwwroot/**" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../samples/EmulationDemo/logixrelay.json" Link="Examples/logixrelay.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../samples/EmulationDemo/motion.js" Link="Examples/motion.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../licenses/*.txt" Link="licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

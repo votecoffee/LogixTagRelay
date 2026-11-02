@@ -1,12 +1,12 @@
 # Validation and remaining acceptance
 
-Validation date: November 2, 2026. Offline-only 0.3 preview.
+Validation date: November 2, 2026. Version 0.4 preview; offline and loopback emulator evidence.
 
 ## Local evidence
 
 - C# solution builds in Release with warnings treated as errors.
 - Native bridge builds with MSVC x64 against OpENer commit `0e1ab7ee5c272950c0dc8daf7793008d7a518912`.
-- All 112 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
+- All 135 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
   JSON duplicate-key/hash checks, XML entity rejection, CPS destination lengths,
   exact scalar codecs (including LINT above 2^53), write races, failed writes,
   triggered acknowledgements, implicit sequence wrap, bad schema, stale/duplicate frames,
@@ -22,11 +22,12 @@ Validation date: November 2, 2026. Offline-only 0.3 preview.
 - Separate generated-model console applications compile and run. The extended consumer
   uses default/custom STRING, 2D/3D primitive arrays, multidimensional UDT arrays and
   legal one-dimensional UDT member arrays in a 480-byte symmetric image.
-- All four local NuGet packages are produced. A fresh consumer with a separate package
+- All five local NuGet packages are produced. A fresh consumer with a separate package
   cache restores the package dependencies, consumes the generated model and JSON, builds
-  a complete output image and loads native ABI 1. In the 0.3 check, generated types compile
-  into a separate contract class library referenced by the consuming app; all four
-  packages restore, including the Design package's embedded ST resource. This test
+  a complete output image and loads native ABI 1. Generated types compile into a separate
+  contract class library referenced by the consuming app; all five packages restore,
+  including the Design package's embedded ST resource and Emulation's Jint dependency.
+  The 0.4 consumer runs scripted motion through explicit and implicit memory transports. This test
   starts no EtherNet/IP listeners.
 - Additional checks cover counted STRING data (null and 8-bit bytes), capacities through
   65535, native tail preservation, invalid LEN and late-image rejection, compiler-generated
@@ -37,6 +38,22 @@ Validation date: November 2, 2026. Offline-only 0.3 preview.
   assign directions, configure DINT trigger/response and download the C#/JSON/routine/
   AOI/settings ZIP. Download contents and trigger settings were inspected. No controller
   address was contacted.
+- The PLC memory emulator has 23 additional offline checks (included in 135 above)
+  for typed shared memory, DINT control tags, PLC-first image merge, duplicate/baseline
+  rejection, invalid merged STRING LEN, generated wrapper/ST model agreement, JavaScript
+  motion, BigInt LINT precision, persistent state, bounded runaway scripts, atomic tick
+  failures, stale script transactions and concurrent unchanged API traffic that must
+  not invalidate value snapshots or starve scripts.
+- All 14 HTTP checks pass through the actual emulator host/client. They cover explicit,
+  implicit and DINT-triggered motion, GUI edits, last-API-value metadata, STRING/LINT/
+  multidimensional paths, stale contract rejection, transactional memory restore,
+  script errors, write-route headers and static GUI serving. The host uses an owned
+  ephemeral loopback port and shuts itself down after the test.
+- The published emulator passes the same HTTP checks when invoked by DLL from outside
+  its content directory. Static files, examples and dependency license notices are included.
+- Browser verification loads a contract and script, changes PLC speed, runs the response
+  and displays command/actual/in-position and DINT handled/ACK values. Emulation uses
+  HTTP plus the managed contract codec; it is not controller or EtherNet/IP evidence.
 
 ## Required native/controller acceptance
 

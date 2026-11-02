@@ -21,6 +21,7 @@ sealed class EmulatorSelfTest(EmulatorWorkspace workspace, IHostApplicationLifet
         try
         {
             var uri = new Uri(server.Features.Get<IServerAddressesFeature>()!.Addresses.Single());
+            using (var pageClient = new HttpClient()) Check((await pageClient.GetStringAsync(uri, ct)).Contains("PLC memory emulator"), "published/static GUI is served independently of the working directory");
             var session = workspace.Current; var config = session.Memory.Configuration; string script = session.Scripts.Status.Source;
             var model = new Model(config);
             model.Set("Motion.CommandPosition", 3f);
@@ -80,9 +81,16 @@ sealed class EmulatorSelfTest(EmulatorWorkspace workspace, IHostApplicationLifet
             Check(!extendedModel.Variables[0].Dirty && (string)session.Memory.Read("Recipe") == "Next" && (long)extendedModel.Get("Count") == 9007199254740993L, "HTTP implicit round trip retains typed string and LINT values");
             using (var restore = await http.PostAsJsonAsync("api/restore", new { instanceId = session.Contract.InstanceId, fingerprint = session.Contract.Fingerprint, values = new Dictionary<string,string> { ["Count"] = "7", ["Recipe"] = new('X',13) } }, ct))
                 Check(restore.StatusCode == HttpStatusCode.BadRequest && (long)session.Memory.Read("Count") == 9007199254740993L, "invalid memory restore applies no partial changes");
+            using (var restore = await http.PostAsJsonAsync("api/restore", new { instanceId = session.Contract.InstanceId, fingerprint = session.Contract.Fingerprint, values = new Dictionary<string,string> { ["Count"] = "7", ["Recipe"] = "Saved" } }, ct)) restore.EnsureSuccessStatusCode();
+            Check((long)session.Memory.Read("Count") == 7L && (string)session.Memory.Read("Recipe") == "Saved" && !session.Scripts.Status.Running, "valid memory restore commits the batch and stops scripting");
             Console.WriteLine($"{count} emulator HTTP checks passed.");
         }
-        catch (Exception failure) { Console.Error.WriteLine(failure); Environment.ExitCode = 1; }
+        catch (Exception failure)
+        {
+            Console.Error.WriteLine(failure);
+            Console.Error.WriteLine(System.Text.Json.JsonSerializer.Serialize(workspace.Current.Snapshot()));
+            Environment.ExitCode = 1;
+        }
         finally { workspace.Current.Scripts.Stop(); lifetime.StopApplication(); }
     }
     private static async Task WaitUntil(Func<bool> condition, Task loop, CancellationToken ct)

@@ -75,15 +75,18 @@ public sealed class PlcMemory
                 if (write.RequestedApiValue is not null) PlcTypes.Encode(entry.Map, write.RequestedApiValue, new byte[entry.Map.WireBytes]);
             }
             var now = DateTimeOffset.UtcNow;
+            bool changed = false;
             foreach (var (entry, write) in staged)
             {
                 if (!Equals(entry.Value, write.Value))
                 {
                     entry.Value = write.Value; entry.Version++; entry.LastWriter = writer; entry.ChangedAt = now;
+                    changed = true;
                 }
                 if (fromApi) { entry.LastApiValue = TagText.Format(write.RequestedApiValue ?? write.Value); entry.LastApiWriteAt = now; }
             }
-            if (staged.Length > 0) revision++;
+            // Repeated cyclic writes update API diagnostics but do not invalidate a script's value snapshot.
+            if (changed) revision++;
             return true;
         }
     }
