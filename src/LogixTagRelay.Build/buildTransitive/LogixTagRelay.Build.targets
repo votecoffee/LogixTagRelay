@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
     <_LogixTagRelayGenerator Condition="'$(_LogixTagRelayGenerator)' == ''">$(MSBuildThisFileDirectory)../tools/net8.0/any/LogixTagRelay.Build.dll</_LogixTagRelayGenerator>
-    <_LogixTagRelayOutput>$(IntermediateOutputPath)LogixTagRelay/</_LogixTagRelayOutput>
   </PropertyGroup>
   <Target Name="GenerateLogixContracts" BeforeTargets="CoreCompile" Condition="'@(LogixContract)' != ''">
+    <PropertyGroup><_LogixTagRelayOutput>$(IntermediateOutputPath)LogixTagRelay/</_LogixTagRelayOutput></PropertyGroup>
     <Exec Command="dotnet &quot;$(_LogixTagRelayGenerator)&quot; generate &quot;%(LogixContract.FullPath)&quot; &quot;$(_LogixTagRelayOutput)%(LogixContract.Filename)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
     <ItemGroup>
       <Compile Include="@(LogixContract->'$(_LogixTagRelayOutput)%(Filename)/GeneratedTags.g.cs')" />

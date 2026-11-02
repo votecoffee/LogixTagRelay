@@ -71,10 +71,10 @@ UDT member arrays may have one dimension, following the native Logix restriction
 
 The full SHA-256 hash is stored in JSON; the wire token is a 32-bit mismatch detector,
 not authentication or a collision-proof identity. C# output sequences start at a
-randomized nonzero value to reduce restart collisions. There is no durable epoch or
-exactly-once replay protocol yet. The codec uses a 31-bit modular freshness comparison;
-the host must restart after a PLC reset/disconnection rather than treating a new PLC
-sequence epoch as the old one. Network integrity/security is a deployment concern;
+randomized nonzero value to reduce restart collisions. The codec uses a 31-bit modular
+freshness comparison. Managed recovery uses a nonce-echoed fresh baseline before
+normal exchanges resume; it suspends uncertain dirty writes by default. This is not
+a durable exactly-once command-execution protocol. See [hosting and recovery](HOSTING_AND_RECOVERY.md). Network integrity/security is a deployment concern;
 this preview does not implement CIP Security or CIP Safety.
 
 Input/output naming follows the PLC. Both assemblies contain the entire contract.
@@ -109,7 +109,7 @@ Acknowledgement means the merge completed, including PLC-winning bytes. The API
 adopts the actual merged value only if its local version still matches the sent version;
 newer app edits remain dirty. Clean fields echo PLC bytes rather than reasserting a
 rejected desired value. A 1000 ms watchdog diagnoses missing fresh exchanges; application
-logic decides how to respond. Reset invalidates staging state and requires API restart.
+logic decides how to respond. Reset invalidates staging state; managed sessions obtain a fresh recovery baseline.
 
 Field-wise CPS does not freeze all source tags across a PLC scan or other tasks.
 Applications needing a consistent process snapshot should create a dedicated PLC
@@ -124,8 +124,11 @@ callback source with the relay application; the dependency checkout remains unch
 The bridge exports a small C ABI for start, stop and complete-image exchange. OpENer's
 network worker owns stack callbacks. An SRW lock protects managed/native image exchange,
 and consumers receive copied buffers. Stack globals allow one adapter lifecycle per
-process. Shutdown retains its exact worker handle on timeout; it never terminates
-another process, force-terminates the worker or unloads a live native stack.
+private worker process. ABI 2 guards publication with a connection/mode epoch. The
+consumer supervises an owned child and can replace it after failure; it never unloads
+a live native stack in the consumer. Shutdown retains exact native/process handles.
+A nonresponsive owned child can be terminated after its graceful deadline, without
+process-name discovery or affecting shared processes.
 
 The library has no PLC project service dependency. It does not open Studio 5000,
 download logic, edit an online project or automatically import generated L5X.

@@ -12,7 +12,8 @@ public sealed class ImplicitPlc
     private readonly SyncConfiguration config;
     private readonly int schema;
     private byte[]? published;
-    private int sequence, acknowledgement, conflicts;
+    private int sequence, acknowledgement, conflicts, resyncNonce;
+    private bool resyncPending;
     private long exchanges, accepted;
     private bool applyCommands = true;
     private string result = "Waiting";
@@ -31,6 +32,12 @@ public sealed class ImplicitPlc
         {
             exchanges++; conflicts = 0;
             if (published is null) Publish();
+            if (frame.Length == config.AppToPlcBytes && ImplicitImage.ReadInt(frame, 0) == ImplicitImage.Magic && ImplicitImage.ReadInt(frame, 4) == ImplicitImage.ProtocolVersion && ImplicitImage.ReadInt(frame, 8) == schema && ImplicitImage.ReadInt(frame, 20) == 2 && ImplicitImage.ReadInt(frame, 16) > 0)
+            {
+                int nonce = ImplicitImage.ReadInt(frame, 16);
+                if (nonce != resyncNonce) { resyncNonce = nonce; resyncPending = true; sequence = 0; acknowledgement = 0; Publish(); }
+                result = "Resynchronization baseline"; return published!.ToArray();
+            }
             string? reject = null;
             if (frame.Length != config.AppToPlcBytes) reject = "Size mismatch";
             else if (ImplicitImage.ReadInt(frame, 20) != 1) reject = "Bootstrap / invalid frame";
@@ -60,7 +67,7 @@ public sealed class ImplicitPlc
                 memory.Apply(writes, "API implicit", fromApi: true);
             }
             catch (FormatException) { result = "Invalid STRING length"; return published!.ToArray(); }
-            acknowledgement = ImplicitImage.ReadInt(frame, 12); accepted++; result = "Accepted";
+            acknowledgement = ImplicitImage.ReadInt(frame, 12); accepted++; resyncPending = false; result = "Accepted";
             Publish();
             return published!.ToArray();
         }
@@ -75,7 +82,7 @@ public sealed class ImplicitPlc
     {
         var next = Pack();
         sequence = sequence == int.MaxValue ? 1 : sequence + 1;
-        int[] header = [ImplicitImage.Magic, ImplicitImage.ProtocolVersion, schema, sequence, acknowledgement, 1];
+        int[] header = [ImplicitImage.Magic, ImplicitImage.ProtocolVersion, schema, sequence, resyncPending ? resyncNonce : acknowledgement, resyncPending ? 3 : 1];
         for (int i = 0; i < header.Length; i++) ImplicitImage.WriteInt(next, i * 4, header[i]);
         published = next;
     }

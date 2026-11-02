@@ -73,6 +73,14 @@ Saved `.ltrx.json` projects retain catalog inputs, selections and settings. The
 `LogixTagRelay.Build` package generates C# during compilation, with `LTR001` diagnostics.
 See [contract projects](docs/CONTRACT_PROJECTS.md) and `samples/ContractProjectDemo`.
 
+### Host multiple contracts
+
+Use `RelayHost` for multiple explicit groups alongside one implicit group, capped at
+480 bytes per image. Sessions expose shared diagnostics, retry transient faults with
+backoff, and suspend uncertain pending writes until the consumer resumes them.
+OpENer runs in an owned worker process so reconnecting does not restart the application.
+See [hosting and recovery](docs/HOSTING_AND_RECOVERY.md) and `samples/HostingDemo`.
+
 ### React to tag changes
 
 Generated contracts and each `PlcVariable<T>` implement `INotifyPropertyChanged`.

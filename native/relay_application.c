@@ -15,6 +15,10 @@ EipStatus ApplicationInitialization(void) {
 void HandleApplication(void) { }
 void CheckIoConnectionEvent(unsigned int output_id, unsigned int input_id, IoConnectionEvent event) {
   (void)output_id; (void)input_id;
+  AcquireSRWLockExclusive(&ltr_lock);
+  memset(ltr_app_image, 0, sizeof(ltr_app_image)); memset(ltr_plc_image, 0, sizeof(ltr_plc_image));
+  InterlockedIncrement(&ltr_generation); InterlockedIncrement(&ltr_epoch);
+  ReleaseSRWLockExclusive(&ltr_lock);
   InterlockedExchange(&ltr_connected, event == kIoConnectionEventOpened ? 1 : 0);
   if (event != kIoConnectionEventOpened) InterlockedExchange(&ltr_run, 0);
 }
@@ -35,7 +39,15 @@ EipBool8 BeforeAssemblyDataSend(CipInstance *instance) {
   }
   return true;
 }
-void RunIdleChanged(EipUint32 run_idle) { InterlockedExchange(&ltr_run, (run_idle & 1u) != 0); }
+void RunIdleChanged(EipUint32 run_idle) {
+  AcquireSRWLockExclusive(&ltr_lock);
+  if ((run_idle & 1u) == 0) {
+    memset(ltr_app_image, 0, sizeof(ltr_app_image)); memset(ltr_plc_image, 0, sizeof(ltr_plc_image));
+    InterlockedIncrement(&ltr_epoch); InterlockedIncrement(&ltr_generation);
+  }
+  InterlockedExchange(&ltr_run, (run_idle & 1u) != 0);
+  ReleaseSRWLockExclusive(&ltr_lock);
+}
 EipStatus ResetDevice(void) { CloseAllConnections(); return kEipStatusOk; }
 EipStatus ResetDeviceToInitialConfiguration(void) { return ResetDevice(); }
 void *CipCalloc(size_t count, size_t size) { return calloc(count, size); }

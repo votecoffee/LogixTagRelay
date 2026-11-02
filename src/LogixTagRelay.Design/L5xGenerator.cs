@@ -22,8 +22,8 @@ internal static class L5xGenerator
             type == SintMergeAoi.Name ? null : new XAttribute("Radix", "Decimal"), new XAttribute("Constant", "false"), new XAttribute("ExternalAccess", "Read/Write")));
         Tag(rx, "SINT", bytes); Tag(tx, "SINT", bytes);
         foreach (string a in new[] { current, saved, received }) Tag(a, "SINT", payload);
-        foreach (string s in new[] { "Magic", "Version", "Schema", "Valid", "CommandSequence", "BaselineSequence", "AcceptedSequence", "Sequence", "Bool", "HeaderMagic", "HeaderVersion", "HeaderSchema", "HeaderValid" }) Tag(p + "_" + s, "DINT");
-        foreach (string s in new[] { "ApplyCommands", "Initialized", "Reset", "FrameValid", "CurrentValid", "MergedValid", "Publish" }) Tag(p + "_" + s, "BOOL");
+        foreach (string s in new[] { "Magic", "Version", "Schema", "Valid", "CommandSequence", "BaselineSequence", "AcceptedSequence", "Sequence", "Bool", "HeaderMagic", "HeaderVersion", "HeaderSchema", "HeaderValid", "ResyncNonce" }) Tag(p + "_" + s, "DINT");
+        foreach (string s in new[] { "ApplyCommands", "Initialized", "Reset", "FrameValid", "CurrentValid", "MergedValid", "Publish", "ResyncPending" }) Tag(p + "_" + s, "BOOL");
         Tag(p + "_Watchdog", "TIMER"); Tag(p + "_Merge", SintMergeAoi.Name);
         if (config.Fields.Any(f => f.Type is PlcType.DT or PlcType.TIME or PlcType.LDT or PlcType.LTIME or PlcType.TIME32)) Tag(p + "_TimeBits", "LINT");
         if (config.Fields.Any(f => f.Type == PlcType.TIME32)) Tag(p + "_Time32Bits", "DINT");
@@ -50,10 +50,11 @@ internal static class L5xGenerator
                 else R($"{gate}CPS({path},{array}[{offset}],{(f.Type == PlcType.STRING ? (f.WireBytes + 3) / 4 * 4 : f.WireBytes)});");
             }
         }
-        R($"XIC({p}_Reset)OTU({p}_Initialized)MOV(0,{p}_Sequence)MOV(0,{p}_AcceptedSequence);", "Hold Reset during connection/state reconciliation; release it before enabling commands. Restart the API session after reset.");
+        R($"XIC({p}_Reset)OTU({p}_Initialized)MOV(0,{p}_Sequence)MOV(0,{p}_AcceptedSequence);", "Hold Reset during connection/state reconciliation; release it before enabling commands. Managed sessions negotiate a fresh baseline after reset.");
         R($"CPS({module}:I.Data[0],{rx}[0],{bytes});", "Snapshot module input TO the PLC. Header is excluded from the three merge arrays.");
         string[] inputHeaders = ["Magic", "Version", "Schema", "CommandSequence", "BaselineSequence", "Valid"];
         for (int i = 0; i < 6; i++) R($"CPS({rx}[{i * 4}],{p}_{inputHeaders[i]},1);");
+        R($"XIO({p}_Reset)EQU({p}_Magic,{ImplicitImage.Magic})EQU({p}_Version,{ImplicitImage.ProtocolVersion})EQU({p}_Schema,{token})EQU({p}_Valid,2)GRT({p}_BaselineSequence,0)NEQ({p}_BaselineSequence,{p}_ResyncNonce)MOV({p}_BaselineSequence,{p}_ResyncNonce)OTL({p}_ResyncPending)OTU({p}_Initialized)MOV(0,{p}_Sequence)MOV(0,{p}_AcceptedSequence);", "A new nonce requests a fresh frozen baseline without applying any API payload.");
         Pack(current, ImplicitImage.HeaderBytes);
         string currentValid = $"XIO({p}_Reset)";
         foreach (var f in strings) currentValid += $"GEQ({PathOf(f)}.LEN,0)LEQ({PathOf(f)}.LEN,{f.StringCapacity})";
@@ -98,6 +99,7 @@ internal static class L5xGenerator
             }
             else R($"{gate}CPS({current}[{offset}],{path},1);");
         }
+        R($"XIC({p}_MergedValid)OTU({p}_ResyncPending);");
         R($"XIC({p}_MergedValid)MOV({p}_CommandSequence,{p}_AcceptedSequence);", "ACK means merge completed, including bytes retained by the PLC. It does not mean every requested API byte won.");
         R($"XIC({p}_CurrentValid)[XIO({p}_Initialized),XIC({p}_MergedValid)]OTE({p}_Publish);");
         string publish = $"XIC({p}_Publish)";
@@ -107,6 +109,7 @@ internal static class L5xGenerator
         R($"{publish}MOV({ImplicitImage.Magic},{p}_HeaderMagic)MOV({ImplicitImage.ProtocolVersion},{p}_HeaderVersion)MOV({token},{p}_HeaderSchema)MOV(1,{p}_HeaderValid);");
         string[] headers = ["HeaderMagic", "HeaderVersion", "HeaderSchema", "Sequence", "AcceptedSequence", "HeaderValid"];
         for (int i = 0; i < headers.Length; i++) R($"{publish}CPS({p}_{headers[i]},{tx}[{i * 4}],4);");
+        R($"{publish}XIC({p}_ResyncPending)CPS({p}_ResyncNonce,{tx}[16],4)MOV(3,{p}_HeaderValid)CPS({p}_HeaderValid,{tx}[20],4);");
         R($"{publish}CPS({tx}[0],{module}:O.Data[0],{bytes});", "Write output FROM the PLC, then save exactly that payload as the baseline.");
         R($"{publish}CPS({tx}[24],{saved}[0],{payload});");
         R($"{publish}OTL({p}_Initialized);");

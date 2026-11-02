@@ -13,6 +13,8 @@ public sealed class ImplicitImage
     private readonly int schemaToken;
     private readonly object gate = new();
     private SentImage? pending;
+    private int? resynchronizationNonce;
+    private bool awaitingResynchronization;
     private int sequence = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, int.MaxValue - 32);
     private int? lastPlcSequence;
     private DateTimeOffset? lastFresh;
@@ -28,7 +30,17 @@ public sealed class ImplicitImage
     }
     /// <summary>Invalid startup frame: cannot authorize PLC writes before a baseline is received.</summary>
     public byte[] BuildBootstrap() => new byte[config.AppToPlcBytes];
-    public byte[] BuildAppToPlc()
+    public byte[] BeginResynchronization()
+    {
+        lock (gate)
+        {
+            resynchronizationNonce = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, int.MaxValue);
+            awaitingResynchronization = true; pending = null; lastReceived = null; lastPlcSequence = null; lastFresh = null;
+            var request = new byte[config.AppToPlcBytes]; WriteHeader(request, 0, resynchronizationNonce.Value); WriteInt(request, 20, 2);
+            return request;
+        }
+    }
+    public byte[] BuildAppToPlc(bool allowWrites = true)
     {
         lock (gate)
         {
@@ -42,6 +54,7 @@ public sealed class ImplicitImage
             {
                 var captured = variable.CaptureForMerge();
                 // Unedited values echo the PLC. No CLR default can overwrite startup values.
+                if (!allowWrites) continue;
                 if (captured.Dirty) PlcTypes.Encode(variable.Map, captured.Value, image.AsSpan(variable.Map.Offset));
                 versions.Add((variable, captured.Version));
             }
@@ -56,8 +69,10 @@ public sealed class ImplicitImage
             try
             {
                 if (image.Length != config.PlcToAppBytes || ReadInt(image, 0) != Magic ||
-                    ReadInt(image, 4) != ProtocolVersion || ReadInt(image, 8) != schemaToken || ReadInt(image, 20) != 1)
+                    ReadInt(image, 4) != ProtocolVersion || ReadInt(image, 8) != schemaToken || ReadInt(image, 20) is not (1 or 3))
                     throw new FormatException("Assembly size, version, schema, or valid flag mismatch.");
+                if (awaitingResynchronization && (ReadInt(image, 20) != 3 || ReadInt(image, 16) != resynchronizationNonce)) return false;
+                if (!awaitingResynchronization && ReadInt(image, 20) == 3 && ReadInt(image, 16) != resynchronizationNonce) return false;
                 int plcSequence = ReadInt(image, 12);
                 if (plcSequence <= 0) throw new FormatException("Expected a positive 31-bit PLC sequence.");
                 if (lastPlcSequence.HasValue)
@@ -77,6 +92,7 @@ public sealed class ImplicitImage
                     if (sent is { Variable: not null } written) variable.AcceptMergedWrite(written.Version, value, time);
                     else variable.Observe(value, time);
                 }
+                awaitingResynchronization = false;
                 lastReceived = image.ToArray(); lastPlcSequence = plcSequence; lastFresh = time; pending = null;
                 return true;
             }

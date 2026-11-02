@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "name": "fast",
+  "sourceL5x": "../TypesAndEventsDemo/Contract.L5X",
+  "namespace": "Example.Contracts.Fast",
+  "className": "FastTags",
+  "selections": [
+    {
+      "path": "Telemetry.Code",
+      "direction": "Bidirectional"
+    },
+    {
+      "path": "Telemetry.Count16",
+      "direction": "Bidirectional"
+    }
+  ],
+  "includeImplicit": false,
+  "explicit": {
+    "intervalMs": 25
+  },
+  "implicit": {
+    "rpiMs": 25
+  }
+}

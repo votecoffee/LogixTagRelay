@@ -99,7 +99,7 @@ state.ticks = (state.ticks || 0) + 1;
 | `plc.log(message)` | Append to the bounded GUI log |
 
 Numeric primitives use JavaScript numbers, BOOL uses boolean and STRING uses string.
-LINT/ULINT/DT/TIME reads return **BigInt**; use `plc.set('Counter', plc.get('Counter') + 1n)` to preserve
+LINT/ULINT/DT/TIME/LTIME/LDT reads return **BigInt**; use `plc.set('Counter', plc.get('Counter') + 1n)` to preserve
 all 64 bits. These 64-bit writes accept BigInt, exact integer text or safe integer numbers.
 Store BigInts as text in `state`, which must remain JSON serializable. GUI and HTTP
 values use invariant text to avoid JSON/JavaScript loss of 64-bit precision. Custom string
@@ -165,3 +165,7 @@ TIME is a duration). Scripts return these values as `BigInt`, just like LINT/ULI
 Use `plc.set("Telemetry.Elapsed", 1500000n)` for 1.5 seconds. USINT/UINT/UDINT use
 ordinary JavaScript safe integers, with strict unsigned range checks at commit.
 See [type mappings and notifications](TYPES_AND_EVENTS.md).
+
+Managed `ImplicitContractSession` can use `EmulatorClient` or `MemoryImplicitTransport`
+through `IImplicitTransport`, including nonce baseline recovery. `samples/HostingDemo`
+runs multiple explicit groups alongside one implicit image in memory.

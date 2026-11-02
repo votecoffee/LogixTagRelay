@@ -12,7 +12,7 @@ public sealed record TagReply(string Value);
 public sealed record ImageReply(byte[] Frame);
 
 /// <summary>Loopback emulator client. Explicit sessions use IExplicitTransport; implicit sessions use the v3 image codec.</summary>
-public sealed class EmulatorClient : IExplicitTransport
+public sealed class EmulatorClient : IExplicitTransport, IImplicitTransport
 {
     private readonly HttpClient http;
     private readonly SyncConfiguration config;
@@ -93,6 +93,7 @@ public sealed class EmulatorClient : IExplicitTransport
         if (reply.Values.Count != fields.Count) throw new IOException("Emulator returned an incomplete read batch.");
         return reply.Values.Select((value, i) => TagText.Parse(fields[i], value)).ToArray();
     }
+    public async ValueTask<byte[]?> ExchangeAsync(byte[] image, CancellationToken cancellationToken) => await ExchangeImplicitAsync(image, cancellationToken).ConfigureAwait(false);
     public async Task RunImplicitAsync(IPlcModel model, CancellationToken cancellationToken)
     {
         if (config.Implicit is null) throw new InvalidOperationException("Contract has no implicit settings.");

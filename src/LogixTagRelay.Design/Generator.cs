@@ -108,7 +108,7 @@ public static partial class Generator
             Drive {moduleName}_PS_ApplyCommands from application permission logic. Its initial value is FALSE.
             The 1000 ms watchdog reports a lack of fresh matching generations. Repeated packets cannot refresh it.
             Application logic must handle its DN bit and module faults to choose hold/reset behavior for prior commands.
-            Hold {moduleName}_PS_Reset while reconciling connection/state, then release it. Restart the API session after reset.
+            Hold {moduleName}_PS_Reset while reconciling connection/state, then release it. Managed sessions negotiate a new baseline after reset; recreate standalone codecs.
             Wire protocol 3 requires regeneration of the PLC routine and API together; JSON schema remains version 2.
             Studio 5000 import, verify, export/readback, then PLC bench validation are still required.
             """ + "\n")

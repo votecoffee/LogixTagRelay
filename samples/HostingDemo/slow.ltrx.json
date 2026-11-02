@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "name": "slow",
+  "sourceL5x": "../TypesAndEventsDemo/Contract.L5X",
+  "namespace": "Example.Contracts.Slow",
+  "className": "SlowTags",
+  "selections": [
+    {
+      "path": "Telemetry.Count32",
+      "direction": "Bidirectional"
+    },
+    {
+      "path": "Telemetry.Count64",
+      "direction": "Bidirectional"
+    }
+  ],
+  "includeImplicit": false,
+  "explicit": {
+    "intervalMs": 100
+  },
+  "implicit": {
+    "rpiMs": 100
+  }
+}

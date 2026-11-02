@@ -7,5 +7,5 @@
 extern SRWLOCK ltr_lock;
 extern uint8_t ltr_produced[480], ltr_consumed[480], ltr_app_image[480], ltr_plc_image[480];
 extern uint16_t ltr_produced_size, ltr_consumed_size, ltr_input_instance, ltr_output_instance, ltr_config_instance;
-extern volatile LONG ltr_connected, ltr_run, ltr_generation;
+extern volatile LONG ltr_connected, ltr_run, ltr_generation, ltr_epoch;
 #endif

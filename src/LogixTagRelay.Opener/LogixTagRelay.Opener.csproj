@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><PackageId>LogixTagRelay.Opener</PackageId><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
+  <PropertyGroup><PackageId>LogixTagRelay.Opener</PackageId><OutputType>Exe</OutputType><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../LogixTagRelay/LogixTagRelay.csproj" />
     <None Include="../../artifacts/native/Release/LogixTagRelayOpener.dll" Condition="Exists('../../artifacts/native/Release/LogixTagRelayOpener.dll')" Pack="true" PackagePath="runtimes/win-x64/native/" Link="LogixTagRelayOpener.dll" CopyToOutputDirectory="PreserveNewest" />

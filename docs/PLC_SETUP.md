@@ -42,8 +42,9 @@ The PLC is the scanner; the PC runs the OpENer adapter. Defaults, from the PLC's
 
 Each image includes a 24-byte application header. Both directions use identical field
 offsets and include every selected leaf. The native bridge caps each image at 480
-bytes, including the header. Split larger implicit selections into separate contracts;
-explicit-only contracts do not have that assembly limit. Enter 0 in the browser to
+bytes, including the header. Reduce the implicit selection if it exceeds that limit;
+a host supports one implicit contract alongside multiple explicit groups. Explicit-only
+contracts do not have that assembly limit. Enter 0 in the browser to
 choose the minimum aligned size, or select a fixed aligned image length.
 
 A module template must already have the matching assemblies, configuration size zero,
@@ -62,7 +63,7 @@ Drive `<module>_PS_ApplyCommands` from application permission logic; it starts f
 The 1000 ms watchdog diagnoses a lack of fresh matching exchanges. Repeated packets
 cannot refresh it; fresh matching generations can. Application logic chooses the
 hold/reset behavior for prior commands and module faults. Hold `<module>_PS_Reset`
-during reconciliation, release it, then restart the API session.
+during reconciliation, then release it. Managed sessions negotiate a fresh baseline.
 
 The PLC output snapshot remains frozen until the API returns a matching fresh reply.
 The wrapper saves LastSent immediately after writing module output. Other PLC tasks
@@ -71,8 +72,10 @@ tags or application interlocks for consistent multi-tag process data.
 
 `OpenerAdapter.RunAsync` takes the PC NIC name/index and a unique device serial. It
 binds EtherNet/IP ports and uses the NIC's existing settings. Cancel and await it before
-disposal. This bridge supports one start per process; restart after failure or
-disconnection. It does not configure NIC addresses, firewall rules or reconnect/replay.
+disposal. The bridge runs in a supervised private worker, with one native start per
+child process. Managed recovery replaces the child and suspends uncertain pending
+writes until `ResumeWrites()` or an explicit retry policy. It does not configure NIC
+addresses or firewall rules. See [hosting and recovery](HOSTING_AND_RECOVERY.md).
 
 Version 0.5 retains JSON schema 2 / implicit wire protocol 3 and adds bidirectional
 permissions and explicit UDT read groups. Update the consuming library when using

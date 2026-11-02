@@ -67,9 +67,11 @@ public static class ContractComparison
         foreach (var f in before.Fields)
             if (!next.TryGetValue(f.Path, out var n)) result.Add(new(f.Path, "Removed", true));
             else if (f != n) result.Add(new(f.Path, "Type, direction, access, capacity or wire offset changed", true));
-        foreach (var f in after.Fields.Where(f => !old.ContainsKey(f.Path))) result.Add(new(f.Path, "Added; regenerate both wire peers", false));
+        foreach (var f in after.Fields.Where(f => !old.ContainsKey(f.Path))) result.Add(new(f.Path, "Added; regenerate both wire peers", before.Implicit is not null || after.Implicit is not null));
         if (before.PlcToAppBytes != after.PlcToAppBytes) result.Add(new("$image", "Assembly length changed", true));
         if (before.Implicit != after.Implicit) result.Add(new("$implicit", "Assembly settings changed", true));
+        if (before.Gateway != after.Gateway || before.Route != after.Route) result.Add(new("$connection", "PLC endpoint or route changed", false));
+        if (JsonSerializer.Serialize(before.Explicit, SyncConfiguration.Json) != JsonSerializer.Serialize(after.Explicit, SyncConfiguration.Json)) result.Add(new("$explicit", "Explicit scheduling/read groups changed", false));
         return result;
     }
 }

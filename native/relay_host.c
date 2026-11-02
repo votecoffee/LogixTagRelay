@@ -11,7 +11,7 @@
 SRWLOCK ltr_lock = SRWLOCK_INIT;
 uint8_t ltr_produced[480], ltr_consumed[480], ltr_app_image[480], ltr_plc_image[480];
 uint16_t ltr_produced_size, ltr_consumed_size, ltr_input_instance, ltr_output_instance, ltr_config_instance;
-volatile LONG ltr_connected, ltr_run, ltr_generation;
+volatile LONG ltr_connected, ltr_run, ltr_generation, ltr_epoch;
 static volatile LONG stop_requested, started, failed;
 static HANDLE worker;
 
@@ -26,7 +26,8 @@ static DWORD WINAPI ProcessNetwork(LPVOID argument) {
   WSACleanup();
   return 0;
 }
-__declspec(dllexport) int __cdecl ltr_abi_version(void) { return 1; }
+__declspec(dllexport) int __cdecl ltr_abi_version(void) { return 2; }
+__declspec(dllexport) int __cdecl ltr_connection_epoch(void) { return (int)InterlockedCompareExchange(&ltr_epoch, 0, 0); }
 __declspec(dllexport) int __cdecl ltr_start(const char *interface_name, int input_size, int output_size,
   int input_instance, int output_instance, int config_instance, unsigned serial_number, unsigned short connection_seed) {
   uint8_t mac[6];
@@ -71,4 +72,11 @@ __declspec(dllexport) int __cdecl ltr_get_image(uint8_t *image, int length, int 
   memcpy(image, ltr_plc_image, length); *generation = (int)ltr_generation;
   ReleaseSRWLockShared(&ltr_lock);
   return ltr_connected && ltr_run ? 1 : 0;
+}
+
+__declspec(dllexport) int __cdecl ltr_set_image_at_epoch(const uint8_t *image, int length, int expected_epoch) {
+  if (!image || length != (int)ltr_produced_size || !worker || failed) return -1;
+  AcquireSRWLockExclusive(&ltr_lock);
+  if (ltr_epoch != expected_epoch) { ReleaseSRWLockExclusive(&ltr_lock); return -9; }
+  memcpy(ltr_app_image, image, length); ReleaseSRWLockExclusive(&ltr_lock); return 0;
 }

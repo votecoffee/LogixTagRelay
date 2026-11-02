@@ -106,13 +106,14 @@ using (var cancel = new CancellationTokenSource())
     try { await triggered.RunAsync(cancel.Token); } catch (OperationCanceledException) { }
     Check(Equals(transport.Values["AckSequence"], 42), "trigger group echoes sequence after successful transfer");
 }
-Check(OpenerAdapter.NativeAbiVersion == 1, "real native DLL loads through PInvoke without opening network ports");
+Check(OpenerAdapter.NativeAbiVersion == 2, "real native DLL loads through PInvoke without opening network ports");
 await TriggerTests.Run(bundle.Configuration, Check);
 await EmulationTests.Run(bundle, Check);
 await BidirectionalTests.Run(Check);
 await TypesAndEventsTests.Run(Check);
 await CommonTypesTests.Run(Check);
 ContractProjectTests.Run(Check);
+await HostingTests.Run(Check);
 var aoiXml = XDocument.Parse(SintMergeAoi.GenerateL5x());
 Check(aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").Count() == 3 &&
     aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").All(p => (string?)p.Attribute("DataType") == "SINT" && (string?)p.Attribute("Dimensions") == "1"), "merge AOI exposes exactly three arbitrary-size SINT InOut arrays");

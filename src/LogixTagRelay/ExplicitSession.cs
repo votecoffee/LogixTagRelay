@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace LogixTagRelay;
 
 public sealed record TriggerResult(int Request, bool Succeeded, Exception? Error, bool NotificationsDelivered);
@@ -24,18 +26,23 @@ public sealed class ExplicitSession
     private readonly IExplicitTransport transport;
     private readonly SemaphoreSlim cycleGate = new(1, 1);
     private int running;
+    private int writesEnabled = 1;
+    public bool WritesEnabled { get => Volatile.Read(ref writesEnabled) != 0; set => Volatile.Write(ref writesEnabled, value ? 1 : 0); }
+    public SessionDiagnostics Diagnostics { get; }
     private int lastObservedTrigger;
     private TriggerResult? lastTriggerResult;
     private readonly SemaphoreSlim triggerGate = new(1, 1);
     public TriggerResult? LastTriggerResult => Volatile.Read(ref lastTriggerResult);
-    public ExplicitSession(SyncConfiguration config, IPlcModel model, IExplicitTransport transport)
+    public ExplicitSession(SyncConfiguration config, IPlcModel model, IExplicitTransport transport, SessionDiagnostics? diagnostics = null)
     {
+        Diagnostics = diagnostics ?? new();
         ModelValidation.Validate(config, model);
         this.config = SyncConfiguration.FromJson(config.ToJson()); variables = model.Variables.ToArray(); this.transport = transport;
     }
     public async Task SynchronizeOnceAsync(CancellationToken cancellationToken = default)
     {
         await cycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        long started = Stopwatch.GetTimestamp();
         try
         {
             // Stage ALL reads before publishing them. No multi-tag PLC atomicity is implied.
@@ -50,7 +57,7 @@ public sealed class ExplicitSession
             }
             var time = DateTimeOffset.UtcNow;
             foreach (var (variable, value) in reads) variable.Observe(value, time);
-            foreach (var variable in variables.Where(v => v.Map.CanWrite))
+            foreach (var variable in variables.Where(v => v.Map.CanWrite && WritesEnabled))
             {
                 var captured = variable.CaptureForMerge();
                 if (!captured.Dirty) continue;
@@ -63,9 +70,11 @@ public sealed class ExplicitSession
                 }
                 catch { variable.MarkBad(); throw; }
             }
+            Diagnostics.Success(Stopwatch.GetElapsedTime(started), config.Explicit?.IntervalMs ?? 100);
         }
-        catch
+        catch (Exception error)
         {
+            if (error is not OperationCanceledException || !cancellationToken.IsCancellationRequested) Diagnostics.Failure(error);
             foreach (var variable in variables) variable.MarkBad();
             throw;
         }
@@ -88,7 +97,7 @@ public sealed class ExplicitSession
                 }
             } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
         }
-        finally { Volatile.Write(ref running, 0); }
+        finally { if (Diagnostics.Snapshot.State != SessionState.Faulted) Diagnostics.SetState(SessionState.Stopped); Volatile.Write(ref running, 0); }
     }
     public async Task<TriggerResult?> PollTriggerOnceAsync(CancellationToken cancellationToken = default)
     {
@@ -98,6 +107,7 @@ public sealed class ExplicitSession
         try
         {
             int request = (int)await transport.ReadAsync(options.TriggerTag, PlcType.DINT, cancellationToken).ConfigureAwait(false);
+            Diagnostics.Contact();
             if (request == lastObservedTrigger) return null;
             lastObservedTrigger = request; // Zero re-arms the edge detector but never executes a transfer.
             if (request == 0) return null;
@@ -114,7 +124,7 @@ public sealed class ExplicitSession
             catch (Exception failure) { error = failure; }
 
             var result = new TriggerResult(request, error is null, error, false);
-            Volatile.Write(ref lastTriggerResult, result);
+            Volatile.Write(ref lastTriggerResult, result); Diagnostics.Trigger(result);
             // Response first, exact mirror last: the mirror is the completion marker.
             // A notification failure faults without replacing a possibly-delivered ACK with a NACK.
             if (options.ResponseTag is not null)
@@ -122,11 +132,30 @@ public sealed class ExplicitSession
             if (options.MirrorTag is not null)
                 await transport.WriteAsync(options.MirrorTag, PlcType.DINT, request, cancellationToken).ConfigureAwait(false);
             result = result with { NotificationsDelivered = true };
-            Volatile.Write(ref lastTriggerResult, result);
+            Volatile.Write(ref lastTriggerResult, result); Diagnostics.Trigger(result);
             if (error != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
             return result;
         }
+        catch (Exception error)
+        {
+            if (error is not OperationCanceledException || !cancellationToken.IsCancellationRequested) Diagnostics.Failure(error);
+            foreach (var variable in variables) variable.MarkBad(); throw;
+        }
         finally { triggerGate.Release(); }
+    }
+    internal async Task RestoreTriggerStateAsync(TriggerResult? receipt, CancellationToken ct)
+    {
+        var options = config.Explicit;
+        if (options?.TriggerTag is null) return;
+        if (receipt is { NotificationsDelivered: false } && (int)await transport.ReadAsync(options.TriggerTag, PlcType.DINT, ct).ConfigureAwait(false) == receipt.Request)
+        {
+            // Re-deliver an established result, never re-execute its data writes to repair a receipt.
+            if (options.ResponseTag is not null) await transport.WriteAsync(options.ResponseTag, PlcType.DINT, SignedResponse(receipt.Request, receipt.Succeeded), ct).ConfigureAwait(false);
+            if (options.MirrorTag is not null) await transport.WriteAsync(options.MirrorTag, PlcType.DINT, receipt.Request, ct).ConfigureAwait(false);
+            receipt = receipt with { NotificationsDelivered = true }; Volatile.Write(ref lastTriggerResult, receipt); Diagnostics.Trigger(receipt);
+            lastObservedTrigger = receipt.Request;
+        }
+        if (options.MirrorTag is not null) lastObservedTrigger = (int)await transport.ReadAsync(options.MirrorTag, PlcType.DINT, ct).ConfigureAwait(false);
     }
     public static int SignedResponse(int request, bool succeeded)
     {

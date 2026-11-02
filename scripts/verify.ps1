@@ -21,5 +21,7 @@ try {
   if ($LASTEXITCODE) { throw 'Types/events implicit consumer failed.' }
   & dotnet run --project samples/ContractProjectDemo -c Release --no-build
   if ($LASTEXITCODE) { throw 'Build-generated consumer failed.' }
+  & dotnet run --project samples/HostingDemo -c Release --no-build
+  if ($LASTEXITCODE) { throw 'Multi-contract host failed.' }
   & "$PSScriptRoot/pack.ps1"
 } finally { Pop-Location }
