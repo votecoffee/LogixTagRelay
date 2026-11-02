@@ -47,9 +47,9 @@ public static partial class Generator
         void Group(TagNode node)
         {
             if (node.IsArray) { foreach (var child in node.Children) Group(child); return; }
-            if (node.Children.Count == 0) return;
+            if (node.Children.Count == 0 || BuiltInTypes.IsTimerOrCounter(node.DataType)) return;
             // BOOL array leaves use the driver's explicit bit addressing rather than a guessed packed layout.
-            var members = node.Leaves().Where(n => !(n.AtomicType == PlcType.BOOL && n.Path.EndsWith(']'))).Select(n => n.Path).ToList();
+            var members = node.Leaves().Where(n => !allNodes.Values.Any(b => BuiltInTypes.IsTimerOrCounter(b.DataType) && n.Path.StartsWith(b.Path + ".", StringComparison.OrdinalIgnoreCase))).Where(n => !(n.AtomicType == PlcType.BOOL && n.Path.EndsWith(']'))).Select(n => n.Path).ToList();
             if (members.Count > 0) readGroups.Add(new(node.Path, node.DataType, members));
         }
         foreach (var (node, _) in nodes) Group(node);

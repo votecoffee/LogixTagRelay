@@ -25,7 +25,8 @@ internal static class L5xGenerator
         foreach (string s in new[] { "Magic", "Version", "Schema", "Valid", "CommandSequence", "BaselineSequence", "AcceptedSequence", "Sequence", "Bool", "HeaderMagic", "HeaderVersion", "HeaderSchema", "HeaderValid" }) Tag(p + "_" + s, "DINT");
         foreach (string s in new[] { "ApplyCommands", "Initialized", "Reset", "FrameValid", "CurrentValid", "MergedValid", "Publish" }) Tag(p + "_" + s, "BOOL");
         Tag(p + "_Watchdog", "TIMER"); Tag(p + "_Merge", SintMergeAoi.Name);
-        if (config.Fields.Any(f => f.Type is PlcType.DT or PlcType.TIME)) Tag(p + "_TimeBits", "LINT");
+        if (config.Fields.Any(f => f.Type is PlcType.DT or PlcType.TIME or PlcType.LDT or PlcType.LTIME or PlcType.TIME32)) Tag(p + "_TimeBits", "LINT");
+        if (config.Fields.Any(f => f.Type == PlcType.TIME32)) Tag(p + "_Time32Bits", "DINT");
         var strings = config.Fields.Where(f => f.Type == PlcType.STRING).ToArray();
         for (int i = 0; i < strings.Length; i++) Tag(p + "_StringLen" + i, "DINT");
         var rungs = new List<(string Text, string Comment)>();
@@ -41,10 +42,10 @@ internal static class L5xGenerator
                     R($"{gate}MOV(0,{p}_Bool);"); R($"{gate}XIC({path})MOV(1,{p}_Bool);");
                     R($"{gate}CPS({p}_Bool,{array}[{offset}],4);");
                 }
-                else if (f.Type is PlcType.DT or PlcType.TIME)
+                else if (f.Type is PlcType.DT or PlcType.TIME or PlcType.LDT or PlcType.LTIME or PlcType.TIME32)
                 {
                     R($"{gate}MOV({path},{p}_TimeBits);", "Use the supported time/LINT memory-copy bridge before copying bytes.");
-                    R($"{gate}CPS({p}_TimeBits,{array}[{offset}],8);");
+                    R($"{gate}CPS({p}_TimeBits,{array}[{offset}],{f.WireBytes});");
                 }
                 else R($"{gate}CPS({path},{array}[{offset}],{(f.Type == PlcType.STRING ? (f.WireBytes + 3) / 4 * 4 : f.WireBytes)});");
             }
@@ -85,9 +86,14 @@ internal static class L5xGenerator
                 R($"{gate}CPS({current}[{offset}],{p}_Bool,1);");
                 R($"{gate}[NEQ({p}_Bool,0)OTL({path}),EQU({p}_Bool,0)OTU({path})];");
             }
-            else if (f.Type is PlcType.DT or PlcType.TIME)
+            else if (f.Type is PlcType.DT or PlcType.TIME or PlcType.LDT or PlcType.LTIME or PlcType.TIME32)
             {
-                R($"{gate}CPS({current}[{offset}],{p}_TimeBits,1);");
+                if (f.Type == PlcType.TIME32)
+                {
+                    R($"{gate}CPS({current}[{offset}],{p}_Time32Bits,1);");
+                    R($"{gate}MOV({p}_Time32Bits,{p}_TimeBits);");
+                }
+                else R($"{gate}CPS({current}[{offset}],{p}_TimeBits,1);");
                 R($"{gate}MOV({p}_TimeBits,{path});");
             }
             else R($"{gate}CPS({current}[{offset}],{path},1);");

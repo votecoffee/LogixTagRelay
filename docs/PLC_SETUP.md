@@ -7,11 +7,11 @@ discovery. Offline exports supply external access metadata needed for writable m
 Selections can be whole UDTs, tag arrays, array elements or individual nested members.
 Keep the generated C# and JSON together; sessions reject mismatched field mappings.
 
-Supported values are BOOL, SINT, INT, DINT, LINT, REAL, standard/custom counted STRING
+Supported values are BOOL, SINT, INT, DINT, LINT, REAL, LREAL, USINT, UINT, UDINT, ULINT, DT, TIME, TIME32, LTIME, LDT, standard/custom counted STRING
 and nested UDTs. String capacity comes from LEN/DATA metadata (1..65535 bytes). Text
 maps bytes losslessly to Latin-1, including embedded nulls; invalid lengths and
 characters above U+00FF are rejected. Native string tail padding is preserved on
-explicit member writes. TIMER/COUNTER application members, aliases and safety tags
+explicit member writes. Classic TIMER/COUNTER members are supported with read-only instruction status flags. Aliases and safety tags
 are not supported in this preview.
 
 Tag arrays may have one, two or three dimensions; native UDT member arrays have one.

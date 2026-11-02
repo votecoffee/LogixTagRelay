@@ -140,7 +140,8 @@ sealed class EmulatorSelfTest(EmulatorWorkspace workspace, IHostApplicationLifet
             PlcType.BOOL => (IPlcVariable)new PlcVariable<bool>(f), PlcType.SINT => new PlcVariable<sbyte>(f), PlcType.INT => new PlcVariable<short>(f),
             PlcType.DINT => new PlcVariable<int>(f), PlcType.LINT => new PlcVariable<long>(f), PlcType.REAL => new PlcVariable<float>(f), PlcType.STRING => new PlcVariable<string>(f),
         PlcType.USINT => new PlcVariable<byte>(f), PlcType.UINT => new PlcVariable<ushort>(f), PlcType.UDINT => new PlcVariable<uint>(f), PlcType.ULINT => new PlcVariable<ulong>(f),
-        PlcType.DT => new PlcVariable<PlcDateTime>(f), PlcType.TIME => new PlcVariable<PlcTime>(f), _ => throw new ArgumentException()
+        PlcType.DT => new PlcVariable<PlcDateTime>(f), PlcType.TIME => new PlcVariable<PlcTime>(f),
+        PlcType.LREAL => new PlcVariable<double>(f), PlcType.TIME32 => new PlcVariable<PlcTime32>(f), PlcType.LTIME => new PlcVariable<PlcLongTime>(f), PlcType.LDT => new PlcVariable<PlcLongDateTime>(f), _ => throw new ArgumentException()
         })).ToArray();
         public object Get(string path) => Variables.Single(v => v.Map.Path == path).BoxedValue;
         public void Set(string path, object value)

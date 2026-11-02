@@ -11,6 +11,11 @@
 | DT | `PlcDateTime` | 8 | Signed microseconds since 1970-01-01 UTC |
 | TIME | `PlcTime` | 8 | Signed duration in microseconds |
 
+LREAL uses `double`; TIME32 uses `PlcTime32` (32-bit microseconds); LTIME and LDT use
+`PlcLongTime`/`PlcLongDateTime` (64-bit nanoseconds). Nanosecond-to-.NET helpers reject
+sub-tick precision loss. Classic TIMER/COUNTER PRE/ACC and instruction flags expand
+as typed members; flags remain PLC-owned and these members use individual explicit reads.
+
 These work as scalar tags, UDT members and array elements in explicit contracts,
 implicit images, the browser, emulator memory, HTTP transport and JavaScript scripts.
 Existing BOOL, signed integer, REAL and counted STRING mappings remain available.
@@ -31,11 +36,10 @@ long exactMicroseconds = tags.Tag_Telemetry.Tag_Elapsed.Value.Microseconds;
 Inputs with sub-microsecond .NET ticks are rejected. Conversions outside the .NET
 date/time range throw; the raw value remains representable. Raw constructors preserve
 the bits, and do not certify that a controller accepts a date or duration. Controller
-family, firmware and native time limits still apply. TIME32, LTIME, LDT and LREAL are
-not included in this type expansion.
+family, firmware and native time limits still apply. The wire representation remains independent of CLR ticks.
 
 The emulator uses invariant integer text at its GUI/HTTP boundary, including DT/TIME.
-JavaScript `plc.get` returns BigInt for LINT/ULINT/DT/TIME. `plc.set` accepts BigInt,
+JavaScript `plc.get` returns BigInt for LINT/ULINT/DT/TIME/LTIME/LDT. `plc.set` accepts BigInt,
 integer text, or safe integer numbers for these types; unsigned overflow/negative
 values fail the entire script tick. USINT/UINT/UDINT use Number without precision loss.
 

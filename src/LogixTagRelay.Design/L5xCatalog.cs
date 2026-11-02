@@ -43,6 +43,7 @@ public static class L5xCatalog
                 return new(name, path, type, access, Enumerable.Range(0, count)
                     .Select(i => Build($"[{ArrayShape.Subscript(i, dims)}]", $"{path}[{ArrayShape.Subscript(i, dims)}]", type, "0", access, new(ancestors, StringComparer.OrdinalIgnoreCase), depth + 1)).ToList(), true, Dimensions: dims);
             }
+            if (BuiltInTypes.IsTimerOrCounter(type) && !types.ContainsKey(type)) return BuiltInTypes.Expand(name, path, type, access);
             if (type == "STRING" && !types.ContainsKey(type))
                 return new(name, path, type, access, [], false, access == "None" ? "ExternalAccess=None" : null, 82);
             if (Enum.TryParse<PlcType>(type, out var parsed) && Enum.IsDefined(parsed) && parsed != PlcType.STRING)

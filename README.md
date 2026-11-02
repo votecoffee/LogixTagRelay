@@ -61,8 +61,8 @@ elements and choose their access mode:
 
 A bidirectional UDT can contain read-only PLC members. The generator preserves those
 permissions and makes its writable members bidirectional. Supported types include
-BOOL, SINT, INT, DINT, LINT, REAL, USINT, UINT, UDINT, ULINT, DT, TIME,
-standard/custom STRING, nested UDTs and tag arrays.
+BOOL, SINT, INT, DINT, LINT, REAL, USINT, UINT, UDINT, ULINT, DT, TIME, LREAL, TIME32, LTIME, LDT,
+standard/custom STRING, nested UDTs, TIMER/COUNTER members and tag arrays.
 
 The download includes ordinary C# source and `logixrelay.json`. Implicit generation
 also includes the synchronization routine, SINT merge AOI and module settings. A

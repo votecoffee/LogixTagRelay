@@ -100,7 +100,7 @@ public sealed class ScriptRunner(PlcMemory memory)
           const value = Object.hasOwn(writes, t.path) ? writes[t.path] : t.value;
           if (t.type === 'STRING') return value;
           if (t.type === 'BOOL') return value === 'true';
-          if (['LINT','ULINT','DT','TIME'].includes(t.type)) return BigInt(value);
+          if (['LINT','ULINT','DT','TIME','LTIME','LDT'].includes(t.type)) return BigInt(value);
           return Number(value);
         }
         const plc = Object.freeze({
@@ -110,10 +110,10 @@ public sealed class ScriptRunner(PlcMemory memory)
             const t = tag(path);
             if (t.type === 'STRING' && typeof value !== 'string') throw new Error('STRING requires a string');
             if (t.type === 'BOOL' && typeof value !== 'boolean') throw new Error('BOOL requires a boolean');
-            if (['LINT','ULINT','DT','TIME'].includes(t.type)) {
+            if (['LINT','ULINT','DT','TIME','LTIME','LDT'].includes(t.type)) {
               if (typeof value !== 'bigint' && typeof value !== 'string' && !(typeof value === 'number' && Number.isSafeInteger(value))) throw new Error('64-bit tag requires BigInt, integer text, or a safe integer');
             } else if (t.type !== 'STRING' && t.type !== 'BOOL') {
-              if (typeof value !== 'number' || (t.type !== 'REAL' && !Number.isSafeInteger(value))) throw new Error('Numeric tag requires a valid number');
+              if (typeof value !== 'number' || (!['REAL','LREAL'].includes(t.type) && !Number.isSafeInteger(value))) throw new Error('Numeric tag requires a valid number');
             }
             writes[t.path] = String(value);
           },

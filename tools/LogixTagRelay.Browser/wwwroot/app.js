@@ -11,7 +11,7 @@ async function post(url, body, json = true) {
   return response;
 }
 function count() { $('summary').textContent = `${selected.size} selection${selected.size === 1 ? '' : 's'}`; $('generate').disabled = selected.size === 0; }
-function supported(node) { return !node.unsupportedReason && (node.children.length ? node.children.every(supported) : node.stringCapacity > 0 || ['BOOL','SINT','INT','DINT','LINT','REAL','USINT','UINT','UDINT','ULINT','DT','TIME'].includes(node.dataType)); }
+function supported(node) { return !node.unsupportedReason && (node.children.length ? node.children.every(supported) : node.stringCapacity > 0 || ['BOOL','SINT','INT','DINT','LINT','REAL','USINT','UINT','UDINT','ULINT','DT','TIME','LREAL','TIME32','LTIME','LDT'].includes(node.dataType)); }
 function writable(node) { return node.access === 'Read/Write' && node.children.every(writable); }
 function shareable(node) { return node.children.length ? node.children.some(shareable) : node.access === 'Read/Write'; }
 function render() {

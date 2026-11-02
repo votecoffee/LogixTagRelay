@@ -111,6 +111,7 @@ await TriggerTests.Run(bundle.Configuration, Check);
 await EmulationTests.Run(bundle, Check);
 await BidirectionalTests.Run(Check);
 await TypesAndEventsTests.Run(Check);
+await CommonTypesTests.Run(Check);
 var aoiXml = XDocument.Parse(SintMergeAoi.GenerateL5x());
 Check(aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").Count() == 3 &&
     aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").All(p => (string?)p.Attribute("DataType") == "SINT" && (string?)p.Attribute("Dimensions") == "1"), "merge AOI exposes exactly three arbitrary-size SINT InOut arrays");
@@ -302,7 +303,8 @@ sealed class TestModel : IPlcModel
         PlcType.BOOL => (IPlcVariable)new PlcVariable<bool>(f), PlcType.SINT => new PlcVariable<sbyte>(f), PlcType.INT => new PlcVariable<short>(f),
         PlcType.DINT => new PlcVariable<int>(f), PlcType.LINT => new PlcVariable<long>(f), PlcType.REAL => new PlcVariable<float>(f), PlcType.STRING => new PlcVariable<string>(f),
         PlcType.USINT => new PlcVariable<byte>(f), PlcType.UINT => new PlcVariable<ushort>(f), PlcType.UDINT => new PlcVariable<uint>(f), PlcType.ULINT => new PlcVariable<ulong>(f),
-        PlcType.DT => new PlcVariable<PlcDateTime>(f), PlcType.TIME => new PlcVariable<PlcTime>(f), _ => throw new Exception()
+        PlcType.DT => new PlcVariable<PlcDateTime>(f), PlcType.TIME => new PlcVariable<PlcTime>(f),
+        PlcType.LREAL => new PlcVariable<double>(f), PlcType.TIME32 => new PlcVariable<PlcTime32>(f), PlcType.LTIME => new PlcVariable<PlcLongTime>(f), PlcType.LDT => new PlcVariable<PlcLongDateTime>(f), _ => throw new Exception()
     })).ToArray();
 }
 sealed class FakeTransport : IExplicitTransport
