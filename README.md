@@ -214,6 +214,8 @@ the managed app is delayed; only a new sequence refreshes the PLC watchdog.
 ## Design and limits
 
 See [architecture](docs/ARCHITECTURE.md) for the byte contract and engineering decisions.
+The standalone [Structured Text SINT merge AOI](plc/README.md) implements a type-ignorant,
+PLC-first three-way merge for arbitrary-sized arrays; its native import remains to be verified.
 
 - Supported values: BOOL, SINT, INT, DINT, LINT, REAL, standard/custom STRING, nested UDTs,
   and 1D/2D/3D tag arrays. String capacities range from 1 to 65535 bytes. Array expansion

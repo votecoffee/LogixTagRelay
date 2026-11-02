@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.03" TargetName="LTR_SintMerge" TargetType="AddOnInstructionDefinition" ContainsContext="true" ExportOptions="References NoRawData DecoratedData Context Dependencies">
+  <Controller Use="Context" Name="LogixRelayContext">
+    <DataTypes />
+    <AddOnInstructionDefinitions Use="Context">
+      <AddOnInstructionDefinition Use="Target" Name="LTR_SintMerge" Revision="1.0" Vendor="votecoffee" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="false" CreatedDate="2026-11-02T00:00:00.000Z" CreatedBy="LogixTagRelay" EditedDate="2026-11-02T00:00:00.000Z" EditedBy="LogixTagRelay" SoftwareRevision="v35.03">
+        <Description><![CDATA[Three-way SINT merge; PLC wins. Actual InOut sizes are checked with SIZE. LastSent/Received must be distinct snapshots.]]></Description>
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="LastSent" TagType="Base" DataType="SINT" Dimensions="1" Usage="InOut" Required="true" Visible="true" Constant="false" />
+          <Parameter Name="Current" TagType="Base" DataType="SINT" Dimensions="1" Usage="InOut" Required="true" Visible="true" Constant="false" />
+          <Parameter Name="Received" TagType="Base" DataType="SINT" Dimensions="1" Usage="InOut" Required="true" Visible="true" Constant="false" />
+          <Parameter Name="Error" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="true" Radix="Decimal" ExternalAccess="Read Only">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="Status" TagType="Base" DataType="DINT" Usage="Output" Required="false" Visible="true" Radix="Decimal" ExternalAccess="Read Only">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="PlcChangedBytes" TagType="Base" DataType="DINT" Usage="Output" Required="false" Visible="true" Radix="Decimal" ExternalAccess="Read Only">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="ReceivedChangedBytes" TagType="Base" DataType="DINT" Usage="Output" Required="false" Visible="true" Radix="Decimal" ExternalAccess="Read Only">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="ConflictBytes" TagType="Base" DataType="DINT" Usage="Output" Required="false" Visible="true" Radix="Decimal" ExternalAccess="Read Only">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="AppliedBytes" TagType="Base" DataType="DINT" Usage="Output" Required="false" Visible="true" Radix="Decimal" ExternalAccess="Read Only">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+            </DefaultData>
+          </Parameter>
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="LastSize" DataType="DINT" Radix="Decimal" ExternalAccess="None" />
+          <LocalTag Name="CurrentSize" DataType="DINT" Radix="Decimal" ExternalAccess="None" />
+          <LocalTag Name="ReceivedSize" DataType="DINT" Radix="Decimal" ExternalAccess="None" />
+          <LocalTag Name="Index" DataType="DINT" Radix="Decimal" ExternalAccess="None" />
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="ST">
+            <STContent>
+              <Line Number="0"><![CDATA[// PLC-first three-way merge. LastSent and Received are never modified.]]></Line>
+              <Line Number="1"><![CDATA[Error := 0;]]></Line>
+              <Line Number="2"><![CDATA[Status := 0;]]></Line>
+              <Line Number="3"><![CDATA[PlcChangedBytes := 0;]]></Line>
+              <Line Number="4"><![CDATA[ReceivedChangedBytes := 0;]]></Line>
+              <Line Number="5"><![CDATA[ConflictBytes := 0;]]></Line>
+              <Line Number="6"><![CDATA[AppliedBytes := 0;]]></Line>
+              <Line Number="7"><![CDATA[SIZE(LastSent, 0, LastSize);]]></Line>
+              <Line Number="8"><![CDATA[SIZE(Current, 0, CurrentSize);]]></Line>
+              <Line Number="9"><![CDATA[SIZE(Received, 0, ReceivedSize);]]></Line>
+              <Line Number="10"><![CDATA[]]></Line>
+              <Line Number="11"><![CDATA[IF (LastSize <> CurrentSize) OR (ReceivedSize <> CurrentSize) OR (CurrentSize <= 0) THEN]]></Line>
+              <Line Number="12"><![CDATA[    Error := 1;]]></Line>
+              <Line Number="13"><![CDATA[    Status := 1;]]></Line>
+              <Line Number="14"><![CDATA[ELSE]]></Line>
+              <Line Number="15"><![CDATA[    FOR Index := 0 TO CurrentSize - 1 DO]]></Line>
+              <Line Number="16"><![CDATA[        IF Current[Index] <> LastSent[Index] THEN]]></Line>
+              <Line Number="17"><![CDATA[            PlcChangedBytes := PlcChangedBytes + 1;]]></Line>
+              <Line Number="18"><![CDATA[        END_IF;]]></Line>
+              <Line Number="19"><![CDATA[        IF Received[Index] <> LastSent[Index] THEN]]></Line>
+              <Line Number="20"><![CDATA[            ReceivedChangedBytes := ReceivedChangedBytes + 1;]]></Line>
+              <Line Number="21"><![CDATA[        END_IF;]]></Line>
+              <Line Number="22"><![CDATA[        IF (Current[Index] <> LastSent[Index]) AND (Received[Index] <> LastSent[Index]) AND (Current[Index] <> Received[Index]) THEN]]></Line>
+              <Line Number="23"><![CDATA[            ConflictBytes := ConflictBytes + 1;]]></Line>
+              <Line Number="24"><![CDATA[        END_IF;]]></Line>
+              <Line Number="25"><![CDATA[        IF Current[Index] = LastSent[Index] THEN]]></Line>
+              <Line Number="26"><![CDATA[            IF Current[Index] <> Received[Index] THEN]]></Line>
+              <Line Number="27"><![CDATA[                AppliedBytes := AppliedBytes + 1;]]></Line>
+              <Line Number="28"><![CDATA[            END_IF;]]></Line>
+              <Line Number="29"><![CDATA[            Current[Index] := Received[Index];]]></Line>
+              <Line Number="30"><![CDATA[        END_IF;]]></Line>
+              <Line Number="31"><![CDATA[    END_FOR;]]></Line>
+              <Line Number="32"><![CDATA[END_IF;]]></Line>
+              <Line Number="33"><![CDATA[EnableOut := NOT Error;]]></Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+  </Controller>
+</RSLogix5000Content>

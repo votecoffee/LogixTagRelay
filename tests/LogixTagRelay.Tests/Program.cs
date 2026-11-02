@@ -99,6 +99,26 @@ using (var cancel = new CancellationTokenSource())
     Check(Equals(transport.Values["AckSequence"], 42), "trigger group echoes sequence after successful transfer");
 }
 Check(OpenerAdapter.NativeAbiVersion == 1, "real native DLL loads through PInvoke without opening network ports");
+var aoiXml = XDocument.Parse(SintMergeAoi.GenerateL5x());
+Check(aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").Count() == 3 &&
+    aoiXml.Descendants("Parameter").Where(p => (string?)p.Attribute("Usage") == "InOut").All(p => (string?)p.Attribute("DataType") == "SINT" && (string?)p.Attribute("Dimensions") == "1"), "merge AOI exposes exactly three arbitrary-size SINT InOut arrays");
+var st = new StSubset(SintMergeAoi.StructuredText);
+sbyte[] saved = [1, 1, 1, 1], plc = [1, 2, 1, 4], api = [9, 3, 1, 4];
+var merged = st.Run(saved, plc, api);
+Check(plc.SequenceEqual(new sbyte[] { 9, 2, 1, 4 }) && saved.SequenceEqual(new sbyte[] { 1,1,1,1 }) && api.SequenceEqual(new sbyte[] { 9,3,1,4 }), "emitted ST applies API bytes only where PLC still matches baseline");
+Check(merged.Get("ConflictBytes") == 1 && merged.Get("AppliedBytes") == 1 && merged.Get("Error") == 0, "merge AOI reports conflicts and applied bytes");
+var mismatch = st.Run([1], [2,3], [4,5]);
+Check(mismatch.Get("Error") == 1 && mismatch.Arrays["Current"].SequenceEqual(new sbyte[] { 2,3 }), "merge size mismatch returns an error without changing PLC bytes");
+var random = new Random(20261102);
+foreach (int size in new[] { 1, 2, 7, 480, 2048 })
+{
+    var oldBytes = Enumerable.Range(0, size).Select(_ => (sbyte)random.Next(-128, 128)).ToArray();
+    var currentBytes = oldBytes.Select(b => random.Next(2) == 0 ? b : (sbyte)random.Next(-128, 128)).ToArray();
+    var apiBytes = oldBytes.Select(b => random.Next(2) == 0 ? b : (sbyte)random.Next(-128, 128)).ToArray();
+    var expected = currentBytes.Select((b,i) => b == oldBytes[i] ? apiBytes[i] : b).ToArray();
+    st.Run(oldBytes, currentBytes, apiBytes);
+    Check(currentBytes.SequenceEqual(expected), "emitted ST arbitrary-size PLC-first merge " + size);
+}
 Check(NativePreflight.Start("not-a-real-interface", 480, 476, 101, 100, 102, 1, 1) == -1,
     "native bridge rejects unequal image sizes before NIC/network initialization");
 
@@ -220,6 +240,11 @@ if (args.Length == 2 && args[0] == "--generate")
     await File.WriteAllTextAsync(Path.Combine(args[1], "logixrelay.json"), bundle.Configuration.ToJson(), new UTF8Encoding(false));
     await File.WriteAllTextAsync(Path.Combine(args[1], "RelayRoutine.L5X"), bundle.RoutineL5x, new UTF8Encoding(false));
     await File.WriteAllTextAsync(Path.Combine(args[1], "ModuleSetup.txt"), bundle.ModuleInstructions, new UTF8Encoding(false));
+}
+if (args.Length == 2 && args[0] == "--export-aoi")
+{
+    Directory.CreateDirectory(args[1]);
+    await File.WriteAllTextAsync(Path.Combine(args[1], "LTR_SintMerge.L5X"), SintMergeAoi.GenerateL5x(), new UTF8Encoding(false));
 }
 if (args.Length == 2 && args[0] == "--generate-extended")
 {
