@@ -1,12 +1,12 @@
 # Validation and remaining acceptance
 
-Validation date: November 2, 2026. Version 0.7 preview; offline and loopback emulator evidence.
+Validation date: November 2, 2026. Version 0.8 preview; offline and loopback emulator evidence.
 
 ## Local evidence
 
 - C# solution builds in Release with warnings treated as errors.
 - Native bridge builds with MSVC x64 against OpENer commit `0e1ab7ee5c272950c0dc8daf7793008d7a518912`.
-- All 227 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
+- All 247 checks pass on .NET 10.0.12. The offline check harness covers nested UDT/array selection, ownership/access rejection,
   JSON duplicate-key/hash checks, XML entity rejection, CPS destination lengths,
   exact scalar codecs (including LINT above 2^53), write races, failed writes,
   triggered acknowledgements, implicit sequence wrap, bad schema, stale/duplicate frames,
@@ -40,13 +40,13 @@ Validation date: November 2, 2026. Version 0.7 preview; offline and loopback emu
   assign directions, configure DINT trigger/response and download the C#/JSON/routine/
   AOI/settings ZIP. Download contents and trigger settings were inspected. No controller
   address was contacted.
-- The PLC memory emulator has 23 additional offline checks (included in 227 above)
+- The PLC memory emulator has 23 additional offline checks (included in 247 above)
   for typed shared memory, DINT control tags, PLC-first image merge, duplicate/baseline
   rejection, invalid merged STRING LEN, generated wrapper/ST model agreement, JavaScript
   motion, BigInt LINT precision, persistent state, bounded runaway scripts, atomic tick
   failures, stale script transactions and concurrent unchanged API traffic that must
   not invalidate value snapshots or starve scripts.
-- All 23 HTTP checks pass through the actual emulator host/client. They cover explicit,
+- All 25 HTTP checks pass through the actual emulator host/client. They cover explicit,
   implicit and DINT-triggered motion, GUI edits, last-API-value metadata, STRING/LINT/
   multidimensional paths, stale contract rejection, transactional memory restore,
   script errors, write-route headers and static GUI serving. The host uses an owned
@@ -105,6 +105,27 @@ Validation date: November 2, 2026. Version 0.7 preview; offline and loopback emu
 - `HostingDemo` runs 25/100 ms explicit groups alongside one 40-byte implicit image.
   Contract classes carry a matching CreateConfiguration factory. Generator outputs stay
   under obj, and repeated generation does not rewrite equal content.
+
+## Liveness and error evidence (0.8)
+
+- 247 offline checks include explicit-only heartbeat while DINT triggers are idle,
+  independent heartbeat for implicit-only hosting, unchanged image size/hash, observed
+  BOOL phase, fixed reconnect delay, disabled reconnect, skipped intervals and serialized
+  manual overlap requests. Native adapter construction automatically provisions its
+  explicit heartbeat channel without opening ports.
+- A loopback-only EtherNet/IP registration peer tests successful Register/Unregister,
+  rejection after TCP succeeds, and registration timeout. Closed endpoints retain actual
+  OS refusal or an earlier configured timeout without claiming an unreachable PLC.
+- Typed tag initialization/read/write faults retain path/endpoint/native status and
+  original exceptions. Permanent native access errors do not retry indefinitely.
+- The emulator has 25 HTTP checks, including explicit heartbeat during trigger idle
+  and a managed implicit-only client with independent explicit BOOL updates. The browser
+  has 9 HTTP checks including the five-second default and no heartbeat payload bytes.
+- `LivenessDemo` uses a 28-byte implicit image and a separate explicit heartbeat.
+  Its normal interval is 5000 ms; `--quick` overrides only the sample for validation.
+- A fresh 0.8 six-package consumer compiles four generated contract classes in a
+  separate library, runs the implicit-only explicit heartbeat without image changes,
+  verifies typed tag fault metadata, and loads the isolated native worker ABI 2.
 
 ## Required native/controller acceptance
 

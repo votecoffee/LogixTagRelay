@@ -107,5 +107,6 @@
     "rpiMs": 20,
     "maxAssemblyBytes": 480
   },
-  "schemaVersion": 2
+  "schemaVersion": 2,
+  "heartbeat": null
 }
