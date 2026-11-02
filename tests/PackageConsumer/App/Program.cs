@@ -14,10 +14,10 @@ void Check(bool condition, string description)
     checks++; Console.WriteLine("PASS " + description);
 }
 
-string expectedVersion = args.Single();
+string expectedVersion = args[0], expectedCommit = args[1];
 var config = ReleaseTags.CreateConfiguration();
 var tags = new ReleaseTags();
-Check(typeof(PlcVariable<>).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion.StartsWith(expectedVersion + "+", StringComparison.Ordinal), "restored assembly version and commit");
+Check(typeof(PlcVariable<>).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion == expectedVersion + "+" + expectedCommit, "restored assembly version and commit");
 Check(File.Exists(Path.Combine(AppContext.BaseDirectory, "contracts/contract.ltrx/logixrelay.json")), "generated JSON propagated through the contract project reference");
 Check(config.Heartbeat is { Tag: "ApiAlive", IntervalMs: 5000 } && config.Fields.All(f => f.Path != "ApiAlive"), "explicit-only five-second heartbeat outside the implicit payload");
 Check(config.PlcToAppBytes == config.AppToPlcBytes && config.PlcToAppBytes <= 480, "single symmetric bounded implicit image");

@@ -12,6 +12,13 @@ $packageIds = @('LogixTagRelay', 'LogixTagRelay.Build', 'LogixTagRelay.Design', 
 foreach ($id in $packageIds) {
   if (!(Test-Path -LiteralPath (Join-Path $PackageDirectory "$id.$Version.nupkg"))) { throw "Missing $id $Version in the selected package directory." }
 }
+$package = [IO.Compression.ZipFile]::OpenRead((Join-Path $PackageDirectory "LogixTagRelay.$Version.nupkg"))
+try {
+  $reader = [IO.StreamReader]::new($package.GetEntry('LogixTagRelay.nuspec').Open())
+  try { $metadata = [xml]$reader.ReadToEnd() } finally { $reader.Dispose() }
+  $sourceCommit = $metadata.SelectSingleNode("/*[local-name()='package']/*[local-name()='metadata']/*[local-name()='repository']/@commit").Value
+  if ($sourceCommit -notmatch '^[a-f0-9]{40}$') { throw 'Selected package has no pinned source commit.' }
+} finally { $package.Dispose() }
 $runId = [Guid]::NewGuid().ToString('N')
 $consumerRoot = Join-Path ([IO.Path]::GetTempPath()) "LogixTagRelay-consumer-$runId"
 New-Item -ItemType Directory -Path $consumerRoot | Out-Null
@@ -49,7 +56,7 @@ try {
   $folders = @($assets.packageFolders.PSObject.Properties.Name)
   if ($folders.Count -ne 1 -or [IO.Path]::GetFullPath($folders[0]).TrimEnd([char[]]'\/') -ne $env:NUGET_PACKAGES.TrimEnd([char[]]'\/')) { throw 'Restore used an unexpected package cache.' }
   Invoke-ConsumerDotnet 'publish.log' (@('publish', 'App/App.csproj', '-c', 'Release', '-r', 'win-x64', '--self-contained', 'false', '--no-restore', '-o', 'publish') + $properties)
-  Invoke-ConsumerDotnet 'run.log' @('publish/App.dll', $Version)
+  Invoke-ConsumerDotnet 'run.log' @('publish/App.dll', $Version, $sourceCommit)
   if (!(Select-String -LiteralPath 'run.log' -Pattern '^PASS 18 package-consumer checks on' -Quiet)) { throw 'Consumer did not finish its complete check set.' }
   $contractDocs = @(Get-ChildItem -LiteralPath 'Contracts/bin/Release' -Recurse -Filter 'Contracts.xml')
   if ($contractDocs.Count -ne 1) { throw 'Expected one generated contract XML documentation file.' }
@@ -65,7 +72,7 @@ try {
     if (!(Select-String -LiteralPath 'invalid-contract.log' -Pattern 'error LTR001' -Quiet)) { throw 'Invalid contract did not produce LTR001.' }
   } finally { [IO.File]::WriteAllBytes($contractPath, $original) }
   $runtime = (Select-String -LiteralPath 'run.log' -Pattern '^PASS 18 package-consumer checks on').Line
-  $receipt = [ordered]@{ version = $Version; framework = $Framework; runtime = $runtime; packageChecks = 18; invalidContractRejected = $true; isolatedCache = $true; sourceProjectReferences = $false; nativeAbi = 2; liveControllerAcceptance = $false }
+  $receipt = [ordered]@{ version = $Version; sourceCommit = $sourceCommit; framework = $Framework; runtime = $runtime; packageChecks = 18; invalidContractRejected = $true; isolatedCache = $true; sourceProjectReferences = $false; nativeAbi = 2; liveControllerAcceptance = $false }
   Write-Utf8 (Join-Path $PackageDirectory "consumer-$Framework-$runId.json") (($receipt | ConvertTo-Json) + "`n")
   Write-Output "PASS isolated $Framework package consumer. Logs retained at $consumerRoot"
 } finally {
