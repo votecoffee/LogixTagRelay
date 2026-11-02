@@ -4,7 +4,7 @@ C# access to Logix PLC tags through generated, strongly typed contracts. Browse 
 and UDTs, generate C#/JSON and PLC imports, then synchronize through explicit messaging,
 implicit I/O, or a local memory emulator.
 
-**0.7.0-preview.1.** Local and emulator checks are available. Real PLC communication
+**0.8.0-preview.1.** Local and emulator checks are available. Real PLC communication
 and Studio 5000 import acceptance remain unverified; see [validation](docs/VALIDATION.md).
 
 ## Table of Contents
@@ -80,6 +80,14 @@ Use `RelayHost` for multiple explicit groups alongside one implicit group, cappe
 backoff, and suspend uncertain pending writes until the consumer resumes them.
 OpENer runs in an owned worker process so reconnecting does not restart the application.
 See [hosting and recovery](docs/HOSTING_AND_RECOVERY.md) and `samples/HostingDemo`.
+
+### Heartbeat and communication faults
+
+Configure `Heartbeat = new HeartbeatOptions("ApiAlive")` for a five-second explicit BOOL
+toggle, including for implicit-only hosting. The heartbeat stays outside the I/O image.
+Typed connection/read/write exceptions and diagnostics expose failure phase, tag, native
+status, retry delay, skipped intervals and queued overlapping requests. See
+[liveness and errors](docs/LIVENESS_AND_ERRORS.md) and `samples/LivenessDemo`.
 
 ### React to tag changes
 

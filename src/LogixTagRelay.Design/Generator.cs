@@ -16,7 +16,7 @@ public static partial class Generator
 {
     public static GeneratedBundle Generate(TagCatalog catalog, IReadOnlyList<TagSelection> selections,
         bool includeImplicit = true, string moduleName = "LogixRelay", string softwareRevision = "", int assemblyBytes = 0,
-        ExplicitOptions? explicitOptions = null, ImplicitOptions? implicitOptions = null)
+        ExplicitOptions? explicitOptions = null, ImplicitOptions? implicitOptions = null, HeartbeatOptions? heartbeatOptions = null)
     {
         if (!Identifier().IsMatch(moduleName) || moduleName.Length > 16) throw new ArgumentException("Module name must be an identifier of at most 16 characters.");
         var nodes = new List<(TagNode Node, Direction Direction)>();
@@ -26,6 +26,13 @@ public static partial class Generator
             if (!allNodes.TryGetValue(selection.Path, out var node) || !node.Selectable)
                 throw new ArgumentException($"Unsupported selection: {selection.Path}");
             nodes.Add((node, selection.Direction));
+        }
+        if (heartbeatOptions is { } heartbeat)
+        {
+            if (!allNodes.TryGetValue(heartbeat.Tag, out var node) || node.AtomicType != PlcType.BOOL || node.IsArray || node.Access != "Read/Write")
+                throw new ArgumentException("Heartbeat must name an existing scalar, externally writable BOOL in the catalog.");
+            if (nodes.SelectMany(n => n.Node.Leaves()).Any(n => n.Path.Equals(heartbeat.Tag, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException("Select a heartbeat BOOL outside the contract data selections.");
         }
         var fields = new List<FieldMap>();
         int imageBytes = ImplicitImage.HeaderBytes;
@@ -56,7 +63,7 @@ public static partial class Generator
         var explicitConfig = explicitOptions ?? new();
         explicitConfig = explicitConfig with { ReadGroups = explicitConfig.ReadGroups ?? readGroups };
         var config = new SyncConfiguration(SyncConfiguration.ComputeHash(fields), fields, imageBytes, imageBytes,
-            Explicit: explicitConfig, Implicit: includeImplicit ? implicitOptions ?? new() : null);
+            Explicit: explicitConfig, Implicit: includeImplicit ? implicitOptions ?? new() : null, Heartbeat: heartbeatOptions);
         config.Validate(); // Includes duplicate parent/child selections and incompatible access.
         foreach (var path in new[] { config.Explicit!.TriggerTag, config.Explicit.MirrorTag, config.Explicit.ResponseTag }.Where(p => p != null))
         {

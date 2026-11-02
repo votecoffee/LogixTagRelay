@@ -2,6 +2,7 @@
   <PropertyGroup><PackageId>LogixTagRelay.Opener</PackageId><OutputType>Exe</OutputType><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../LogixTagRelay/LogixTagRelay.csproj" />
+    <ProjectReference Include="../LogixTagRelay.Logix/LogixTagRelay.Logix.csproj" />
     <None Include="../../artifacts/native/Release/LogixTagRelayOpener.dll" Condition="Exists('../../artifacts/native/Release/LogixTagRelayOpener.dll')" Pack="true" PackagePath="runtimes/win-x64/native/" Link="LogixTagRelayOpener.dll" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../native/OpENer/license.txt" Pack="true" PackagePath="licenses/OpENer.txt" />
     <None Include="../../THIRD_PARTY_NOTICES.md" Pack="true" PackagePath="licenses/" />

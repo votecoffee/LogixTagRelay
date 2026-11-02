@@ -30,7 +30,8 @@ public sealed class PlcMemory
     public PlcMemory(SyncConfiguration configuration)
     {
         config = SyncConfiguration.FromJson(configuration.ToJson());
-        foreach (var field in config.Fields) entries.Add(field.Path, new(field, "Data", field.CanWrite));
+        foreach (var field in config.Fields) entries.Add(field.Path, new(field, field.Path.Equals(config.Heartbeat?.Tag, StringComparison.OrdinalIgnoreCase) ? "Heartbeat" : "Data", field.CanWrite));
+        if (config.Heartbeat is { } heartbeat && !entries.ContainsKey(heartbeat.Tag)) entries.Add(heartbeat.Tag, new(new(heartbeat.Tag, PlcType.BOOL, Direction.AppToPlc, 24), "Heartbeat", true));
         var options = config.Explicit;
         void Control(string? path, string role, bool writable)
         {
@@ -46,7 +47,7 @@ public sealed class PlcMemory
         config.Validate();
         string identity = string.Join("|", config.SchemaVersion, config.SchemaHash, config.PlcToAppBytes, config.AppToPlcBytes,
             config.Explicit?.TriggerTag?.ToUpperInvariant(), config.Explicit?.MirrorTag?.ToUpperInvariant(), config.Explicit?.ResponseTag?.ToUpperInvariant(),
-            config.Implicit is not null);
+            config.Implicit is not null, config.Heartbeat?.Tag.ToUpperInvariant(), config.Heartbeat?.IntervalMs);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
     }
     private Entry Find(string path) => entries.TryGetValue(path, out var entry) ? entry : throw new ArgumentException($"Unknown contract tag: {path}");

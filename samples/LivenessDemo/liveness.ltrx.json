@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "name": "Liveness",
+  "sourceL5x": "Contract.L5X",
+  "namespace": "Example.Contracts.Liveness",
+  "className": "LivenessTags",
+  "selections": [{ "path": "Command", "direction": "Bidirectional" }],
+  "includeImplicit": true,
+  "implicit": { "rpiMs": 20 },
+  "heartbeat": { "tag": "ApiAlive" }
+}

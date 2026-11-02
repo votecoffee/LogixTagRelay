@@ -54,7 +54,7 @@ app.MapPost("/api/generate", (GenerateRequest request) =>
 {
     var project = new ContractProject(request.ProjectName, request.Selections, request.Catalog, Namespace: request.Namespace, ClassName: request.ClassName,
         IncludeImplicit: request.Implicit, ModuleName: request.ModuleName, SoftwareRevision: request.SoftwareRevision, AssemblyBytes: request.AssemblyBytes,
-        Explicit: request.Explicit, Implicit: request.AssemblyOptions, Gateway: request.Gateway, Route: request.Route, PcAddress: request.PcAddress);
+        Explicit: request.Explicit, Implicit: request.AssemblyOptions, Gateway: request.Gateway, Route: request.Route, PcAddress: request.PcAddress, Heartbeat: request.Heartbeat);
     var bundle = project.Generate();
     ModuleImport? module = request.Implicit && request.ModuleTemplateBase64 != null ?
         ModuleTemplate.Generate(Convert.FromBase64String(request.ModuleTemplateBase64), bundle.Configuration, request.ModuleName, request.PcAddress) : null;
@@ -79,6 +79,6 @@ app.MapPost("/api/generate", (GenerateRequest request) =>
     return Results.File(bytes.ToArray(), "application/zip", "LogixTagRelay.Generated.zip");
 });
 app.Run();
-public sealed record OnlineRequest(string Gateway, string Route = "1,0");
+public sealed record OnlineRequest(string Gateway, string Route = "1,0", HeartbeatOptions? Heartbeat = null);
 public sealed record GenerateRequest(TagCatalog Catalog, List<TagSelection> Selections, bool Implicit = true, string ModuleName = "LogixRelay", string SoftwareRevision = "",
-    int AssemblyBytes = 0, string? ModuleTemplateBase64 = null, string PcAddress = "192.168.1.200", ExplicitOptions? Explicit = null, ImplicitOptions? AssemblyOptions = null, string ProjectName = "Contract", string Namespace = "LogixTagRelay.Generated", string ClassName = "GeneratedTags", string Gateway = "192.168.1.10", string Route = "1,0");
+    int AssemblyBytes = 0, string? ModuleTemplateBase64 = null, string PcAddress = "192.168.1.200", ExplicitOptions? Explicit = null, ImplicitOptions? AssemblyOptions = null, string ProjectName = "Contract", string Namespace = "LogixTagRelay.Generated", string ClassName = "GeneratedTags", string Gateway = "192.168.1.10", string Route = "1,0", HeartbeatOptions? Heartbeat = null);

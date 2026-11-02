@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RSLogix5000Content SoftwareRevision="35.03"><Controller Name="LivenessDemo"><Tags>
+  <Tag Name="Command" TagType="Base" DataType="DINT" ExternalAccess="Read/Write" />
+  <Tag Name="ApiAlive" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" />
+</Tags></Controller></RSLogix5000Content>

@@ -12,10 +12,11 @@ public sealed class OpenerAdapter : IAsyncDisposable, IRelaySession
     public SyncConfiguration Configuration => session.Configuration;
     public IPlcModel Model => session.Model;
     public SessionDiagnostics Diagnostics => session.Diagnostics;
+    public SessionDiagnostics? HeartbeatDiagnostics => session.HeartbeatDiagnostics;
     public OpenerAdapter(SyncConfiguration config, IPlcModel model, string? nicNameOrIndex = null, uint deviceSerialNumber = 1, RecoveryOptions? recovery = null)
     {
         nic = nicNameOrIndex; serial = deviceSerialNumber;
-        session = new(config, model, ct => WorkerTransport.ConnectAsync(Configuration, nic ?? throw new InvalidOperationException("Choose an adapter NIC."), serial, ct), recovery);
+        session = new(config, model, ct => WorkerTransport.ConnectAsync(Configuration, nic ?? throw new InvalidOperationException("Choose an adapter NIC."), serial, ct), recovery, ct => ValueTask.FromResult<IExplicitTransport>(new LogixTagRelay.Logix.LogixTransport(Configuration.Gateway, Configuration.Route)));
     }
     public static int NativeAbiVersion => NativeBridge.AbiVersion();
     /// <summary>Exercises the packaged child entry point and native ABI without opening any network ports.</summary>

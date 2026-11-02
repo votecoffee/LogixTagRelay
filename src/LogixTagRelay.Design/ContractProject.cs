@@ -8,7 +8,7 @@ public sealed record ContractProject(string Name, List<TagSelection> Selections,
     string? SourceL5x = null, string? SourceSha256 = null, string Namespace = "LogixTagRelay.Generated",
     string ClassName = "GeneratedTags", bool IncludeImplicit = true, string ModuleName = "LogixRelay",
     string SoftwareRevision = "", int AssemblyBytes = 0, ExplicitOptions? Explicit = null,
-    ImplicitOptions? Implicit = null, string Gateway = "192.168.1.10", string Route = "1,0", string PcAddress = "192.168.1.200", int Version = 1)
+    ImplicitOptions? Implicit = null, string Gateway = "192.168.1.10", string Route = "1,0", string PcAddress = "192.168.1.200", int Version = 1, HeartbeatOptions? Heartbeat = null)
 {
     public string ToJson() => JsonSerializer.Serialize(this, SyncConfiguration.Json) + "\n";
     public static ContractProject FromJson(string json)
@@ -41,7 +41,7 @@ public sealed record ContractProject(string Name, List<TagSelection> Selections,
                 throw new FormatException("L5X source SHA-256 differs from the pinned contract project.");
             using var input = new MemoryStream(source); catalog = L5xCatalog.Read(input);
         }
-        var bundle = Generator.Generate(catalog!, Selections, IncludeImplicit, ModuleName, SoftwareRevision, AssemblyBytes, Explicit, Implicit);
+        var bundle = Generator.Generate(catalog!, Selections, IncludeImplicit, ModuleName, SoftwareRevision, AssemblyBytes, Explicit, Implicit, Heartbeat);
         var config = bundle.Configuration with { Gateway = Gateway, Route = Route, Implicit = IncludeImplicit ? Implicit ?? new() : null };
         config.Validate();
         // Regenerate module references using the final assembly choices. Payload layout stays unchanged.
@@ -72,6 +72,7 @@ public static class ContractComparison
         if (before.Implicit != after.Implicit) result.Add(new("$implicit", "Assembly settings changed", true));
         if (before.Gateway != after.Gateway || before.Route != after.Route) result.Add(new("$connection", "PLC endpoint or route changed", false));
         if (JsonSerializer.Serialize(before.Explicit, SyncConfiguration.Json) != JsonSerializer.Serialize(after.Explicit, SyncConfiguration.Json)) result.Add(new("$explicit", "Explicit scheduling/read groups changed", false));
+        if (before.Heartbeat != after.Heartbeat) result.Add(new("$heartbeat", "Heartbeat tag/interval changed", false));
         return result;
     }
 }

@@ -104,3 +104,8 @@ they are not a real-time or network-jitter guarantee.
 
 `samples/HostingDemo` build-generates three contract classes and runs two explicit
 cadences plus one 40-byte implicit image against memory transports without a PLC.
+
+See [liveness and errors](LIVENESS_AND_ERRORS.md) for the explicit-only heartbeat
+(default five-second toggle), typed connection/tag faults, fixed/exponential reconnect
+delay, and skipped/overlapping interval counters. Implicit-only heartbeat uses a
+separate explicit channel and never changes the I/O image.

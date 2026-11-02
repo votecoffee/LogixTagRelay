@@ -11,6 +11,7 @@ public sealed class ExplicitContractSession : IRelaySession
     public SyncConfiguration Configuration => SyncConfiguration.FromJson(configuration.ToJson());
     public IPlcModel Model { get; }
     public SessionDiagnostics Diagnostics { get; } = new();
+    public SessionDiagnostics? HeartbeatDiagnostics => configuration.Heartbeat is null ? null : Diagnostics;
     public ExplicitContractSession(SyncConfiguration configuration, IPlcModel model,
         Func<CancellationToken, ValueTask<IExplicitTransport>> connect, RecoveryOptions? recovery = null)
     {
@@ -33,24 +34,16 @@ public sealed class ExplicitContractSession : IRelaySession
                     using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken); timeout.CancelAfter(recovery.ConnectionTimeoutMs);
                     IExplicitTransport transport;
                     try { transport = await connect(timeout.Token).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { throw new TimeoutException("Explicit connection timed out."); }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { throw PlcErrors.Connect(new TimeoutException("Explicit connection timed out."), configuration); }
+                    catch (Exception error) when (PlcErrors.IsCommunication(error) && error is not PlcCommunicationException) { throw PlcErrors.Connect(error, configuration); }
                     await using var owned = transport;
                     var session = new ExplicitSession(configuration, Model, transport, Diagnostics);
-                    var options = configuration.Explicit ?? new();
+                    try { await session.ConnectAsync(timeout.Token).ConfigureAwait(false); }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { throw PlcErrors.Connect(new TimeoutException("Explicit connection timed out."), configuration); }
+                    timeout.CancelAfter(Timeout.Infinite);
                     await session.RestoreTriggerStateAsync(receipt, cancellationToken).ConfigureAwait(false);
-                    int interval = options.TriggerTag is null ? options.IntervalMs : options.TriggerPollMs;
-                    using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(interval));
-                    do
-                    {
-                        session.WritesEnabled = Volatile.Read(ref suspended) == 0;
-                        try
-                        {
-                            if (options.TriggerTag is null || !session.WritesEnabled) await session.SynchronizeOnceAsync(cancellationToken).ConfigureAwait(false);
-                            else await session.PollTriggerOnceAsync(cancellationToken).ConfigureAwait(false);
-                        }
-                        finally { receipt = session.LastTriggerResult ?? receipt; }
-                        Diagnostics.SetState(SessionState.Running); attempt = 0;
-                    } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
+                    try { await session.RunScheduledAsync(() => Volatile.Read(ref suspended) == 0, () => attempt = 0, cancellationToken).ConfigureAwait(false); }
+                    finally { receipt = session.LastTriggerResult ?? receipt; }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { break; }
                 catch (Exception error)
@@ -58,7 +51,7 @@ public sealed class ExplicitContractSession : IRelaySession
                     Diagnostics.Failure(error); foreach (var variable in Model.Variables) variable.MarkBad();
                     if (!recovery.Retry(error, ++attempt)) { Diagnostics.SetState(SessionState.Faulted); throw; }
                     if (recovery.PendingWrites == PendingWritePolicy.Suspend) Volatile.Write(ref suspended, 1);
-                    Diagnostics.Recover(Volatile.Read(ref suspended) != 0);
+                    Diagnostics.Recover(Volatile.Read(ref suspended) != 0, recovery.Delay(attempt));
                     await Task.Delay(recovery.Delay(attempt), cancellationToken).ConfigureAwait(false);
                 }
             }

@@ -109,9 +109,10 @@ public sealed record ExplicitOptions(int IntervalMs = 100, string? TriggerTag = 
 }
 public sealed record ImplicitOptions(int PlcInputAssembly = 101, int PlcOutputAssembly = 100,
     int ConfigurationAssembly = 102, int RpiMs = 20, int MaxAssemblyBytes = 480);
+public sealed record HeartbeatOptions(string Tag, int IntervalMs = 5000);
 public sealed record SyncConfiguration(string SchemaHash, List<FieldMap> Fields,
     int PlcToAppBytes, int AppToPlcBytes, string Gateway = "192.168.1.10", string Route = "1,0",
-    ExplicitOptions? Explicit = null, ImplicitOptions? Implicit = null, int SchemaVersion = 2)
+    ExplicitOptions? Explicit = null, ImplicitOptions? Implicit = null, int SchemaVersion = 2, HeartbeatOptions? Heartbeat = null)
 {
     public static readonly JsonSerializerOptions Json = new()
     {
@@ -181,6 +182,14 @@ public sealed record SyncConfiguration(string SchemaHash, List<FieldMap> Fields,
                 !Regex.IsMatch(p, @"^(?:Program:[A-Za-z_][A-Za-z0-9_]*\.)?[A-Za-z_][A-Za-z0-9_]*(?:\[\d+(?:,\d+){0,2}\])?(?:\.[A-Za-z_][A-Za-z0-9_]*(?:\[\d+(?:,\d+){0,2}\])?)*$") ||
                 Fields.Any(f => f.Path.Equals(p, StringComparison.OrdinalIgnoreCase))))
                 throw new FormatException("Trigger, mirror and response tags must be valid, distinct DINT addresses outside the data mapping.");
+        }
+        if (Heartbeat is { } heartbeat)
+        {
+            if (heartbeat.IntervalMs <= 0 || !Regex.IsMatch(heartbeat.Tag ?? "", @"^(?:Program:[A-Za-z_][A-Za-z0-9_]*\.)?[A-Za-z_][A-Za-z0-9_]*(?:\[\d+(?:,\d+){0,2}\])?(?:\.[A-Za-z_][A-Za-z0-9_]*(?:\[\d+(?:,\d+){0,2}\])?)*$")) throw new FormatException("Heartbeat requires a valid BOOL tag and positive interval.");
+            var field = Fields.SingleOrDefault(f => f.Path.Equals(heartbeat.Tag, StringComparison.OrdinalIgnoreCase));
+            if (field is not null) throw new FormatException("Heartbeat is an explicit BOOL control tag outside the contract data mapping.");
+            if (new[] { Explicit?.TriggerTag, Explicit?.MirrorTag, Explicit?.ResponseTag }.Any(p => string.Equals(p, heartbeat.Tag, StringComparison.OrdinalIgnoreCase)))
+                throw new FormatException("Heartbeat cannot share a trigger or reply address.");
         }
         if (Implicit is { } io && (io.RpiMs <= 0 || io.MaxAssemblyBytes < 24 || io.MaxAssemblyBytes > 480 ||
             PlcToAppBytes > io.MaxAssemblyBytes || AppToPlcBytes > io.MaxAssemblyBytes ||

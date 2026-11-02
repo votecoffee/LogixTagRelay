@@ -25,5 +25,7 @@ try {
   if ($LASTEXITCODE) { throw 'Multi-contract host failed.' }
   & dotnet run --project tools/LogixTagRelay.Browser -c Release --no-build -- --self-test true
   if ($LASTEXITCODE) { throw 'Browser project HTTP checks failed.' }
+  & dotnet run --project samples/LivenessDemo -c Release --no-build -- --quick
+  if ($LASTEXITCODE) { throw 'Explicit heartbeat example failed.' }
   & "$PSScriptRoot/pack.ps1"
 } finally { Pop-Location }

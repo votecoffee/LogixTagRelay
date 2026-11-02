@@ -11,8 +11,8 @@ feed until publication):
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="LogixTagRelay" Version="0.7.0-preview.1" />
-  <PackageReference Include="LogixTagRelay.Build" Version="0.7.0-preview.1" PrivateAssets="all" />
+  <PackageReference Include="LogixTagRelay" Version="0.8.0-preview.1" />
+  <PackageReference Include="LogixTagRelay.Build" Version="0.8.0-preview.1" PrivateAssets="all" />
   <LogixContract Include="telemetry.ltrx.json" />
 </ItemGroup>
 ```

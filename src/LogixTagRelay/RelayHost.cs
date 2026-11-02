@@ -33,6 +33,7 @@ public sealed class RelayHost
         var session = new ExplicitContractSession(config, model, connect, recovery); Add(name, session); return session;
     }
     private static IEnumerable<string> WrittenPaths(IRelaySession session) => session.Configuration.Fields.Where(f => f.CanWrite).Select(f => f.Path)
+        .Concat(session.Configuration.Heartbeat is { } h ? [h.Tag] : [])
         .Concat(session.Kind == SessionKind.Explicit ? new[] { session.Configuration.Explicit?.MirrorTag, session.Configuration.Explicit?.ResponseTag }.OfType<string>() : []);
     public async Task RunAsync(CancellationToken cancellationToken)
     {

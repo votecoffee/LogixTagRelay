@@ -126,6 +126,28 @@ sealed class EmulatorSelfTest(EmulatorWorkspace workspace, IHostApplicationLifet
                 Check((PlcLongDateTime)typedModel.Get("NanoDate") == new PlcLongDateTime(1793620800123456789) && !hosted.Diagnostics.Snapshot.WritesSuspended, "hosted HTTP implicit session negotiates a fresh nonce baseline and preserves LDT precision");
                 end.Cancel(); await loop;
             }
+            var heartbeatConfig = typedConfig with { Heartbeat = new("ApiAlive",20) };
+            workspace.Load(heartbeatConfig.ToJson()); session = workspace.Current; session.Memory.Set("ApiAlive",true);
+            var heartbeatModel = new Model(heartbeatConfig);
+            await using var heartbeatClient = await EmulatorClient.ConnectAsync(heartbeatConfig,uri,ct);
+            using (var end = CancellationTokenSource.CreateLinkedTokenSource(ct))
+            {
+                var loop = heartbeatClient.RunImplicitAsync(heartbeatModel,end.Token);
+                await WaitUntil(() => heartbeatClient.LastImplicitSession?.HeartbeatDiagnostics?.Snapshot.HeartbeatTransitions >= 3,loop,ct);
+                Check(heartbeatClient.LastImplicitSession!.Diagnostics.Snapshot.SuccessfulUpdates > 2 && heartbeatConfig.PlcToAppBytes == typedConfig.PlcToAppBytes && session.Memory.Snapshot().Tags.Single(t => t.Map.Path == "ApiAlive").Role == "Heartbeat",
+                    "implicit-only HTTP client runs independent explicit heartbeat without image bytes");
+                end.Cancel(); await loop;
+            }
+            var idleConfig = heartbeatConfig with { Explicit = new(TriggerTag:"RequestHeartbeat",TriggerPollMs:100) };
+            workspace.Load(idleConfig.ToJson()); session = workspace.Current;
+            var idle = new ExplicitContractSession(idleConfig,new Model(idleConfig),async token => await EmulatorClient.ConnectAsync(idleConfig,uri,token));
+            using (var end = CancellationTokenSource.CreateLinkedTokenSource(ct))
+            {
+                var loop = idle.RunAsync(end.Token); await WaitUntil(() => idle.Diagnostics.Snapshot.HeartbeatTransitions >= 3,loop,ct);
+                Check(idle.Diagnostics.Snapshot.SuccessfulUpdates == 0 && session.Memory.Snapshot().Tags.Single(t => t.Map.Path == "ApiAlive").LastApiWriteAt is not null,
+                    "explicit HTTP heartbeat keeps toggling while the DINT trigger is idle");
+                end.Cancel(); await loop;
+            }
             Console.WriteLine($"{count} emulator HTTP checks passed.");
         }
         catch (Exception failure)

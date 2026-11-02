@@ -55,6 +55,7 @@ public sealed class EmulatorClient : IExplicitTransport, IImplicitTransport
         var field = config.Fields.FirstOrDefault(f => f.Path.Equals(path, StringComparison.OrdinalIgnoreCase));
         if (field is null && new[] { config.Explicit?.TriggerTag, config.Explicit?.MirrorTag, config.Explicit?.ResponseTag }.Any(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase)))
             field = new(path, PlcType.DINT, Direction.PlcToApp, 24);
+        if (field is null && path.Equals(config.Heartbeat?.Tag, StringComparison.OrdinalIgnoreCase)) field = new(path, PlcType.BOOL, Direction.AppToPlc, 24);
         if (field is null || field.Type != type) throw new ArgumentException("Tag/type differs from the configured contract.");
         return field;
     }
@@ -94,25 +95,15 @@ public sealed class EmulatorClient : IExplicitTransport, IImplicitTransport
         return reply.Values.Select((value, i) => TagText.Parse(fields[i], value)).ToArray();
     }
     public async ValueTask<byte[]?> ExchangeAsync(byte[] image, CancellationToken cancellationToken) => await ExchangeImplicitAsync(image, cancellationToken).ConfigureAwait(false);
+    public ImplicitContractSession? LastImplicitSession { get; private set; }
+    public ImplicitContractSession CreateImplicitSession(IPlcModel model, RecoveryOptions? recovery = null) =>
+        new(config, model, async ct => await ConnectAsync(config, http.BaseAddress, ct).ConfigureAwait(false), recovery,
+            async ct => await ConnectAsync(config, http.BaseAddress, ct).ConfigureAwait(false));
     public async Task RunImplicitAsync(IPlcModel model, CancellationToken cancellationToken)
     {
-        if (config.Implicit is null) throw new InvalidOperationException("Contract has no implicit settings.");
         if (Interlocked.Exchange(ref implicitRunning, 1) != 0) throw new InvalidOperationException("An implicit loop is already running on this client.");
-        ImplicitImage? codec = null;
-        try
-        {
-            codec = new ImplicitImage(config, model);
-            var outgoing = codec.BuildBootstrap();
-            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(config.Implicit.RpiMs));
-            do
-            {
-                var incoming = await ExchangeImplicitAsync(outgoing, cancellationToken).ConfigureAwait(false);
-                if (codec.ReceivePlcToApp(incoming, DateTimeOffset.UtcNow)) outgoing = codec.BuildAppToPlc();
-                if (codec.CheckStale(DateTimeOffset.UtcNow, TimeSpan.FromMilliseconds(Math.Max(1000L, (long)config.Implicit.RpiMs * 10))))
-                    throw new IOException("Emulated PLC did not complete a fresh exchange before the timeout.");
-            } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
-        }
-        finally { codec?.CheckStale(DateTimeOffset.MaxValue, TimeSpan.FromTicks(1)); Volatile.Write(ref implicitRunning, 0); }
+        try { LastImplicitSession = CreateImplicitSession(model); await LastImplicitSession.RunAsync(cancellationToken).ConfigureAwait(false); }
+        finally { Volatile.Write(ref implicitRunning, 0); }
     }
     public ValueTask DisposeAsync() { disposed = true; http.Dispose(); return ValueTask.CompletedTask; }
 }
