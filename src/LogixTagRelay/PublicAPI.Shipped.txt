@@ -1,0 +1,488 @@
+#nullable enable
+LogixTagRelay.ArrayShape
+LogixTagRelay.Direction
+LogixTagRelay.Direction.AppToPlc = 1 -> LogixTagRelay.Direction
+LogixTagRelay.Direction.Bidirectional = 2 -> LogixTagRelay.Direction
+LogixTagRelay.Direction.PlcToApp = 0 -> LogixTagRelay.Direction
+LogixTagRelay.ExplicitContractSession
+LogixTagRelay.ExplicitContractSession.Configuration.get -> LogixTagRelay.SyncConfiguration!
+LogixTagRelay.ExplicitContractSession.Diagnostics.get -> LogixTagRelay.SessionDiagnostics!
+LogixTagRelay.ExplicitContractSession.ExplicitContractSession(LogixTagRelay.SyncConfiguration! configuration, LogixTagRelay.IPlcModel! model, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<LogixTagRelay.IExplicitTransport!>>! connect, LogixTagRelay.RecoveryOptions? recovery = null) -> void
+LogixTagRelay.ExplicitContractSession.HeartbeatDiagnostics.get -> LogixTagRelay.SessionDiagnostics?
+LogixTagRelay.ExplicitContractSession.Kind.get -> LogixTagRelay.SessionKind
+LogixTagRelay.ExplicitContractSession.Model.get -> LogixTagRelay.IPlcModel!
+LogixTagRelay.ExplicitContractSession.ResumeWrites() -> void
+LogixTagRelay.ExplicitContractSession.RunAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+LogixTagRelay.ExplicitHeartbeatSession
+LogixTagRelay.ExplicitHeartbeatSession.Diagnostics.get -> LogixTagRelay.SessionDiagnostics!
+LogixTagRelay.ExplicitHeartbeatSession.ExplicitHeartbeatSession(LogixTagRelay.SyncConfiguration! configuration, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<LogixTagRelay.IExplicitTransport!>>! connect, LogixTagRelay.RecoveryOptions? recovery = null) -> void
+LogixTagRelay.ExplicitHeartbeatSession.RunAsync(System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
+LogixTagRelay.ExplicitOptions
+LogixTagRelay.ExplicitOptions.AcknowledgeTag.get -> string?
+LogixTagRelay.ExplicitOptions.AcknowledgeTag.init -> void
+LogixTagRelay.ExplicitOptions.ExplicitOptions(int IntervalMs = 100, string? TriggerTag = null, int TriggerPollMs = 20, string? AcknowledgeTag = null, string? HandledTriggerTag = null, string? ResponseTag = null, System.Collections.Generic.List<LogixTagRelay.ExplicitReadGroup!>? ReadGroups = null) -> void
+LogixTagRelay.ExplicitOptions.HandledTriggerTag.get -> string?
+LogixTagRelay.ExplicitOptions.HandledTriggerTag.init -> void
+LogixTagRelay.ExplicitOptions.IntervalMs.get -> int
+LogixTagRelay.ExplicitOptions.IntervalMs.init -> void
+LogixTagRelay.ExplicitOptions.MirrorTag.get -> string?
+LogixTagRelay.ExplicitOptions.ReadGroups.get -> System.Collections.Generic.List<LogixTagRelay.ExplicitReadGroup!>?
+LogixTagRelay.ExplicitOptions.ReadGroups.init -> void
+LogixTagRelay.ExplicitOptions.ResponseTag.get -> string?
+LogixTagRelay.ExplicitOptions.ResponseTag.init -> void
+LogixTagRelay.ExplicitOptions.TriggerPollMs.get -> int
+LogixTagRelay.ExplicitOptions.TriggerPollMs.init -> void
+LogixTagRelay.ExplicitOptions.TriggerTag.get -> string?
+LogixTagRelay.ExplicitOptions.TriggerTag.init -> void
+LogixTagRelay.ExplicitReadGroup
+LogixTagRelay.ExplicitReadGroup.DataType.get -> string!
+LogixTagRelay.ExplicitReadGroup.DataType.init -> void
+LogixTagRelay.ExplicitReadGroup.ExplicitReadGroup(string! Path, string! DataType, System.Collections.Generic.List<string!>! Fields) -> void
+LogixTagRelay.ExplicitReadGroup.Fields.get -> System.Collections.Generic.List<string!>!
+LogixTagRelay.ExplicitReadGroup.Fields.init -> void
+LogixTagRelay.ExplicitReadGroup.Path.get -> string!
+LogixTagRelay.ExplicitReadGroup.Path.init -> void
+LogixTagRelay.ExplicitReads
+LogixTagRelay.ExplicitSession
+LogixTagRelay.ExplicitSession.ConnectAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+LogixTagRelay.ExplicitSession.Diagnostics.get -> LogixTagRelay.SessionDiagnostics!
+LogixTagRelay.ExplicitSession.ExplicitSession(LogixTagRelay.SyncConfiguration! config, LogixTagRelay.IPlcModel! model, LogixTagRelay.IExplicitTransport! transport, LogixTagRelay.SessionDiagnostics? diagnostics = null) -> void
+LogixTagRelay.ExplicitSession.HeartbeatOnceAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+LogixTagRelay.ExplicitSession.LastTriggerResult.get -> LogixTagRelay.TriggerResult?
+LogixTagRelay.ExplicitSession.PollTriggerOnceAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<LogixTagRelay.TriggerResult?>!
+LogixTagRelay.ExplicitSession.RunAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+LogixTagRelay.ExplicitSession.SynchronizeOnceAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+LogixTagRelay.ExplicitSession.WritesEnabled.get -> bool
+LogixTagRelay.ExplicitSession.WritesEnabled.set -> void
+LogixTagRelay.FieldMap
+LogixTagRelay.FieldMap.Access.get -> string!
+LogixTagRelay.FieldMap.Access.init -> void
+LogixTagRelay.FieldMap.CanWrite.get -> bool
+LogixTagRelay.FieldMap.Direction.get -> LogixTagRelay.Direction
+LogixTagRelay.FieldMap.Direction.init -> void
+LogixTagRelay.FieldMap.FieldMap(string! Path, LogixTagRelay.PlcType Type, LogixTagRelay.Direction Direction, int Offset, string! Access = "Read/Write", int StringCapacity = 0) -> void
+LogixTagRelay.FieldMap.Offset.get -> int
+LogixTagRelay.FieldMap.Offset.init -> void
+LogixTagRelay.FieldMap.Path.get -> string!
+LogixTagRelay.FieldMap.Path.init -> void
+LogixTagRelay.FieldMap.StringCapacity.get -> int
+LogixTagRelay.FieldMap.StringCapacity.init -> void
+LogixTagRelay.FieldMap.Type.get -> LogixTagRelay.PlcType
+LogixTagRelay.FieldMap.Type.init -> void
+LogixTagRelay.FieldMap.WireBytes.get -> int
+LogixTagRelay.HeartbeatOptions
+LogixTagRelay.HeartbeatOptions.HeartbeatOptions(string! Tag, int IntervalMs = 5000) -> void
+LogixTagRelay.HeartbeatOptions.IntervalMs.get -> int
+LogixTagRelay.HeartbeatOptions.IntervalMs.init -> void
+LogixTagRelay.HeartbeatOptions.Tag.get -> string!
+LogixTagRelay.HeartbeatOptions.Tag.init -> void
+LogixTagRelay.IExplicitTransport
+LogixTagRelay.IExplicitTransport.ConnectAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.IExplicitTransport.ReadAsync(LogixTagRelay.FieldMap! field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<object!>
+LogixTagRelay.IExplicitTransport.ReadAsync(string! path, LogixTagRelay.PlcType type, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<object!>
+LogixTagRelay.IExplicitTransport.ReadBatchAsync(System.Collections.Generic.IReadOnlyList<LogixTagRelay.FieldMap!>! fields, System.Collections.Generic.IReadOnlyList<LogixTagRelay.ExplicitReadGroup!>! groups, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<object!>!>
+LogixTagRelay.IExplicitTransport.WriteAsync(LogixTagRelay.FieldMap! field, object! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.IExplicitTransport.WriteAsync(string! path, LogixTagRelay.PlcType type, object! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.IImplicitTransport
+LogixTagRelay.IImplicitTransport.ExchangeAsync(byte[]! image, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<byte[]?>
+LogixTagRelay.IObservablePlcVariable
+LogixTagRelay.IObservablePlcVariable.NotificationFailed -> System.EventHandler<LogixTagRelay.NotificationFailedEventArgs!>?
+LogixTagRelay.IObservablePlcVariable.ValueChanged -> System.EventHandler<LogixTagRelay.PlcValueChangedEventArgs!>?
+LogixTagRelay.IPlcModel
+LogixTagRelay.IPlcModel.Variables.get -> System.Collections.Generic.IReadOnlyList<LogixTagRelay.IPlcVariable!>!
+LogixTagRelay.IPlcVariable
+LogixTagRelay.IPlcVariable.AcceptMergedWrite(long version, object! value, System.DateTimeOffset timestamp) -> void
+LogixTagRelay.IPlcVariable.AcceptRead(object! value, System.DateTimeOffset timestamp) -> void
+LogixTagRelay.IPlcVariable.AcceptWrite(long version, System.DateTimeOffset timestamp) -> void
+LogixTagRelay.IPlcVariable.BoxedValue.get -> object!
+LogixTagRelay.IPlcVariable.Capture() -> (object! Value, long Version)
+LogixTagRelay.IPlcVariable.CaptureForMerge() -> (object! Value, long Version, bool Dirty)
+LogixTagRelay.IPlcVariable.Dirty.get -> bool
+LogixTagRelay.IPlcVariable.Map.get -> LogixTagRelay.FieldMap!
+LogixTagRelay.IPlcVariable.MarkBad() -> void
+LogixTagRelay.IPlcVariable.Observe(object! value, System.DateTimeOffset timestamp) -> void
+LogixTagRelay.IPlcVariable.PlcValue.get -> object?
+LogixTagRelay.IPlcVariable.Quality.get -> LogixTagRelay.Quality
+LogixTagRelay.IPlcVariable.Timestamp.get -> System.DateTimeOffset?
+LogixTagRelay.IPlcVariable.Version.get -> long
+LogixTagRelay.IRelaySession
+LogixTagRelay.IRelaySession.Configuration.get -> LogixTagRelay.SyncConfiguration!
+LogixTagRelay.IRelaySession.Diagnostics.get -> LogixTagRelay.SessionDiagnostics!
+LogixTagRelay.IRelaySession.HeartbeatDiagnostics.get -> LogixTagRelay.SessionDiagnostics?
+LogixTagRelay.IRelaySession.Kind.get -> LogixTagRelay.SessionKind
+LogixTagRelay.IRelaySession.Model.get -> LogixTagRelay.IPlcModel!
+LogixTagRelay.IRelaySession.ResumeWrites() -> void
+LogixTagRelay.IRelaySession.RunAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+LogixTagRelay.ImplicitContractSession
+LogixTagRelay.ImplicitContractSession.Configuration.get -> LogixTagRelay.SyncConfiguration!
+LogixTagRelay.ImplicitContractSession.Diagnostics.get -> LogixTagRelay.SessionDiagnostics!
+LogixTagRelay.ImplicitContractSession.HeartbeatDiagnostics.get -> LogixTagRelay.SessionDiagnostics?
+LogixTagRelay.ImplicitContractSession.ImplicitContractSession(LogixTagRelay.SyncConfiguration! configuration, LogixTagRelay.IPlcModel! model, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<LogixTagRelay.IImplicitTransport!>>! connect, LogixTagRelay.RecoveryOptions? recovery = null, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<LogixTagRelay.IExplicitTransport!>>? heartbeatConnect = null) -> void
+LogixTagRelay.ImplicitContractSession.Kind.get -> LogixTagRelay.SessionKind
+LogixTagRelay.ImplicitContractSession.Model.get -> LogixTagRelay.IPlcModel!
+LogixTagRelay.ImplicitContractSession.ResumeWrites() -> void
+LogixTagRelay.ImplicitContractSession.RunAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+LogixTagRelay.ImplicitImage
+LogixTagRelay.ImplicitImage.BeginResynchronization() -> byte[]!
+LogixTagRelay.ImplicitImage.BuildAppToPlc(bool allowWrites = true) -> byte[]!
+LogixTagRelay.ImplicitImage.BuildBootstrap() -> byte[]!
+LogixTagRelay.ImplicitImage.CheckStale(System.DateTimeOffset now, System.TimeSpan timeout) -> bool
+LogixTagRelay.ImplicitImage.HasPendingCommand.get -> bool
+LogixTagRelay.ImplicitImage.ImplicitImage(LogixTagRelay.SyncConfiguration! config, LogixTagRelay.IPlcModel! model) -> void
+LogixTagRelay.ImplicitImage.ReceivePlcToApp(System.ReadOnlySpan<byte> image, System.DateTimeOffset time) -> bool
+LogixTagRelay.ImplicitOptions
+LogixTagRelay.ImplicitOptions.ConfigurationAssembly.get -> int
+LogixTagRelay.ImplicitOptions.ConfigurationAssembly.init -> void
+LogixTagRelay.ImplicitOptions.ImplicitOptions(int PlcInputAssembly = 101, int PlcOutputAssembly = 100, int ConfigurationAssembly = 102, int RpiMs = 20, int MaxAssemblyBytes = 480) -> void
+LogixTagRelay.ImplicitOptions.MaxAssemblyBytes.get -> int
+LogixTagRelay.ImplicitOptions.MaxAssemblyBytes.init -> void
+LogixTagRelay.ImplicitOptions.PlcInputAssembly.get -> int
+LogixTagRelay.ImplicitOptions.PlcInputAssembly.init -> void
+LogixTagRelay.ImplicitOptions.PlcOutputAssembly.get -> int
+LogixTagRelay.ImplicitOptions.PlcOutputAssembly.init -> void
+LogixTagRelay.ImplicitOptions.RpiMs.get -> int
+LogixTagRelay.ImplicitOptions.RpiMs.init -> void
+LogixTagRelay.ModelValidation
+LogixTagRelay.NotificationFailedEventArgs
+LogixTagRelay.NotificationFailedEventArgs.Exception.get -> System.Exception!
+LogixTagRelay.NotificationFailedEventArgs.NotificationFailedEventArgs(System.Exception! exception) -> void
+LogixTagRelay.PendingWritePolicy
+LogixTagRelay.PendingWritePolicy.Retry = 1 -> LogixTagRelay.PendingWritePolicy
+LogixTagRelay.PendingWritePolicy.Suspend = 0 -> LogixTagRelay.PendingWritePolicy
+LogixTagRelay.PlcCommunicationException
+LogixTagRelay.PlcCommunicationException.FailureKind.get -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcCommunicationException.Gateway.get -> string?
+LogixTagRelay.PlcCommunicationException.IsTransient.get -> bool
+LogixTagRelay.PlcCommunicationException.NativeStatus.get -> int?
+LogixTagRelay.PlcCommunicationException.NativeStatusName.get -> string?
+LogixTagRelay.PlcCommunicationException.Operation.get -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcCommunicationException.PlcCommunicationException(string! message, LogixTagRelay.PlcOperation operation, LogixTagRelay.PlcFailureKind kind, bool transient, System.Exception? inner, string? gateway, string? route, string? tag, int? nativeStatus = null, string? nativeName = null) -> void
+LogixTagRelay.PlcCommunicationException.Route.get -> string?
+LogixTagRelay.PlcCommunicationException.SocketError.get -> System.Net.Sockets.SocketError?
+LogixTagRelay.PlcCommunicationException.TagPath.get -> string?
+LogixTagRelay.PlcConnectionException
+LogixTagRelay.PlcConnectionException.PlcConnectionException(string! message, LogixTagRelay.PlcFailureKind kind, string? gateway, string? route = null, System.Exception? inner = null, LogixTagRelay.PlcOperation operation = LogixTagRelay.PlcOperation.Connect, bool transient = true, int? nativeStatus = null, string? nativeName = null, string? tagPath = null) -> void
+LogixTagRelay.PlcDateTime
+LogixTagRelay.PlcDateTime.PlcDateTime() -> void
+LogixTagRelay.PlcDateTime.PlcDateTime(long UnixMicroseconds) -> void
+LogixTagRelay.PlcDateTime.ToDateTimeOffset() -> System.DateTimeOffset
+LogixTagRelay.PlcDateTime.UnixMicroseconds.get -> long
+LogixTagRelay.PlcDateTime.UnixMicroseconds.init -> void
+LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.AccessDenied = 7 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.ConnectionFailed = 4 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.ConnectionRefused = 2 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.HostNotFound = 1 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.InvalidAddress = 8 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.ProtocolError = 5 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.ReadFailed = 10 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.TagNotFound = 6 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.Timeout = 3 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.TypeMismatch = 9 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.Unreachable = 0 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.WorkerFailed = 12 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFailureKind.WriteFailed = 11 -> LogixTagRelay.PlcFailureKind
+LogixTagRelay.PlcFault
+LogixTagRelay.PlcFault.Gateway.get -> string?
+LogixTagRelay.PlcFault.Gateway.init -> void
+LogixTagRelay.PlcFault.Kind.get -> LogixTagRelay.PlcFailureKind?
+LogixTagRelay.PlcFault.Kind.init -> void
+LogixTagRelay.PlcFault.Message.get -> string!
+LogixTagRelay.PlcFault.Message.init -> void
+LogixTagRelay.PlcFault.NativeStatus.get -> int?
+LogixTagRelay.PlcFault.NativeStatus.init -> void
+LogixTagRelay.PlcFault.NativeStatusName.get -> string?
+LogixTagRelay.PlcFault.NativeStatusName.init -> void
+LogixTagRelay.PlcFault.Operation.get -> LogixTagRelay.PlcOperation?
+LogixTagRelay.PlcFault.Operation.init -> void
+LogixTagRelay.PlcFault.PlcFault(System.DateTimeOffset Timestamp, LogixTagRelay.PlcOperation? Operation, LogixTagRelay.PlcFailureKind? Kind, string? Gateway, string? Route, string? TagPath, int? NativeStatus, string? NativeStatusName, System.Net.Sockets.SocketError? SocketError, bool Retryable, string! Message) -> void
+LogixTagRelay.PlcFault.Retryable.get -> bool
+LogixTagRelay.PlcFault.Retryable.init -> void
+LogixTagRelay.PlcFault.Route.get -> string?
+LogixTagRelay.PlcFault.Route.init -> void
+LogixTagRelay.PlcFault.SocketError.get -> System.Net.Sockets.SocketError?
+LogixTagRelay.PlcFault.SocketError.init -> void
+LogixTagRelay.PlcFault.TagPath.get -> string?
+LogixTagRelay.PlcFault.TagPath.init -> void
+LogixTagRelay.PlcFault.Timestamp.get -> System.DateTimeOffset
+LogixTagRelay.PlcFault.Timestamp.init -> void
+LogixTagRelay.PlcLongDateTime
+LogixTagRelay.PlcLongDateTime.PlcLongDateTime() -> void
+LogixTagRelay.PlcLongDateTime.PlcLongDateTime(long UnixNanoseconds) -> void
+LogixTagRelay.PlcLongDateTime.ToDateTimeOffset() -> System.DateTimeOffset
+LogixTagRelay.PlcLongDateTime.UnixNanoseconds.get -> long
+LogixTagRelay.PlcLongDateTime.UnixNanoseconds.init -> void
+LogixTagRelay.PlcLongTime
+LogixTagRelay.PlcLongTime.Nanoseconds.get -> long
+LogixTagRelay.PlcLongTime.Nanoseconds.init -> void
+LogixTagRelay.PlcLongTime.PlcLongTime() -> void
+LogixTagRelay.PlcLongTime.PlcLongTime(long Nanoseconds) -> void
+LogixTagRelay.PlcLongTime.ToTimeSpan() -> System.TimeSpan
+LogixTagRelay.PlcModel
+LogixTagRelay.PlcModel.InitializeVariables(LogixTagRelay.IPlcVariable![]! members, string![]! propertyNames) -> void
+LogixTagRelay.PlcModel.NotificationFailed -> System.EventHandler<LogixTagRelay.NotificationFailedEventArgs!>?
+LogixTagRelay.PlcModel.PlcModel() -> void
+LogixTagRelay.PlcModel.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+LogixTagRelay.PlcModel.TagValueChanged -> System.EventHandler<LogixTagRelay.PlcValueChangedEventArgs!>?
+LogixTagRelay.PlcModel.Variables.get -> System.Collections.ObjectModel.ReadOnlyObservableCollection<LogixTagRelay.IPlcVariable!>!
+LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.Connect = 0 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.ExchangeImage = 11 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.ImplicitHandshake = 10 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.InitializeTag = 2 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.ReadHeartbeat = 7 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.ReadTag = 3 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.ReadTrigger = 5 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.RegisterSession = 1 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.StartWorker = 9 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.WriteHeartbeat = 8 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.WriteResponse = 6 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcOperation.WriteTag = 4 -> LogixTagRelay.PlcOperation
+LogixTagRelay.PlcTagReadException
+LogixTagRelay.PlcTagReadException.PlcTagReadException(string! tag, string? gateway, string? route, System.Exception! inner, LogixTagRelay.PlcFailureKind kind = LogixTagRelay.PlcFailureKind.ReadFailed, bool transient = true, LogixTagRelay.PlcOperation operation = LogixTagRelay.PlcOperation.ReadTag, int? nativeStatus = null, string? nativeName = null) -> void
+LogixTagRelay.PlcTagWriteException
+LogixTagRelay.PlcTagWriteException.PlcTagWriteException(string! tag, string? gateway, string? route, System.Exception! inner, LogixTagRelay.PlcFailureKind kind = LogixTagRelay.PlcFailureKind.WriteFailed, bool transient = true, LogixTagRelay.PlcOperation operation = LogixTagRelay.PlcOperation.WriteTag, int? nativeStatus = null, string? nativeName = null) -> void
+LogixTagRelay.PlcTime
+LogixTagRelay.PlcTime.Microseconds.get -> long
+LogixTagRelay.PlcTime.Microseconds.init -> void
+LogixTagRelay.PlcTime.PlcTime() -> void
+LogixTagRelay.PlcTime.PlcTime(long Microseconds) -> void
+LogixTagRelay.PlcTime.ToTimeSpan() -> System.TimeSpan
+LogixTagRelay.PlcTime32
+LogixTagRelay.PlcTime32.Microseconds.get -> int
+LogixTagRelay.PlcTime32.Microseconds.init -> void
+LogixTagRelay.PlcTime32.PlcTime32() -> void
+LogixTagRelay.PlcTime32.PlcTime32(int Microseconds) -> void
+LogixTagRelay.PlcTime32.ToTimeSpan() -> System.TimeSpan
+LogixTagRelay.PlcType
+LogixTagRelay.PlcType.BOOL = 0 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.DINT = 3 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.DT = 11 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.INT = 2 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.LDT = 16 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.LINT = 4 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.LREAL = 13 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.LTIME = 15 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.REAL = 5 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.SINT = 1 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.STRING = 6 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.TIME = 12 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.TIME32 = 14 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.UDINT = 9 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.UINT = 8 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.ULINT = 10 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcType.USINT = 7 -> LogixTagRelay.PlcType
+LogixTagRelay.PlcTypes
+LogixTagRelay.PlcValueChangedEventArgs
+LogixTagRelay.PlcValueChangedEventArgs.NewValue.get -> object!
+LogixTagRelay.PlcValueChangedEventArgs.OldValue.get -> object!
+LogixTagRelay.PlcValueChangedEventArgs.Origin.get -> LogixTagRelay.ValueChangeOrigin
+LogixTagRelay.PlcValueChangedEventArgs.Path.get -> string!
+LogixTagRelay.PlcValueChangedEventArgs.PlcValueChangedEventArgs(LogixTagRelay.IPlcVariable! variable, object! oldValue, object! newValue, LogixTagRelay.ValueChangeOrigin origin) -> void
+LogixTagRelay.PlcValueChangedEventArgs.Variable.get -> LogixTagRelay.IPlcVariable!
+LogixTagRelay.PlcVariable<T>
+LogixTagRelay.PlcVariable<T>.AcceptMergedWrite(long writtenVersion, object! mergedValue, System.DateTimeOffset time) -> void
+LogixTagRelay.PlcVariable<T>.AcceptRead(object! newValue, System.DateTimeOffset time) -> void
+LogixTagRelay.PlcVariable<T>.AcceptWrite(long writtenVersion, System.DateTimeOffset time) -> void
+LogixTagRelay.PlcVariable<T>.BoxedValue.get -> object!
+LogixTagRelay.PlcVariable<T>.Capture() -> (object! Value, long Version)
+LogixTagRelay.PlcVariable<T>.CaptureForMerge() -> (object! Value, long Version, bool Dirty)
+LogixTagRelay.PlcVariable<T>.Dirty.get -> bool
+LogixTagRelay.PlcVariable<T>.HasObservation.get -> bool
+LogixTagRelay.PlcVariable<T>.Map.get -> LogixTagRelay.FieldMap!
+LogixTagRelay.PlcVariable<T>.MarkBad() -> void
+LogixTagRelay.PlcVariable<T>.NotificationFailed -> System.EventHandler<LogixTagRelay.NotificationFailedEventArgs!>?
+LogixTagRelay.PlcVariable<T>.Observe(object! newValue, System.DateTimeOffset time) -> void
+LogixTagRelay.PlcVariable<T>.ObservedValue.get -> T
+LogixTagRelay.PlcVariable<T>.PlcTimestamp.get -> System.DateTimeOffset?
+LogixTagRelay.PlcVariable<T>.PlcValue.get -> object?
+LogixTagRelay.PlcVariable<T>.PlcVariable(LogixTagRelay.FieldMap! map) -> void
+LogixTagRelay.PlcVariable<T>.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+LogixTagRelay.PlcVariable<T>.Quality.get -> LogixTagRelay.Quality
+LogixTagRelay.PlcVariable<T>.Timestamp.get -> System.DateTimeOffset?
+LogixTagRelay.PlcVariable<T>.Value.get -> T
+LogixTagRelay.PlcVariable<T>.Value.set -> void
+LogixTagRelay.PlcVariable<T>.ValueChanged -> System.EventHandler<LogixTagRelay.PlcValueChangedEventArgs!>?
+LogixTagRelay.PlcVariable<T>.Version.get -> long
+LogixTagRelay.Quality
+LogixTagRelay.Quality.Bad = 2 -> LogixTagRelay.Quality
+LogixTagRelay.Quality.Good = 1 -> LogixTagRelay.Quality
+LogixTagRelay.Quality.Unknown = 0 -> LogixTagRelay.Quality
+LogixTagRelay.ReconnectDelayMode
+LogixTagRelay.ReconnectDelayMode.Exponential = 0 -> LogixTagRelay.ReconnectDelayMode
+LogixTagRelay.ReconnectDelayMode.Fixed = 1 -> LogixTagRelay.ReconnectDelayMode
+LogixTagRelay.RecoveryOptions
+LogixTagRelay.RecoveryOptions.AutoReconnect.get -> bool
+LogixTagRelay.RecoveryOptions.AutoReconnect.init -> void
+LogixTagRelay.RecoveryOptions.ConnectionTimeoutMs.get -> int
+LogixTagRelay.RecoveryOptions.ConnectionTimeoutMs.init -> void
+LogixTagRelay.RecoveryOptions.DelayMode.get -> LogixTagRelay.ReconnectDelayMode
+LogixTagRelay.RecoveryOptions.DelayMode.init -> void
+LogixTagRelay.RecoveryOptions.InitialDelayMs.get -> int
+LogixTagRelay.RecoveryOptions.InitialDelayMs.init -> void
+LogixTagRelay.RecoveryOptions.MaximumAttempts.get -> int
+LogixTagRelay.RecoveryOptions.MaximumAttempts.init -> void
+LogixTagRelay.RecoveryOptions.MaximumDelayMs.get -> int
+LogixTagRelay.RecoveryOptions.MaximumDelayMs.init -> void
+LogixTagRelay.RecoveryOptions.PendingWrites.get -> LogixTagRelay.PendingWritePolicy
+LogixTagRelay.RecoveryOptions.PendingWrites.init -> void
+LogixTagRelay.RecoveryOptions.RecoveryOptions(int InitialDelayMs = 250, int MaximumDelayMs = 5000, int MaximumAttempts = 0, int ConnectionTimeoutMs = 10000, int StaleTimeoutMs = 1000, LogixTagRelay.PendingWritePolicy PendingWrites = LogixTagRelay.PendingWritePolicy.Suspend, LogixTagRelay.ReconnectDelayMode DelayMode = LogixTagRelay.ReconnectDelayMode.Exponential, bool AutoReconnect = true) -> void
+LogixTagRelay.RecoveryOptions.StaleTimeoutMs.get -> int
+LogixTagRelay.RecoveryOptions.StaleTimeoutMs.init -> void
+LogixTagRelay.RecoveryOptions.Validate() -> void
+LogixTagRelay.RelayHost
+LogixTagRelay.RelayHost.Add(string! name, LogixTagRelay.IRelaySession! session) -> void
+LogixTagRelay.RelayHost.AddExplicit(string! name, LogixTagRelay.SyncConfiguration! config, LogixTagRelay.IPlcModel! model, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<LogixTagRelay.IExplicitTransport!>>! connect, LogixTagRelay.RecoveryOptions? recovery = null) -> LogixTagRelay.ExplicitContractSession!
+LogixTagRelay.RelayHost.RelayHost() -> void
+LogixTagRelay.RelayHost.RunAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+LogixTagRelay.RelayHost.Sessions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, LogixTagRelay.IRelaySession!>!
+LogixTagRelay.SessionDiagnostics
+LogixTagRelay.SessionDiagnostics.Changed -> System.EventHandler<LogixTagRelay.SessionSnapshot!>?
+LogixTagRelay.SessionDiagnostics.FaultOccurred -> System.EventHandler<LogixTagRelay.PlcFault!>?
+LogixTagRelay.SessionDiagnostics.LastException.get -> System.Exception?
+LogixTagRelay.SessionDiagnostics.NotificationFailed -> System.EventHandler<LogixTagRelay.NotificationFailedEventArgs!>?
+LogixTagRelay.SessionDiagnostics.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+LogixTagRelay.SessionDiagnostics.SessionDiagnostics() -> void
+LogixTagRelay.SessionDiagnostics.Snapshot.get -> LogixTagRelay.SessionSnapshot!
+LogixTagRelay.SessionKind
+LogixTagRelay.SessionKind.Explicit = 0 -> LogixTagRelay.SessionKind
+LogixTagRelay.SessionKind.Implicit = 1 -> LogixTagRelay.SessionKind
+LogixTagRelay.SessionSnapshot
+LogixTagRelay.SessionSnapshot.DataAge.get -> System.TimeSpan?
+LogixTagRelay.SessionSnapshot.DataAge.init -> void
+LogixTagRelay.SessionSnapshot.Failures.get -> long
+LogixTagRelay.SessionSnapshot.Failures.init -> void
+LogixTagRelay.SessionSnapshot.HeartbeatFailure.get -> LogixTagRelay.PlcFault?
+LogixTagRelay.SessionSnapshot.HeartbeatFailure.init -> void
+LogixTagRelay.SessionSnapshot.HeartbeatMissedIntervals.get -> long
+LogixTagRelay.SessionSnapshot.HeartbeatMissedIntervals.init -> void
+LogixTagRelay.SessionSnapshot.HeartbeatState.get -> LogixTagRelay.SessionState?
+LogixTagRelay.SessionSnapshot.HeartbeatState.init -> void
+LogixTagRelay.SessionSnapshot.HeartbeatTransitions.get -> long
+LogixTagRelay.SessionSnapshot.HeartbeatTransitions.init -> void
+LogixTagRelay.SessionSnapshot.HeartbeatValue.get -> bool?
+LogixTagRelay.SessionSnapshot.HeartbeatValue.init -> void
+LogixTagRelay.SessionSnapshot.LastCommunication.get -> System.DateTimeOffset?
+LogixTagRelay.SessionSnapshot.LastCommunication.init -> void
+LogixTagRelay.SessionSnapshot.LastCycleDuration.get -> System.TimeSpan
+LogixTagRelay.SessionSnapshot.LastCycleDuration.init -> void
+LogixTagRelay.SessionSnapshot.LastError.get -> string?
+LogixTagRelay.SessionSnapshot.LastError.init -> void
+LogixTagRelay.SessionSnapshot.LastFailure.get -> LogixTagRelay.PlcFault?
+LogixTagRelay.SessionSnapshot.LastFailure.init -> void
+LogixTagRelay.SessionSnapshot.LastHeartbeat.get -> System.DateTimeOffset?
+LogixTagRelay.SessionSnapshot.LastHeartbeat.init -> void
+LogixTagRelay.SessionSnapshot.LastRetryDelayMs.get -> int
+LogixTagRelay.SessionSnapshot.LastRetryDelayMs.init -> void
+LogixTagRelay.SessionSnapshot.LastStartLateness.get -> System.TimeSpan
+LogixTagRelay.SessionSnapshot.LastStartLateness.init -> void
+LogixTagRelay.SessionSnapshot.LastSuccessfulUpdate.get -> System.DateTimeOffset?
+LogixTagRelay.SessionSnapshot.LastSuccessfulUpdate.init -> void
+LogixTagRelay.SessionSnapshot.LastTrigger.get -> LogixTagRelay.TriggerStatus?
+LogixTagRelay.SessionSnapshot.LastTrigger.init -> void
+LogixTagRelay.SessionSnapshot.MaximumCycleDuration.get -> System.TimeSpan
+LogixTagRelay.SessionSnapshot.MaximumCycleDuration.init -> void
+LogixTagRelay.SessionSnapshot.MaximumStartLateness.get -> System.TimeSpan
+LogixTagRelay.SessionSnapshot.MaximumStartLateness.init -> void
+LogixTagRelay.SessionSnapshot.MissedDeadlines.get -> long
+LogixTagRelay.SessionSnapshot.MissedDeadlines.init -> void
+LogixTagRelay.SessionSnapshot.MissedIntervals.get -> long
+LogixTagRelay.SessionSnapshot.MissedIntervals.init -> void
+LogixTagRelay.SessionSnapshot.NextRetryAt.get -> System.DateTimeOffset?
+LogixTagRelay.SessionSnapshot.NextRetryAt.init -> void
+LogixTagRelay.SessionSnapshot.OverlappingRequests.get -> long
+LogixTagRelay.SessionSnapshot.OverlappingRequests.init -> void
+LogixTagRelay.SessionSnapshot.Recoveries.get -> long
+LogixTagRelay.SessionSnapshot.Recoveries.init -> void
+LogixTagRelay.SessionSnapshot.SessionSnapshot(LogixTagRelay.SessionState State, long SuccessfulUpdates, long Failures, long Recoveries, long MissedDeadlines, System.DateTimeOffset? LastCommunication, System.DateTimeOffset? LastSuccessfulUpdate, System.TimeSpan? DataAge, System.TimeSpan LastCycleDuration, System.TimeSpan MaximumCycleDuration, string? LastError, bool WritesSuspended, LogixTagRelay.TriggerStatus? LastTrigger) -> void
+LogixTagRelay.SessionSnapshot.State.get -> LogixTagRelay.SessionState
+LogixTagRelay.SessionSnapshot.State.init -> void
+LogixTagRelay.SessionSnapshot.SuccessfulUpdates.get -> long
+LogixTagRelay.SessionSnapshot.SuccessfulUpdates.init -> void
+LogixTagRelay.SessionSnapshot.WritesSuspended.get -> bool
+LogixTagRelay.SessionSnapshot.WritesSuspended.init -> void
+LogixTagRelay.SessionState
+LogixTagRelay.SessionState.AwaitingBaseline = 2 -> LogixTagRelay.SessionState
+LogixTagRelay.SessionState.Connecting = 1 -> LogixTagRelay.SessionState
+LogixTagRelay.SessionState.Faulted = 5 -> LogixTagRelay.SessionState
+LogixTagRelay.SessionState.Recovering = 4 -> LogixTagRelay.SessionState
+LogixTagRelay.SessionState.Running = 3 -> LogixTagRelay.SessionState
+LogixTagRelay.SessionState.Stopped = 0 -> LogixTagRelay.SessionState
+LogixTagRelay.SyncConfiguration
+LogixTagRelay.SyncConfiguration.AppToPlcBytes.get -> int
+LogixTagRelay.SyncConfiguration.AppToPlcBytes.init -> void
+LogixTagRelay.SyncConfiguration.Explicit.get -> LogixTagRelay.ExplicitOptions?
+LogixTagRelay.SyncConfiguration.Explicit.init -> void
+LogixTagRelay.SyncConfiguration.Fields.get -> System.Collections.Generic.List<LogixTagRelay.FieldMap!>!
+LogixTagRelay.SyncConfiguration.Fields.init -> void
+LogixTagRelay.SyncConfiguration.Gateway.get -> string!
+LogixTagRelay.SyncConfiguration.Gateway.init -> void
+LogixTagRelay.SyncConfiguration.Heartbeat.get -> LogixTagRelay.HeartbeatOptions?
+LogixTagRelay.SyncConfiguration.Heartbeat.init -> void
+LogixTagRelay.SyncConfiguration.Implicit.get -> LogixTagRelay.ImplicitOptions?
+LogixTagRelay.SyncConfiguration.Implicit.init -> void
+LogixTagRelay.SyncConfiguration.PlcToAppBytes.get -> int
+LogixTagRelay.SyncConfiguration.PlcToAppBytes.init -> void
+LogixTagRelay.SyncConfiguration.Route.get -> string!
+LogixTagRelay.SyncConfiguration.Route.init -> void
+LogixTagRelay.SyncConfiguration.SchemaHash.get -> string!
+LogixTagRelay.SyncConfiguration.SchemaHash.init -> void
+LogixTagRelay.SyncConfiguration.SchemaVersion.get -> int
+LogixTagRelay.SyncConfiguration.SchemaVersion.init -> void
+LogixTagRelay.SyncConfiguration.SyncConfiguration(string! SchemaHash, System.Collections.Generic.List<LogixTagRelay.FieldMap!>! Fields, int PlcToAppBytes, int AppToPlcBytes, string! Gateway = "192.168.1.10", string! Route = "1,0", LogixTagRelay.ExplicitOptions? Explicit = null, LogixTagRelay.ImplicitOptions? Implicit = null, int SchemaVersion = 2, LogixTagRelay.HeartbeatOptions? Heartbeat = null) -> void
+LogixTagRelay.SyncConfiguration.ToJson() -> string!
+LogixTagRelay.SyncConfiguration.Validate() -> void
+LogixTagRelay.TriggerResult
+LogixTagRelay.TriggerResult.Error.get -> System.Exception?
+LogixTagRelay.TriggerResult.Error.init -> void
+LogixTagRelay.TriggerResult.NotificationsDelivered.get -> bool
+LogixTagRelay.TriggerResult.NotificationsDelivered.init -> void
+LogixTagRelay.TriggerResult.Request.get -> int
+LogixTagRelay.TriggerResult.Request.init -> void
+LogixTagRelay.TriggerResult.Succeeded.get -> bool
+LogixTagRelay.TriggerResult.Succeeded.init -> void
+LogixTagRelay.TriggerResult.TriggerResult(int Request, bool Succeeded, System.Exception? Error, bool NotificationsDelivered) -> void
+LogixTagRelay.TriggerStatus
+LogixTagRelay.TriggerStatus.Error.get -> string?
+LogixTagRelay.TriggerStatus.Error.init -> void
+LogixTagRelay.TriggerStatus.NotificationsDelivered.get -> bool
+LogixTagRelay.TriggerStatus.NotificationsDelivered.init -> void
+LogixTagRelay.TriggerStatus.Request.get -> int
+LogixTagRelay.TriggerStatus.Request.init -> void
+LogixTagRelay.TriggerStatus.Succeeded.get -> bool
+LogixTagRelay.TriggerStatus.Succeeded.init -> void
+LogixTagRelay.TriggerStatus.TriggerStatus(int Request, bool Succeeded, bool NotificationsDelivered, string? Error) -> void
+LogixTagRelay.ValueChangeOrigin
+LogixTagRelay.ValueChangeOrigin.Application = 0 -> LogixTagRelay.ValueChangeOrigin
+LogixTagRelay.ValueChangeOrigin.Plc = 1 -> LogixTagRelay.ValueChangeOrigin
+const LogixTagRelay.ImplicitImage.HeaderBytes = 24 -> int
+const LogixTagRelay.ImplicitImage.Magic = 1347637297 -> int
+const LogixTagRelay.ImplicitImage.ProtocolVersion = 3 -> int
+override LogixTagRelay.PlcDateTime.ToString() -> string!
+override LogixTagRelay.PlcLongDateTime.ToString() -> string!
+override LogixTagRelay.PlcLongTime.ToString() -> string!
+override LogixTagRelay.PlcTime.ToString() -> string!
+override LogixTagRelay.PlcTime32.ToString() -> string!
+static LogixTagRelay.ArrayShape.Coordinates(int linearIndex, System.Collections.Generic.IReadOnlyList<int>! dimensions) -> int[]!
+static LogixTagRelay.ArrayShape.Count(System.Collections.Generic.IReadOnlyList<int>! dimensions) -> int
+static LogixTagRelay.ArrayShape.Subscript(int linearIndex, System.Collections.Generic.IReadOnlyList<int>! dimensions) -> string!
+static LogixTagRelay.ExplicitReads.Validate(System.Collections.Generic.IReadOnlyList<LogixTagRelay.FieldMap!>! fields, System.Collections.Generic.IReadOnlyList<LogixTagRelay.ExplicitReadGroup!>! groups) -> void
+static LogixTagRelay.ExplicitSession.SignedResponse(int request, bool succeeded) -> int
+static LogixTagRelay.ImplicitImage.ReadInt(System.ReadOnlySpan<byte> image, int offset) -> int
+static LogixTagRelay.ImplicitImage.WriteInt(System.Span<byte> image, int offset, int value) -> void
+static LogixTagRelay.ModelValidation.Validate(LogixTagRelay.SyncConfiguration! config, LogixTagRelay.IPlcModel! model) -> void
+static LogixTagRelay.PlcDateTime.FromDateTimeOffset(System.DateTimeOffset value) -> LogixTagRelay.PlcDateTime
+static LogixTagRelay.PlcLongDateTime.FromDateTimeOffset(System.DateTimeOffset value) -> LogixTagRelay.PlcLongDateTime
+static LogixTagRelay.PlcLongTime.FromTimeSpan(System.TimeSpan value) -> LogixTagRelay.PlcLongTime
+static LogixTagRelay.PlcTime.FromTimeSpan(System.TimeSpan value) -> LogixTagRelay.PlcTime
+static LogixTagRelay.PlcTime32.FromTimeSpan(System.TimeSpan value) -> LogixTagRelay.PlcTime32
+static LogixTagRelay.PlcTypes.CSharp(LogixTagRelay.PlcType type) -> string!
+static LogixTagRelay.PlcTypes.Decode(LogixTagRelay.FieldMap! field, System.ReadOnlySpan<byte> source) -> object!
+static LogixTagRelay.PlcTypes.Decode(LogixTagRelay.PlcType type, System.ReadOnlySpan<byte> source, int stringCapacity = 0) -> object!
+static LogixTagRelay.PlcTypes.Encode(LogixTagRelay.FieldMap! field, object! value, System.Span<byte> destination) -> void
+static LogixTagRelay.PlcTypes.Encode(LogixTagRelay.PlcType type, object! value, System.Span<byte> destination, int stringCapacity = 0) -> void
+static LogixTagRelay.PlcTypes.Size(LogixTagRelay.PlcType type, int stringCapacity = 0) -> int
+static LogixTagRelay.PlcTypes.ValidateString(string! value, int capacity) -> void
+static LogixTagRelay.SyncConfiguration.ComputeHash(System.Collections.Generic.IEnumerable<LogixTagRelay.FieldMap!>! fields) -> string!
+static LogixTagRelay.SyncConfiguration.FromJson(string! json) -> LogixTagRelay.SyncConfiguration!
+static readonly LogixTagRelay.SyncConfiguration.Json -> System.Text.Json.JsonSerializerOptions!

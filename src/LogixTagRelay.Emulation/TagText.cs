@@ -5,6 +5,9 @@ namespace LogixTagRelay.Emulation;
 /// <summary>Lossless text boundary for the GUI and HTTP transport, including full LINT precision.</summary>
 public static class TagText
 {
+    /// <summary>Converts scalar text to its matching CLR representation using mapping capacity and range checks.</summary>
+    /// <param name="field">Scalar mapping, including STRING capacity when applicable.</param>
+    /// <param name="value">Lossless invariant scalar text to parse.</param>
     public static object Parse(FieldMap field, string value)
     {
         object parsed = field.Type switch
@@ -31,6 +34,8 @@ public static class TagText
         PlcTypes.Encode(field, parsed, new byte[field.WireBytes]);
         return parsed;
     }
+    /// <summary>Formats a typed scalar in lossless invariant text for HTTP, GUI and JavaScript boundaries.</summary>
+    /// <param name="value">Typed scalar or timestamp value required by this operation.</param>
     public static string Format(object value) => value switch
     {
         PlcDateTime dt => dt.ToString(), PlcTime time => time.ToString(),
@@ -42,6 +47,8 @@ public static class TagText
         string s => s,
         _ => throw new ArgumentException("Unsupported tag value.")
     };
+    /// <summary>Returns the correctly typed zero, false or empty STRING value for a mapped PLC scalar.</summary>
+    /// <param name="type">Supported PLC scalar type.</param>
     public static object Default(PlcType type) => type switch
     {
         PlcType.BOOL => false, PlcType.SINT => (sbyte)0, PlcType.INT => (short)0, PlcType.DINT => 0,

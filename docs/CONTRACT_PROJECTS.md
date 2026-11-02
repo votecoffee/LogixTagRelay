@@ -11,8 +11,8 @@ feed until publication):
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="LogixTagRelay" Version="0.8.0-preview.1" />
-  <PackageReference Include="LogixTagRelay.Build" Version="0.8.0-preview.1" PrivateAssets="all" />
+  <PackageReference Include="LogixTagRelay" Version="0.8.1-preview.1" />
+  <PackageReference Include="LogixTagRelay.Build" Version="0.8.1-preview.1" PrivateAssets="all" />
   <LogixContract Include="telemetry.ltrx.json" />
 </ItemGroup>
 ```
@@ -42,3 +42,21 @@ lengths and assembly settings. Additions still change the wire schema: regenerat
 PLC and API peers together. Runtime model/config matching remains mandatory.
 
 `samples/ContractProjectDemo` demonstrates source-bound build generation from this repo.
+
+## IntelliSense descriptions
+
+Generated XML summaries use exported tag descriptions and operand comments, then
+UDT member defaults or the UDT type description where applicable. Multiline text
+is retained as XML documentation paragraphs and escaped safely. Program-scoped,
+nested and indexed operand comments are preserved in saved catalogs. Exports with
+localized documentation use CurrentLanguage, or en-US when unspecified.
+
+If several instances share one generated UDT type but have different member
+comments, IntelliSense remarks list the descriptions with their PLC paths. Array
+element overrides are listed similarly. This preserves the generated CLR type
+identity and rectangular array element type. Missing comments retain path/type
+fallback summaries. Description edits do not change the wire schema.
+
+The current live CIP browser does not retrieve documentation; load an L5X export
+containing comments to include them. See [release verification](RELEASING.md) for
+compiled XML documentation and package-consumer checks.

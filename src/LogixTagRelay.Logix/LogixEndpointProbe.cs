@@ -7,6 +7,11 @@ namespace LogixTagRelay.Logix;
 /// <summary>Checks TCP and EtherNet/IP registration without reading/writing a PLC tag or opening Class 1 I/O.</summary>
 public static class LogixEndpointProbe
 {
+    /// <summary>Connects and registers then unregisters a probe session; proves endpoint protocol response, not CPU route or tag permissions.</summary>
+    /// <param name="gateway">PLC hostname or IP address, optionally with a port.</param>
+    /// <param name="route">CIP route to the controller, such as 1,0.</param>
+    /// <param name="timeoutMs">Operation timeout in milliseconds.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public static async Task CheckAsync(string gateway, string route = "1,0", int timeoutMs = 5000, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(gateway) || timeoutMs <= 0 || !Uri.TryCreate("tcp://" + gateway, UriKind.Absolute, out var address)) throw new ArgumentException("A PLC host[:port] and positive timeout are required.");

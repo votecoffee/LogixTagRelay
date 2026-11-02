@@ -5,9 +5,12 @@ using System.Xml.Linq;
 
 namespace LogixTagRelay.Design;
 
+/// <summary>Type-ignorant three-array SINT merge with PLC-winning byte conflicts.</summary>
 public static class SintMergeAoi
 {
+    /// <summary>Studio 5000 AOI definition name used by generated routines.</summary>
     public const string Name = "LTR_SintMerge";
+    /// <summary>Embedded type-ignorant Structured Text source used to build the AOI import.</summary>
     public static string StructuredText
     {
         get
@@ -18,6 +21,8 @@ public static class SintMergeAoi
             return reader.ReadToEnd().ReplaceLineEndings("\n");
         }
     }
+    /// <summary>Creates the merge AOI import for a requested Studio 5000 revision; native import and compile acceptance are separate.</summary>
+    /// <param name="softwareRevision">Target Studio 5000 software revision; native acceptance is required separately.</param>
     public static string GenerateL5x(string softwareRevision = "35.03") => Serialize(new XDocument(
         new XDeclaration("1.0", "UTF-8", "yes"),
         new XElement("RSLogix5000Content", new XAttribute("SchemaRevision", "1.0"), new XAttribute("SoftwareRevision", softwareRevision),

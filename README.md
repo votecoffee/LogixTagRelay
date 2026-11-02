@@ -4,7 +4,7 @@ C# access to Logix PLC tags through generated, strongly typed contracts. Browse 
 and UDTs, generate C#/JSON and PLC imports, then synchronize through explicit messaging,
 implicit I/O, or a local memory emulator.
 
-**0.8.0-preview.1.** Local and emulator checks are available. Real PLC communication
+**0.8.1-preview.1.** Local and emulator checks are available. Real PLC communication
 and Studio 5000 import acceptance remain unverified; see [validation](docs/VALIDATION.md).
 
 ## Table of Contents
@@ -196,6 +196,7 @@ dotnet run --project samples/TypesAndEventsDemo -c Release -- --implicit
 - [Emulator and JavaScript scripts](docs/EMULATION.md)
 - [Wire format and architecture](docs/ARCHITECTURE.md)
 - [SINT merge AOI](plc/README.md)
+- [Release verification, symbols and API compatibility](docs/RELEASING.md)
 - [Validation and remaining acceptance](docs/VALIDATION.md)
 
 ## Maintainers

@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Version>0.8.0-preview.1</Version>
+    <Version>0.8.1-preview.1</Version>
     <Authors>votecoffee</Authors>
     <Description>Typed Logix tag synchronization and deterministic PLC interface generation.</Description>
     <Deterministic>true</Deterministic>

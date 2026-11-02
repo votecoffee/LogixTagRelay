@@ -7,15 +7,35 @@ using System.Xml.Linq;
 
 namespace LogixTagRelay.Design;
 
+/// <summary>Source-bound Generic Ethernet Module settings and compatibility findings from an existing L5X export.</summary>
+/// <param name="SourceSha256">SHA-256 identity of the original native module export.</param>
+/// <param name="Name">Tag, controller or module display name from the source catalog.</param>
+/// <param name="SoftwareRevision">Studio 5000 revision associated with the source export.</param>
+/// <param name="Address">Module&apos;s configured adapter IP address.</param>
+/// <param name="InputAssembly">PLC input assembly instance.</param>
+/// <param name="OutputAssembly">PLC output assembly instance.</param>
+/// <param name="ConfigurationAssembly">Adapter configuration assembly instance.</param>
+/// <param name="InputBytes">PLC input connection size in bytes.</param>
+/// <param name="OutputBytes">PLC output connection size in bytes.</param>
+/// <param name="ConfigurationBytes">Configuration assembly size in bytes.</param>
+/// <param name="StatusConnections">Number of separate status connections found in the export.</param>
+/// <param name="CommMethod">Native module communication method preserved from the export.</param>
+/// <param name="Errors">Compatibility findings requiring attention before generating a module copy.</param>
 public sealed record ModuleTemplateInfo(string SourceSha256, string Name, string SoftwareRevision,
     string Address, int InputAssembly, int OutputAssembly, int? ConfigurationAssembly,
     int InputBytes, int OutputBytes, int ConfigurationBytes, int StatusConnections,
     string CommMethod, List<string> Errors);
+/// <summary>Generated module import and SHA-256 identity of its original native export.</summary>
+/// <param name="Xml">Generated module import XML.</param>
+/// <param name="SourceSha256">SHA-256 identity of the original native module export.</param>
 public sealed record ModuleImport(string Xml, string SourceSha256);
 
 /// <summary>Generates a review copy from a matching native export. Does not claim native import acceptance.</summary>
 public static partial class ModuleTemplate
 {
+    /// <summary>Inspects module instances, symmetric SINT sizes and preserved configuration; findings are not native import acceptance.</summary>
+    /// <param name="bytes">Original L5X export bytes.</param>
+    /// <param name="settings">Expected adapter assembly settings; defaults apply when null.</param>
     public static ModuleTemplateInfo Inspect(byte[] bytes, ImplicitOptions? settings = null)
     {
         var doc = Read(bytes);
@@ -53,6 +73,11 @@ public static partial class ModuleTemplate
             inputPoint, outputPoint, configAssembly, input, output, configSize,
             connections.Count(c => (string?)c.Attribute("Name") == "Status"), (string?)communications.Attribute("CommMethod") ?? "", errors);
     }
+    /// <summary>Creates a reviewed module-import copy from a compatible native template, preserving opaque configuration data.</summary>
+    /// <param name="template">Original native module export bytes used as the preservation source.</param>
+    /// <param name="config">Matching generated contract configuration.</param>
+    /// <param name="moduleName">Generic Ethernet Module identifier, at most 16 characters.</param>
+    /// <param name="pcAddress">IPv4 address of the PC NIC serving the adapter.</param>
     public static ModuleImport Generate(byte[] template, SyncConfiguration config, string moduleName, string pcAddress)
     {
         config.Validate();

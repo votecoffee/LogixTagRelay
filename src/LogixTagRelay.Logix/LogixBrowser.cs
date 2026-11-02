@@ -5,6 +5,9 @@ using LogixTagRelay.Design;
 namespace LogixTagRelay.Logix;
 
 /// <summary>Read-only online symbol/template discovery. Permissions are unknown until matched to an export.</summary>
+/// <param name="gateway">PLC hostname or IP address, optionally with a port.</param>
+/// <param name="route">CIP route to the controller, such as 1,0.</param>
+/// <param name="timeoutMs">Operation timeout in milliseconds.</param>
 public sealed class LogixBrowser(string gateway, string route = "1,0", int timeoutMs = 5000)
 {
     private sealed record Symbol(string Name, ushort Type, uint[] Dimensions);
@@ -12,6 +15,8 @@ public sealed class LogixBrowser(string gateway, string route = "1,0", int timeo
     private sealed record Template(string Name, List<Member> Members);
     private readonly Dictionary<int, Template> templates = [];
     private int expanded;
+    /// <summary>Returns live tag and type metadata; this operation connects to the configured PLC.</summary>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public async Task<TagCatalog> BrowseAsync(CancellationToken cancellationToken = default)
     {
         templates.Clear(); expanded = 0;

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "PackageConsumer",
+  "sourceL5x": "Contract.L5X",
+  "namespace": "Consumer.Contracts",
+  "className": "ReleaseTags",
+  "selections": [
+    { "path": "Machine", "direction": "Bidirectional" },
+    { "path": "Backup", "direction": "Bidirectional" },
+    { "path": "Grid", "direction": "Bidirectional" },
+    { "path": "Utc", "direction": "PlcToApp" }
+  ],
+  "includeImplicit": true,
+  "heartbeat": { "tag": "ApiAlive" }
+}

@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HostingDemo", "samples\Host
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LivenessDemo", "samples\LivenessDemo\LivenessDemo.csproj", "{C2AD9A22-B019-4AFE-AF57-FB3648FE40AA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogixTagRelay.PackageChecks", "tools\LogixTagRelay.PackageChecks\LogixTagRelay.PackageChecks.csproj", "{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -259,6 +261,18 @@ Global
 		{C2AD9A22-B019-4AFE-AF57-FB3648FE40AA}.Release|x64.Build.0 = Release|Any CPU
 		{C2AD9A22-B019-4AFE-AF57-FB3648FE40AA}.Release|x86.ActiveCfg = Release|Any CPU
 		{C2AD9A22-B019-4AFE-AF57-FB3648FE40AA}.Release|x86.Build.0 = Release|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Debug|x64.Build.0 = Debug|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Debug|x86.Build.0 = Debug|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Release|x64.ActiveCfg = Release|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Release|x64.Build.0 = Release|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Release|x86.ActiveCfg = Release|Any CPU
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -281,5 +295,6 @@ Global
 		{4F1B7880-BF8D-4744-A05F-42A181CA00C8} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{7B2E72D7-4222-4764-ADAE-060AE84362A7} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{C2AD9A22-B019-4AFE-AF57-FB3648FE40AA} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{8922EF2E-50EC-4E27-8185-7B5DD3FDC7FC} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 EndGlobal

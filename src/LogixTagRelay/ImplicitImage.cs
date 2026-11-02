@@ -5,8 +5,11 @@ namespace LogixTagRelay;
 /// <summary>Complete assembly codec; no network activity. One request per matching PLC snapshot.</summary>
 public sealed class ImplicitImage
 {
+    /// <summary>Relay header size in bytes, included in the 480-byte maximum image size.</summary>
     public const int HeaderBytes = 24;
+    /// <summary>Relay wire signature used to reject unrelated images.</summary>
     public const int Magic = 0x50535031;
+    /// <summary>Relay image protocol version; both PLC and API peers must match.</summary>
     public const int ProtocolVersion = 3;
     private readonly SyncConfiguration config;
     private readonly IPlcModel model;
@@ -20,8 +23,12 @@ public sealed class ImplicitImage
     private DateTimeOffset? lastFresh;
     private byte[]? lastReceived;
     private sealed record SentImage(int Sequence, List<(IPlcVariable Variable, long Version)> Versions);
+    /// <summary>Whether a captured command is waiting for its matching PLC acknowledgement.</summary>
     public bool HasPendingCommand { get { lock (gate) return pending is not null; } }
 
+    /// <summary>Creates image protocol state for a matching generated model and symmetric configuration.</summary>
+    /// <param name="config">Matching generated contract configuration.</param>
+    /// <param name="model">Live application model instance used by synchronization.</param>
     public ImplicitImage(SyncConfiguration config, IPlcModel model)
     {
         ModelValidation.Validate(config, model);
@@ -30,6 +37,7 @@ public sealed class ImplicitImage
     }
     /// <summary>Invalid startup frame: cannot authorize PLC writes before a baseline is received.</summary>
     public byte[] BuildBootstrap() => new byte[config.AppToPlcBytes];
+    /// <summary>Starts a fresh-nonce baseline handshake and discards old pending protocol state without clearing model edits.</summary>
     public byte[] BeginResynchronization()
     {
         lock (gate)
@@ -40,6 +48,8 @@ public sealed class ImplicitImage
             return request;
         }
     }
+    /// <summary>Captures a command using a valid PLC baseline. Retain and resend the same bytes until acknowledged.</summary>
+    /// <param name="allowWrites">Whether pending application edits may enter the captured command image.</param>
     public byte[] BuildAppToPlc(bool allowWrites = true)
     {
         lock (gate)
@@ -62,6 +72,9 @@ public sealed class ImplicitImage
             return image;
         }
     }
+    /// <summary>Validates and adopts a fresh PLC image; returns false for ignored stale, duplicate or unrelated handshake images.</summary>
+    /// <param name="image">Complete symmetric relay image including its header.</param>
+    /// <param name="time">Timestamp assigned to the accepted observation or acknowledgement.</param>
     public bool ReceivePlcToApp(ReadOnlySpan<byte> image, DateTimeOffset time)
     {
         lock (gate)
@@ -99,6 +112,9 @@ public sealed class ImplicitImage
             catch { foreach (var variable in model.Variables) variable.MarkBad(); throw; }
         }
     }
+    /// <summary>Marks variables bad and throws TimeoutException when the accepted PLC image is too old.</summary>
+    /// <param name="now">Current scheduling timestamp.</param>
+    /// <param name="timeout">Maximum acceptable age of the last fresh PLC image.</param>
     public bool CheckStale(DateTimeOffset now, TimeSpan timeout)
     {
         if (timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeout));
@@ -114,6 +130,13 @@ public sealed class ImplicitImage
         WriteInt(image, 0, Magic); WriteInt(image, 4, ProtocolVersion); WriteInt(image, 8, schemaToken);
         WriteInt(image, 12, seq); WriteInt(image, 16, ack); WriteInt(image, 20, 1);
     }
+    /// <summary>Reads one little-endian DINT from the image at a byte offset.</summary>
+    /// <param name="image">Complete symmetric relay image including its header.</param>
+    /// <param name="offset">Byte offset of a little-endian DINT in the image.</param>
     public static int ReadInt(ReadOnlySpan<byte> image, int offset) => BinaryPrimitives.ReadInt32LittleEndian(image[offset..]);
+    /// <summary>Writes one little-endian DINT to the image at a byte offset.</summary>
+    /// <param name="image">Complete symmetric relay image including its header.</param>
+    /// <param name="offset">Byte offset of a little-endian DINT in the image.</param>
+    /// <param name="value">Typed scalar or timestamp value required by this operation.</param>
     public static void WriteInt(Span<byte> image, int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(image[offset..], value);
 }

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.03">
+  <Controller Name="PackageConsumer">
+    <DataTypes>
+      <DataType Name="ShortString">
+        <Members>
+          <Member Name="LEN" DataType="DINT" Dimension="0" ExternalAccess="Read/Write" />
+          <Member Name="DATA" DataType="SINT" Dimension="12" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+      <DataType Name="MachineData">
+        <Members>
+          <Member Name="Command" DataType="DINT" Dimension="0" ExternalAccess="Read/Write"><Description><![CDATA[Default commanded position in millimetres.]]></Description></Member>
+          <Member Name="Actual" DataType="REAL" Dimension="0" ExternalAccess="Read/Write"><Description><![CDATA[Measured position in millimetres.]]></Description></Member>
+          <Member Name="InPosition" DataType="BOOL" Dimension="0" ExternalAccess="Read Only" />
+          <Member Name="Label" DataType="ShortString" Dimension="0" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+    </DataTypes>
+    <Tags>
+      <Tag Name="Machine" TagType="Base" DataType="MachineData" ExternalAccess="Read/Write">
+        <Description><![CDATA[Machine position contract.]]></Description>
+        <Comments><Comment Operand=".Command"><![CDATA[Requested <position> & command.
+Use millimetres.]]></Comment></Comments>
+      </Tag>
+      <Tag Name="Backup" TagType="Base" DataType="MachineData" ExternalAccess="Read/Write">
+        <Comments><Comment Operand=".Command"><![CDATA[Backup machine command.]]></Comment></Comments>
+      </Tag>
+      <Tag Name="Grid" TagType="Base" DataType="USINT" Dimensions="2,2" ExternalAccess="Read/Write" />
+      <Tag Name="Utc" TagType="Base" DataType="DT" ExternalAccess="Read/Write" />
+      <Tag Name="ApiAlive" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" />
+    </Tags>
+  </Controller>
+</RSLogix5000Content>

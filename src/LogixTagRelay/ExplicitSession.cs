@@ -2,15 +2,43 @@ using System.Diagnostics;
 
 namespace LogixTagRelay;
 
+/// <summary>Result of one nonzero DINT-triggered transfer and its optional notification writes.</summary>
+/// <param name="Request">Nonzero DINT request value handled by this transfer.</param>
+/// <param name="Succeeded">Whether the requested data transfer succeeded.</param>
+/// <param name="Error">Failure details, or null on success.</param>
+/// <param name="NotificationsDelivered">Whether all configured handled and ACK/NACK writes completed.</param>
 public sealed record TriggerResult(int Request, bool Succeeded, Exception? Error, bool NotificationsDelivered);
 
+/// <summary>Owned explicit read/write connection. Implementations must honor cancellation and preserve scalar CLR types.</summary>
 public interface IExplicitTransport : IAsyncDisposable
 {
+    /// <summary>Checks the endpoint before tag access. Default custom transports require no separate connection operation.</summary>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     ValueTask ConnectAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    /// <summary>Reads one scalar in its matching CLR type. Use the FieldMap overload for STRING capacity metadata.</summary>
+    /// <param name="path">Fully qualified Logix scalar path.</param>
+    /// <param name="type">Supported PLC scalar type.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     ValueTask<object> ReadAsync(string path, PlcType type, CancellationToken cancellationToken);
+    /// <summary>Writes one addressed scalar. Use the FieldMap overload for STRING capacity metadata; completion is not a multi-tag transaction.</summary>
+    /// <param name="path">Fully qualified Logix scalar path.</param>
+    /// <param name="type">Supported PLC scalar type.</param>
+    /// <param name="value">Typed scalar or timestamp value required by this operation.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     ValueTask WriteAsync(string path, PlcType type, object value, CancellationToken cancellationToken);
+    /// <summary>Reads one scalar in its matching CLR type. Use the FieldMap overload for STRING capacity metadata.</summary>
+    /// <param name="field">Scalar mapping, including STRING capacity when applicable.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     ValueTask<object> ReadAsync(FieldMap field, CancellationToken cancellationToken) => ReadAsync(field.Path, field.Type, cancellationToken);
+    /// <summary>Writes one addressed scalar. Use the FieldMap overload for STRING capacity metadata; completion is not a multi-tag transaction.</summary>
+    /// <param name="field">Scalar mapping, including STRING capacity when applicable.</param>
+    /// <param name="value">Typed scalar or timestamp value required by this operation.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     ValueTask WriteAsync(FieldMap field, object value, CancellationToken cancellationToken) => WriteAsync(field.Path, field.Type, value, cancellationToken);
+    /// <summary>Returns values in field order. Native UDT groups may share a snapshot; separate groups are not an atomic PLC transaction.</summary>
+    /// <param name="fields">Ordered scalar mappings to validate, encode or read.</param>
+    /// <param name="groups">Whole-UDT root read groups associated with the scalar fields.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     async ValueTask<IReadOnlyList<object>> ReadBatchAsync(IReadOnlyList<FieldMap> fields, IReadOnlyList<ExplicitReadGroup> groups, CancellationToken cancellationToken)
     {
         var values = new List<object>(fields.Count);
@@ -34,13 +62,21 @@ public sealed class ExplicitSession
     private readonly SemaphoreSlim cycleGate = new(1, 1);
     private int running;
     private int writesEnabled = 1;
+    /// <summary>Whether data updates may transmit pending application edits; reads and explicit heartbeat remain active.</summary>
     public bool WritesEnabled { get => Volatile.Read(ref writesEnabled) != 0; set => Volatile.Write(ref writesEnabled, value ? 1 : 0); }
+    /// <summary>Communication state, freshness, faults, retry and interval counters for this session.</summary>
     public SessionDiagnostics Diagnostics { get; }
     private int lastObservedTrigger;
     private TriggerResult? lastTriggerResult;
     private readonly HeartbeatState heartbeat;
     private bool connected, heartbeatInitialized;
+    /// <summary>Most recent completed trigger result, or null before any transfer completes.</summary>
     public TriggerResult? LastTriggerResult => Volatile.Read(ref lastTriggerResult);
+    /// <summary>Creates a serialized explicit data and heartbeat session over a caller-owned transport.</summary>
+    /// <param name="config">Matching generated contract configuration.</param>
+    /// <param name="model">Live application model instance used by synchronization.</param>
+    /// <param name="transport">Explicit transport owned and disposed by the caller, not by the raw session.</param>
+    /// <param name="diagnostics">Optional shared diagnostics instance; a new instance is created when null.</param>
     public ExplicitSession(SyncConfiguration config, IPlcModel model, IExplicitTransport transport, SessionDiagnostics? diagnostics = null)
     {
         Diagnostics = diagnostics ?? new();
@@ -90,6 +126,8 @@ public sealed class ExplicitSession
             throw;
         }
     }
+    /// <summary>Runs until cancellation or a terminal fault. Cancel and await completion before disposing owned resources.</summary>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         if (Interlocked.Exchange(ref running, 1) != 0) throw new InvalidOperationException("Session is already running.");
@@ -126,6 +164,8 @@ public sealed class ExplicitSession
             await IntervalSchedule.WaitAsync(updates, heartbeats, ct).ConfigureAwait(false);
         }
     }
+    /// <summary>Polls the DINT trigger and handles a changed nonzero request, including optional handled and ACK/NACK writes.</summary>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public async Task<TriggerResult?> PollTriggerOnceAsync(CancellationToken cancellationToken = default)
     {
         var options = config.Explicit ?? throw new InvalidOperationException("A DINT trigger must be configured.");
@@ -196,6 +236,8 @@ public sealed class ExplicitSession
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception error) when (PlcErrors.IsCommunication(error)) { throw error is PlcCommunicationException ? error : PlcErrors.Connect(error, config); }
     }
+    /// <summary>Checks the endpoint before tag access. Default custom transports require no separate connection operation.</summary>
+    /// <param name="ct">Cancels this operation.</param>
     public async Task ConnectAsync(CancellationToken ct = default)
     {
         await EnterAsync(ct).ConfigureAwait(false);
@@ -203,6 +245,8 @@ public sealed class ExplicitSession
         catch (Exception error) { if (error is not OperationCanceledException || !ct.IsCancellationRequested) Diagnostics.Failure(error); throw; }
         finally { cycleGate.Release(); }
     }
+    /// <summary>Reads the contract and writes only dirty writable members. New edits during a write remain pending.</summary>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public async Task SynchronizeOnceAsync(CancellationToken cancellationToken = default)
     {
         await EnterAsync(cancellationToken).ConfigureAwait(false);
@@ -210,6 +254,8 @@ public sealed class ExplicitSession
         catch (Exception error) { if (error is not OperationCanceledException || !cancellationToken.IsCancellationRequested) Diagnostics.Failure(error); throw; }
         finally { cycleGate.Release(); }
     }
+    /// <summary>Seeds the actual PLC BOOL on first use, then toggles it on each subsequent call, serialized with explicit data operations.</summary>
+    /// <param name="ct">Cancels this operation.</param>
     public async Task<bool> HeartbeatOnceAsync(CancellationToken ct = default)
     {
         if (config.Heartbeat is not { } options) return false;
@@ -247,6 +293,9 @@ public sealed class ExplicitSession
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception error) when (PlcErrors.IsCommunication(error)) { throw PlcErrors.Write(error, config, field.Path); }
     }
+    /// <summary>Returns positive request magnitude for ACK or negative magnitude for NACK; rejects zero and throws on DINT overflow.</summary>
+    /// <param name="request">Nonzero DINT request. Int32.MinValue cannot be represented as a positive DINT magnitude.</param>
+    /// <param name="succeeded">True for positive ACK, false for negative NACK.</param>
     public static int SignedResponse(int request, bool succeeded)
     {
         if (request == 0) throw new ArgumentOutOfRangeException(nameof(request));

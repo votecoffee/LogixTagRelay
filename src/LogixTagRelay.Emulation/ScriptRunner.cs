@@ -3,10 +3,20 @@ using Jint;
 
 namespace LogixTagRelay.Emulation;
 
+/// <summary>Current JavaScript source, scheduler state, committed ticks, persistent JSON state and bounded log.</summary>
+/// <param name="Source">Current JavaScript source.</param>
+/// <param name="Running">Whether automatic ticks are enabled.</param>
+/// <param name="IntervalMs">Automatic JavaScript tick interval in milliseconds.</param>
+/// <param name="Ticks">Number of successfully committed JavaScript ticks.</param>
+/// <param name="Outcome">Latest script execution result.</param>
+/// <param name="Error">Failure details, or null on success.</param>
+/// <param name="StateJson">Persistent primitive JSON script state.</param>
+/// <param name="Log">Bounded recent script log entries.</param>
 public sealed record ScriptStatus(string Source, bool Running, int IntervalMs, long Ticks, string Outcome,
     string? Error, string StateJson, IReadOnlyList<string> Log);
 
 /// <summary>Transactional JavaScript ticks over PLC memory. Only primitive JSON crosses the engine boundary.</summary>
+/// <param name="memory">Shared emulated PLC memory.</param>
 public sealed class ScriptRunner(PlcMemory memory)
 {
     private readonly object gate = new();
@@ -18,7 +28,12 @@ public sealed class ScriptRunner(PlcMemory memory)
     private Dictionary<string, string>? previous;
     private readonly Queue<string> log = new();
     private DateTimeOffset due;
+    /// <summary>Consistent snapshot of current emulator protocol or script diagnostics.</summary>
     public ScriptStatus Status { get { lock (gate) return new(source, running, intervalMs, ticks, outcome, error, stateJson, log.ToArray()); } }
+    /// <summary>Sets JavaScript source and tick schedule. Changing source resets script state and change history.</summary>
+    /// <param name="code">JavaScript source executed with bounded resources and no CLR access.</param>
+    /// <param name="interval">Automatic script tick interval in milliseconds, from 20 through 60000.</param>
+    /// <param name="start">Whether to start automatic ticks immediately.</param>
     public void Configure(string code, int interval = 100, bool start = false)
     {
         ArgumentNullException.ThrowIfNull(code);
@@ -30,7 +45,10 @@ public sealed class ScriptRunner(PlcMemory memory)
             source = code; intervalMs = interval; running = start; error = null; outcome = start ? "Running" : "Ready"; due = DateTimeOffset.UtcNow;
         }
     }
+    /// <summary>Stops automatic JavaScript ticks while preserving current memory and script state.</summary>
     public void Stop() { lock (gate) { running = false; outcome = "Stopped"; } }
+    /// <summary>Executes a transactional script tick only when running and its next scheduled time has arrived.</summary>
+    /// <param name="now">Current scheduling timestamp.</param>
     public void TickIfDue(DateTimeOffset now)
     {
         lock (gate)
@@ -40,6 +58,8 @@ public sealed class ScriptRunner(PlcMemory memory)
             Step(intervalMs / 1000d);
         }
     }
+    /// <summary>Executes one bounded JavaScript tick. Returns false on a rejected stale transaction or script error; memory writes commit together.</summary>
+    /// <param name="deltaSeconds">Positive simulated step duration, at most 60 seconds.</param>
     public bool Step(double deltaSeconds = 0.1)
     {
         if (!double.IsFinite(deltaSeconds) || deltaSeconds <= 0 || deltaSeconds > 60) throw new ArgumentOutOfRangeException(nameof(deltaSeconds));

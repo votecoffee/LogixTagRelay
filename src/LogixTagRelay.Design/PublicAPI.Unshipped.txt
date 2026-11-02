@@ -1,0 +1,3 @@
+#nullable enable
+LogixTagRelay.Design.TagNode.Description.get -> string?
+LogixTagRelay.Design.TagNode.Description.init -> void

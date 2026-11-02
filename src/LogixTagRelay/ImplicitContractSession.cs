@@ -2,24 +2,39 @@ using System.Diagnostics;
 
 namespace LogixTagRelay;
 
+/// <summary>Owned full-image exchange transport for one bounded implicit contract.</summary>
 public interface IImplicitTransport : IAsyncDisposable
 {
     /// <summary>Returns the latest PLC image, or null while disconnected/idle. Never splits an image.</summary>
+    /// <param name="image">Complete symmetric relay image including its header.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     ValueTask<byte[]?> ExchangeAsync(byte[] image, CancellationToken cancellationToken);
 }
 
+/// <summary>Recoverable implicit image session with independent optional explicit heartbeat and suspended uncertain writes.</summary>
 public sealed class ImplicitContractSession : IRelaySession
 {
     private readonly Func<CancellationToken, ValueTask<IImplicitTransport>> connect;
     private readonly RecoveryOptions recovery;
     private int running, suspended;
     private readonly ExplicitHeartbeatSession? heartbeat;
+    /// <summary>Transport kind used by the session.</summary>
     public SessionKind Kind => SessionKind.Implicit;
     private readonly SyncConfiguration configuration;
+    /// <summary>A defensive copy of the session&apos;s contract configuration.</summary>
     public SyncConfiguration Configuration => SyncConfiguration.FromJson(configuration.ToJson());
+    /// <summary>The application&apos;s live generated model instance shared with this session.</summary>
     public IPlcModel Model { get; }
+    /// <summary>Communication state, freshness, faults, retry and interval counters for this session.</summary>
     public SessionDiagnostics Diagnostics { get; } = new();
+    /// <summary>Explicit heartbeat diagnostics, or null when heartbeat is not configured.</summary>
     public SessionDiagnostics? HeartbeatDiagnostics => heartbeat?.Diagnostics;
+    /// <summary>Recoverable implicit image session with independent optional explicit heartbeat and suspended uncertain writes.</summary>
+    /// <param name="configuration">Matching generated contract configuration.</param>
+    /// <param name="model">Live application model instance used by synchronization.</param>
+    /// <param name="connect">Factory returning a newly owned transport and honoring cancellation on each attempt.</param>
+    /// <param name="recovery">Optional automatic recovery and uncertain-write policy; defaults apply when null.</param>
+    /// <param name="heartbeatConnect">Optional newly owned explicit transport factory, required when an implicit contract enables heartbeat.</param>
     public ImplicitContractSession(SyncConfiguration configuration, IPlcModel model,
         Func<CancellationToken, ValueTask<IImplicitTransport>> connect, RecoveryOptions? recovery = null,
         Func<CancellationToken, ValueTask<IExplicitTransport>>? heartbeatConnect = null)
@@ -34,7 +49,11 @@ public sealed class ImplicitContractSession : IRelaySession
             heartbeat.Diagnostics.Changed += (_, report) => Diagnostics.HeartbeatReport(report);
         }
     }
+    /// <summary>Explicitly permits retained application edits to be transmitted after write suspension; reconcile fresh PLC readback first.</summary>
     public void ResumeWrites() { Volatile.Write(ref suspended, 0); Diagnostics.Suspend(false); }
+    /// <summary>Runs the implicit channel and optional explicit heartbeat with independent recovery until cancellation.</summary>
+    /// <remarks>A terminal channel fault is visible immediately in diagnostics; the combined task reports it after the other channel stops.</remarks>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         if (Interlocked.Exchange(ref running, 1) != 0) throw new InvalidOperationException("Session is already running.");

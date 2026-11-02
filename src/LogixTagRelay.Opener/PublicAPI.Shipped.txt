@@ -1,0 +1,14 @@
+#nullable enable
+LogixTagRelay.Opener.OpenerAdapter
+LogixTagRelay.Opener.OpenerAdapter.Configuration.get -> LogixTagRelay.SyncConfiguration!
+LogixTagRelay.Opener.OpenerAdapter.Diagnostics.get -> LogixTagRelay.SessionDiagnostics!
+LogixTagRelay.Opener.OpenerAdapter.DisposeAsync() -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Opener.OpenerAdapter.HeartbeatDiagnostics.get -> LogixTagRelay.SessionDiagnostics?
+LogixTagRelay.Opener.OpenerAdapter.Kind.get -> LogixTagRelay.SessionKind
+LogixTagRelay.Opener.OpenerAdapter.Model.get -> LogixTagRelay.IPlcModel!
+LogixTagRelay.Opener.OpenerAdapter.OpenerAdapter(LogixTagRelay.SyncConfiguration! config, LogixTagRelay.IPlcModel! model, string? nicNameOrIndex = null, uint deviceSerialNumber = 1, LogixTagRelay.RecoveryOptions? recovery = null) -> void
+LogixTagRelay.Opener.OpenerAdapter.ResumeWrites() -> void
+LogixTagRelay.Opener.OpenerAdapter.RunAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+LogixTagRelay.Opener.OpenerAdapter.RunAsync(string! nicNameOrIndex, uint deviceSerialNumber, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+static LogixTagRelay.Opener.OpenerAdapter.NativeAbiVersion.get -> int
+static LogixTagRelay.Opener.OpenerAdapter.ProbeWorkerAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!

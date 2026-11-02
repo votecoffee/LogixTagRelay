@@ -1,0 +1,171 @@
+#nullable enable
+LogixTagRelay.Emulation.ClientImageRequest
+LogixTagRelay.Emulation.ClientImageRequest.ClientImageRequest(System.Guid InstanceId, string! Fingerprint, byte[]! Frame) -> void
+LogixTagRelay.Emulation.ClientImageRequest.Fingerprint.get -> string!
+LogixTagRelay.Emulation.ClientImageRequest.Fingerprint.init -> void
+LogixTagRelay.Emulation.ClientImageRequest.Frame.get -> byte[]!
+LogixTagRelay.Emulation.ClientImageRequest.Frame.init -> void
+LogixTagRelay.Emulation.ClientImageRequest.InstanceId.get -> System.Guid
+LogixTagRelay.Emulation.ClientImageRequest.InstanceId.init -> void
+LogixTagRelay.Emulation.ClientReadRequest
+LogixTagRelay.Emulation.ClientReadRequest.ClientReadRequest(System.Guid InstanceId, string! Fingerprint, System.Collections.Generic.List<LogixTagRelay.FieldMap!>! Fields, System.Collections.Generic.List<LogixTagRelay.ExplicitReadGroup!>! Groups) -> void
+LogixTagRelay.Emulation.ClientReadRequest.Fields.get -> System.Collections.Generic.List<LogixTagRelay.FieldMap!>!
+LogixTagRelay.Emulation.ClientReadRequest.Fields.init -> void
+LogixTagRelay.Emulation.ClientReadRequest.Fingerprint.get -> string!
+LogixTagRelay.Emulation.ClientReadRequest.Fingerprint.init -> void
+LogixTagRelay.Emulation.ClientReadRequest.Groups.get -> System.Collections.Generic.List<LogixTagRelay.ExplicitReadGroup!>!
+LogixTagRelay.Emulation.ClientReadRequest.Groups.init -> void
+LogixTagRelay.Emulation.ClientReadRequest.InstanceId.get -> System.Guid
+LogixTagRelay.Emulation.ClientReadRequest.InstanceId.init -> void
+LogixTagRelay.Emulation.ClientTagRequest
+LogixTagRelay.Emulation.ClientTagRequest.ClientTagRequest(System.Guid InstanceId, string! Fingerprint, string! Path, LogixTagRelay.PlcType Type, string? Value = null) -> void
+LogixTagRelay.Emulation.ClientTagRequest.Fingerprint.get -> string!
+LogixTagRelay.Emulation.ClientTagRequest.Fingerprint.init -> void
+LogixTagRelay.Emulation.ClientTagRequest.InstanceId.get -> System.Guid
+LogixTagRelay.Emulation.ClientTagRequest.InstanceId.init -> void
+LogixTagRelay.Emulation.ClientTagRequest.Path.get -> string!
+LogixTagRelay.Emulation.ClientTagRequest.Path.init -> void
+LogixTagRelay.Emulation.ClientTagRequest.Type.get -> LogixTagRelay.PlcType
+LogixTagRelay.Emulation.ClientTagRequest.Type.init -> void
+LogixTagRelay.Emulation.ClientTagRequest.Value.get -> string?
+LogixTagRelay.Emulation.ClientTagRequest.Value.init -> void
+LogixTagRelay.Emulation.EmulationContract
+LogixTagRelay.Emulation.EmulationContract.ConfigurationJson.get -> string!
+LogixTagRelay.Emulation.EmulationContract.ConfigurationJson.init -> void
+LogixTagRelay.Emulation.EmulationContract.EmulationContract(System.Guid InstanceId, string! Fingerprint, string! ConfigurationJson) -> void
+LogixTagRelay.Emulation.EmulationContract.Fingerprint.get -> string!
+LogixTagRelay.Emulation.EmulationContract.Fingerprint.init -> void
+LogixTagRelay.Emulation.EmulationContract.InstanceId.get -> System.Guid
+LogixTagRelay.Emulation.EmulationContract.InstanceId.init -> void
+LogixTagRelay.Emulation.EmulatorClient
+LogixTagRelay.Emulation.EmulatorClient.CreateImplicitSession(LogixTagRelay.IPlcModel! model, LogixTagRelay.RecoveryOptions? recovery = null) -> LogixTagRelay.ImplicitContractSession!
+LogixTagRelay.Emulation.EmulatorClient.DisposeAsync() -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Emulation.EmulatorClient.ExchangeAsync(byte[]! image, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<byte[]?>
+LogixTagRelay.Emulation.EmulatorClient.ExchangeImplicitAsync(byte[]! frame, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+LogixTagRelay.Emulation.EmulatorClient.LastImplicitSession.get -> LogixTagRelay.ImplicitContractSession?
+LogixTagRelay.Emulation.EmulatorClient.ReadAsync(LogixTagRelay.FieldMap! field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<object!>
+LogixTagRelay.Emulation.EmulatorClient.ReadAsync(string! path, LogixTagRelay.PlcType type, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<object!>
+LogixTagRelay.Emulation.EmulatorClient.ReadBatchAsync(System.Collections.Generic.IReadOnlyList<LogixTagRelay.FieldMap!>! fields, System.Collections.Generic.IReadOnlyList<LogixTagRelay.ExplicitReadGroup!>! groups, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<object!>!>
+LogixTagRelay.Emulation.EmulatorClient.RunImplicitAsync(LogixTagRelay.IPlcModel! model, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+LogixTagRelay.Emulation.EmulatorClient.WriteAsync(LogixTagRelay.FieldMap! field, object! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Emulation.EmulatorClient.WriteAsync(string! path, LogixTagRelay.PlcType type, object! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Emulation.ImageReply
+LogixTagRelay.Emulation.ImageReply.Frame.get -> byte[]!
+LogixTagRelay.Emulation.ImageReply.Frame.init -> void
+LogixTagRelay.Emulation.ImageReply.ImageReply(byte[]! Frame) -> void
+LogixTagRelay.Emulation.ImplicitPlc
+LogixTagRelay.Emulation.ImplicitPlc.ApplyCommands.get -> bool
+LogixTagRelay.Emulation.ImplicitPlc.ApplyCommands.set -> void
+LogixTagRelay.Emulation.ImplicitPlc.Exchange(System.ReadOnlySpan<byte> frame) -> byte[]!
+LogixTagRelay.Emulation.ImplicitPlc.ImplicitPlc(LogixTagRelay.Emulation.PlcMemory! memory) -> void
+LogixTagRelay.Emulation.ImplicitPlc.Output() -> byte[]!
+LogixTagRelay.Emulation.ImplicitPlc.Status.get -> LogixTagRelay.Emulation.ImplicitPlcStatus!
+LogixTagRelay.Emulation.ImplicitPlcStatus
+LogixTagRelay.Emulation.ImplicitPlcStatus.Accepted.get -> long
+LogixTagRelay.Emulation.ImplicitPlcStatus.Accepted.init -> void
+LogixTagRelay.Emulation.ImplicitPlcStatus.Acknowledgement.get -> int
+LogixTagRelay.Emulation.ImplicitPlcStatus.Acknowledgement.init -> void
+LogixTagRelay.Emulation.ImplicitPlcStatus.ApplyCommands.get -> bool
+LogixTagRelay.Emulation.ImplicitPlcStatus.ApplyCommands.init -> void
+LogixTagRelay.Emulation.ImplicitPlcStatus.ConflictBytes.get -> int
+LogixTagRelay.Emulation.ImplicitPlcStatus.ConflictBytes.init -> void
+LogixTagRelay.Emulation.ImplicitPlcStatus.Exchanges.get -> long
+LogixTagRelay.Emulation.ImplicitPlcStatus.Exchanges.init -> void
+LogixTagRelay.Emulation.ImplicitPlcStatus.ImplicitPlcStatus(string! Result, long Exchanges, long Accepted, int Sequence, int Acknowledgement, int ConflictBytes, bool ApplyCommands) -> void
+LogixTagRelay.Emulation.ImplicitPlcStatus.Result.get -> string!
+LogixTagRelay.Emulation.ImplicitPlcStatus.Result.init -> void
+LogixTagRelay.Emulation.ImplicitPlcStatus.Sequence.get -> int
+LogixTagRelay.Emulation.ImplicitPlcStatus.Sequence.init -> void
+LogixTagRelay.Emulation.MemoryExplicitTransport
+LogixTagRelay.Emulation.MemoryExplicitTransport.DisposeAsync() -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Emulation.MemoryExplicitTransport.MemoryExplicitTransport(LogixTagRelay.Emulation.PlcMemory! memory) -> void
+LogixTagRelay.Emulation.MemoryExplicitTransport.ReadAsync(LogixTagRelay.FieldMap! field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<object!>
+LogixTagRelay.Emulation.MemoryExplicitTransport.ReadAsync(string! path, LogixTagRelay.PlcType type, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<object!>
+LogixTagRelay.Emulation.MemoryExplicitTransport.ReadBatchAsync(System.Collections.Generic.IReadOnlyList<LogixTagRelay.FieldMap!>! fields, System.Collections.Generic.IReadOnlyList<LogixTagRelay.ExplicitReadGroup!>! groups, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<object!>!>
+LogixTagRelay.Emulation.MemoryExplicitTransport.WriteAsync(LogixTagRelay.FieldMap! field, object! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Emulation.MemoryExplicitTransport.WriteAsync(string! path, LogixTagRelay.PlcType type, object! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Emulation.MemoryImplicitTransport
+LogixTagRelay.Emulation.MemoryImplicitTransport.DisposeAsync() -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Emulation.MemoryImplicitTransport.ExchangeAsync(byte[]! image, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<byte[]?>
+LogixTagRelay.Emulation.MemoryImplicitTransport.MemoryImplicitTransport(LogixTagRelay.Emulation.ImplicitPlc! plc) -> void
+LogixTagRelay.Emulation.MemorySnapshot
+LogixTagRelay.Emulation.MemorySnapshot.MemorySnapshot(long Revision, System.Collections.Generic.IReadOnlyList<LogixTagRelay.Emulation.MemoryTag!>! Tags) -> void
+LogixTagRelay.Emulation.MemorySnapshot.Revision.get -> long
+LogixTagRelay.Emulation.MemorySnapshot.Revision.init -> void
+LogixTagRelay.Emulation.MemorySnapshot.Tags.get -> System.Collections.Generic.IReadOnlyList<LogixTagRelay.Emulation.MemoryTag!>!
+LogixTagRelay.Emulation.MemorySnapshot.Tags.init -> void
+LogixTagRelay.Emulation.MemoryTag
+LogixTagRelay.Emulation.MemoryTag.ChangedAt.get -> System.DateTimeOffset?
+LogixTagRelay.Emulation.MemoryTag.ChangedAt.init -> void
+LogixTagRelay.Emulation.MemoryTag.LastApiValue.get -> string?
+LogixTagRelay.Emulation.MemoryTag.LastApiValue.init -> void
+LogixTagRelay.Emulation.MemoryTag.LastApiWriteAt.get -> System.DateTimeOffset?
+LogixTagRelay.Emulation.MemoryTag.LastApiWriteAt.init -> void
+LogixTagRelay.Emulation.MemoryTag.LastWriter.get -> string!
+LogixTagRelay.Emulation.MemoryTag.LastWriter.init -> void
+LogixTagRelay.Emulation.MemoryTag.Map.get -> LogixTagRelay.FieldMap!
+LogixTagRelay.Emulation.MemoryTag.Map.init -> void
+LogixTagRelay.Emulation.MemoryTag.MemoryTag(LogixTagRelay.FieldMap! Map, string! Role, string! Value, long Version, string! LastWriter, System.DateTimeOffset? ChangedAt, string? LastApiValue, System.DateTimeOffset? LastApiWriteAt) -> void
+LogixTagRelay.Emulation.MemoryTag.Role.get -> string!
+LogixTagRelay.Emulation.MemoryTag.Role.init -> void
+LogixTagRelay.Emulation.MemoryTag.Value.get -> string!
+LogixTagRelay.Emulation.MemoryTag.Value.init -> void
+LogixTagRelay.Emulation.MemoryTag.Version.get -> long
+LogixTagRelay.Emulation.MemoryTag.Version.init -> void
+LogixTagRelay.Emulation.MemoryWrite
+LogixTagRelay.Emulation.MemoryWrite.MemoryWrite(string! Path, object! Value, object? RequestedApiValue = null) -> void
+LogixTagRelay.Emulation.MemoryWrite.Path.get -> string!
+LogixTagRelay.Emulation.MemoryWrite.Path.init -> void
+LogixTagRelay.Emulation.MemoryWrite.RequestedApiValue.get -> object?
+LogixTagRelay.Emulation.MemoryWrite.RequestedApiValue.init -> void
+LogixTagRelay.Emulation.MemoryWrite.Value.get -> object!
+LogixTagRelay.Emulation.MemoryWrite.Value.init -> void
+LogixTagRelay.Emulation.PlcMemory
+LogixTagRelay.Emulation.PlcMemory.Apply(System.Collections.Generic.IReadOnlyList<LogixTagRelay.Emulation.MemoryWrite!>! writes, string! writer, long? expectedRevision = null, bool fromApi = false) -> bool
+LogixTagRelay.Emulation.PlcMemory.Configuration.get -> LogixTagRelay.SyncConfiguration!
+LogixTagRelay.Emulation.PlcMemory.Fingerprint.get -> string!
+LogixTagRelay.Emulation.PlcMemory.Map(string! path) -> LogixTagRelay.FieldMap!
+LogixTagRelay.Emulation.PlcMemory.PlcMemory(LogixTagRelay.SyncConfiguration! configuration) -> void
+LogixTagRelay.Emulation.PlcMemory.Read(string! path) -> object!
+LogixTagRelay.Emulation.PlcMemory.Set(string! path, object! value, string! writer = "PLC") -> void
+LogixTagRelay.Emulation.PlcMemory.SetText(string! path, string! value, string! writer = "GUI") -> void
+LogixTagRelay.Emulation.PlcMemory.Snapshot() -> LogixTagRelay.Emulation.MemorySnapshot!
+LogixTagRelay.Emulation.ReadReply
+LogixTagRelay.Emulation.ReadReply.ReadReply(System.Collections.Generic.List<string!>! Values) -> void
+LogixTagRelay.Emulation.ReadReply.Values.get -> System.Collections.Generic.List<string!>!
+LogixTagRelay.Emulation.ReadReply.Values.init -> void
+LogixTagRelay.Emulation.ScriptRunner
+LogixTagRelay.Emulation.ScriptRunner.Configure(string! code, int interval = 100, bool start = false) -> void
+LogixTagRelay.Emulation.ScriptRunner.ScriptRunner(LogixTagRelay.Emulation.PlcMemory! memory) -> void
+LogixTagRelay.Emulation.ScriptRunner.Status.get -> LogixTagRelay.Emulation.ScriptStatus!
+LogixTagRelay.Emulation.ScriptRunner.Step(double deltaSeconds = 0.1) -> bool
+LogixTagRelay.Emulation.ScriptRunner.Stop() -> void
+LogixTagRelay.Emulation.ScriptRunner.TickIfDue(System.DateTimeOffset now) -> void
+LogixTagRelay.Emulation.ScriptStatus
+LogixTagRelay.Emulation.ScriptStatus.Error.get -> string?
+LogixTagRelay.Emulation.ScriptStatus.Error.init -> void
+LogixTagRelay.Emulation.ScriptStatus.IntervalMs.get -> int
+LogixTagRelay.Emulation.ScriptStatus.IntervalMs.init -> void
+LogixTagRelay.Emulation.ScriptStatus.Log.get -> System.Collections.Generic.IReadOnlyList<string!>!
+LogixTagRelay.Emulation.ScriptStatus.Log.init -> void
+LogixTagRelay.Emulation.ScriptStatus.Outcome.get -> string!
+LogixTagRelay.Emulation.ScriptStatus.Outcome.init -> void
+LogixTagRelay.Emulation.ScriptStatus.Running.get -> bool
+LogixTagRelay.Emulation.ScriptStatus.Running.init -> void
+LogixTagRelay.Emulation.ScriptStatus.ScriptStatus(string! Source, bool Running, int IntervalMs, long Ticks, string! Outcome, string? Error, string! StateJson, System.Collections.Generic.IReadOnlyList<string!>! Log) -> void
+LogixTagRelay.Emulation.ScriptStatus.Source.get -> string!
+LogixTagRelay.Emulation.ScriptStatus.Source.init -> void
+LogixTagRelay.Emulation.ScriptStatus.StateJson.get -> string!
+LogixTagRelay.Emulation.ScriptStatus.StateJson.init -> void
+LogixTagRelay.Emulation.ScriptStatus.Ticks.get -> long
+LogixTagRelay.Emulation.ScriptStatus.Ticks.init -> void
+LogixTagRelay.Emulation.TagReply
+LogixTagRelay.Emulation.TagReply.TagReply(string! Value) -> void
+LogixTagRelay.Emulation.TagReply.Value.get -> string!
+LogixTagRelay.Emulation.TagReply.Value.init -> void
+LogixTagRelay.Emulation.TagText
+static LogixTagRelay.Emulation.EmulatorClient.ConnectAsync(LogixTagRelay.SyncConfiguration! config, System.Uri? address = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<LogixTagRelay.Emulation.EmulatorClient!>!
+static LogixTagRelay.Emulation.PlcMemory.ContractFingerprint(LogixTagRelay.SyncConfiguration! config) -> string!
+static LogixTagRelay.Emulation.TagText.Default(LogixTagRelay.PlcType type) -> object!
+static LogixTagRelay.Emulation.TagText.Format(object! value) -> string!
+static LogixTagRelay.Emulation.TagText.Parse(LogixTagRelay.FieldMap! field, string! value) -> object!

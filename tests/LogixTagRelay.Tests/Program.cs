@@ -113,6 +113,7 @@ await BidirectionalTests.Run(Check);
 await TypesAndEventsTests.Run(Check);
 await CommonTypesTests.Run(Check);
 ContractProjectTests.Run(Check);
+DescriptionTests.Run(Check);
 await HostingTests.Run(Check);
 await LivenessTests.Run(Check);
 var aoiXml = XDocument.Parse(SintMergeAoi.GenerateL5x());

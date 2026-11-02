@@ -5,6 +5,9 @@ using RelayType = LogixTagRelay.PlcType;
 namespace LogixTagRelay.Logix;
 
 /// <summary>Grouped UDT snapshots with individually addressed dirty-member writes.</summary>
+/// <param name="gateway">PLC hostname or IP address, optionally with a port.</param>
+/// <param name="route">CIP route to the controller, such as 1,0.</param>
+/// <param name="timeoutMs">Operation timeout in milliseconds.</param>
 public sealed class LogixTransport(string gateway, string route = "1,0", int timeoutMs = 5000) : IExplicitTransport
 {
     private readonly SemaphoreSlim gate = new(1, 1);
@@ -17,6 +20,10 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
         try { await tag.ReadAsync(ct).ConfigureAwait(false); return tag.GetBuffer(); }
         catch (LibPlcTagException error) { ct.ThrowIfCancellationRequested(); throw LogixFaults.Translate(error, gateway, route, path, PlcOperation.ReadTag); }
     }
+    /// <summary>Returns values in field order. Native UDT groups may share a snapshot; separate groups are not an atomic PLC transaction.</summary>
+    /// <param name="fields">Ordered scalar mappings to validate, encode or read.</param>
+    /// <param name="groups">Whole-UDT root read groups associated with the scalar fields.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public async ValueTask<IReadOnlyList<object>> ReadBatchAsync(IReadOnlyList<FieldMap> fields, IReadOnlyList<ExplicitReadGroup> groups, CancellationToken cancellationToken)
     {
         ExplicitReads.Validate(fields, groups);
@@ -51,8 +58,15 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
         }
         return tag;
     }
+    /// <summary>Reads one scalar in its matching CLR type. Use the FieldMap overload for STRING capacity metadata.</summary>
+    /// <param name="path">Fully qualified Logix scalar path.</param>
+    /// <param name="type">Supported PLC scalar type.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public ValueTask<object> ReadAsync(string path, RelayType type, CancellationToken cancellationToken) =>
         ReadAsync(new FieldMap(path, type, Direction.PlcToApp, 24, StringCapacity: type == RelayType.STRING ? 82 : 0), cancellationToken);
+    /// <summary>Reads one scalar in its matching CLR type. Use the FieldMap overload for STRING capacity metadata.</summary>
+    /// <param name="field">Scalar mapping, including STRING capacity when applicable.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public async ValueTask<object> ReadAsync(FieldMap field, CancellationToken cancellationToken)
     {
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -78,8 +92,17 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
         }
         catch (LibPlcTagException error) { cancellationToken.ThrowIfCancellationRequested(); throw LogixFaults.Translate(error, gateway, route, field.Path, PlcOperation.ReadTag); }
     }
+    /// <summary>Writes one addressed scalar. Use the FieldMap overload for STRING capacity metadata; completion is not a multi-tag transaction.</summary>
+    /// <param name="path">Fully qualified Logix scalar path.</param>
+    /// <param name="type">Supported PLC scalar type.</param>
+    /// <param name="value">Typed scalar or timestamp value required by this operation.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public ValueTask WriteAsync(string path, RelayType type, object value, CancellationToken cancellationToken) =>
         WriteAsync(new FieldMap(path, type, Direction.AppToPlc, 24, StringCapacity: type == RelayType.STRING ? 82 : 0), value, cancellationToken);
+    /// <summary>Writes one addressed scalar. Use the FieldMap overload for STRING capacity metadata; completion is not a multi-tag transaction.</summary>
+    /// <param name="field">Scalar mapping, including STRING capacity when applicable.</param>
+    /// <param name="value">Typed scalar or timestamp value required by this operation.</param>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public async ValueTask WriteAsync(FieldMap field, object value, CancellationToken cancellationToken)
     {
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -114,12 +137,15 @@ public sealed class LogixTransport(string gateway, string route = "1,0", int tim
     {
         if (!connected) { await LogixEndpointProbe.CheckAsync(gateway, route, timeoutMs, ct).ConfigureAwait(false); connected = true; }
     }
+    /// <summary>Checks the endpoint before tag access. Default custom transports require no separate connection operation.</summary>
+    /// <param name="cancellationToken">Cancels this operation. Caller cancellation remains cancellation rather than a fabricated communication fault.</param>
     public async ValueTask ConnectAsync(CancellationToken cancellationToken = default)
     {
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try { ObjectDisposedException.ThrowIf(disposed, this); await EnsureConnectedAsync(cancellationToken).ConfigureAwait(false); }
         finally { gate.Release(); }
     }
+    /// <summary>Releases owned resources. For running adapters, cancel and await RunAsync first.</summary>
     public async ValueTask DisposeAsync()
     {
         await gate.WaitAsync().ConfigureAwait(false);

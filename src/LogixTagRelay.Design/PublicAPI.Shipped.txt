@@ -1,0 +1,152 @@
+#nullable enable
+LogixTagRelay.Design.BuiltInTypes
+LogixTagRelay.Design.ContractChange
+LogixTagRelay.Design.ContractChange.Breaking.get -> bool
+LogixTagRelay.Design.ContractChange.Breaking.init -> void
+LogixTagRelay.Design.ContractChange.ContractChange(string! Path, string! Description, bool Breaking) -> void
+LogixTagRelay.Design.ContractChange.Description.get -> string!
+LogixTagRelay.Design.ContractChange.Description.init -> void
+LogixTagRelay.Design.ContractChange.Path.get -> string!
+LogixTagRelay.Design.ContractChange.Path.init -> void
+LogixTagRelay.Design.ContractComparison
+LogixTagRelay.Design.ContractProject
+LogixTagRelay.Design.ContractProject.AssemblyBytes.get -> int
+LogixTagRelay.Design.ContractProject.AssemblyBytes.init -> void
+LogixTagRelay.Design.ContractProject.Catalog.get -> LogixTagRelay.Design.TagCatalog?
+LogixTagRelay.Design.ContractProject.Catalog.init -> void
+LogixTagRelay.Design.ContractProject.ClassName.get -> string!
+LogixTagRelay.Design.ContractProject.ClassName.init -> void
+LogixTagRelay.Design.ContractProject.ContractProject(string! Name, System.Collections.Generic.List<LogixTagRelay.Design.TagSelection!>! Selections, LogixTagRelay.Design.TagCatalog? Catalog = null, string? SourceL5x = null, string? SourceSha256 = null, string! Namespace = "LogixTagRelay.Generated", string! ClassName = "GeneratedTags", bool IncludeImplicit = true, string! ModuleName = "LogixRelay", string! SoftwareRevision = "", int AssemblyBytes = 0, LogixTagRelay.ExplicitOptions? Explicit = null, LogixTagRelay.ImplicitOptions? Implicit = null, string! Gateway = "192.168.1.10", string! Route = "1,0", string! PcAddress = "192.168.1.200", int Version = 1, LogixTagRelay.HeartbeatOptions? Heartbeat = null) -> void
+LogixTagRelay.Design.ContractProject.Explicit.get -> LogixTagRelay.ExplicitOptions?
+LogixTagRelay.Design.ContractProject.Explicit.init -> void
+LogixTagRelay.Design.ContractProject.Gateway.get -> string!
+LogixTagRelay.Design.ContractProject.Gateway.init -> void
+LogixTagRelay.Design.ContractProject.Generate(string? projectDirectory = null) -> LogixTagRelay.Design.GeneratedBundle!
+LogixTagRelay.Design.ContractProject.Heartbeat.get -> LogixTagRelay.HeartbeatOptions?
+LogixTagRelay.Design.ContractProject.Heartbeat.init -> void
+LogixTagRelay.Design.ContractProject.Implicit.get -> LogixTagRelay.ImplicitOptions?
+LogixTagRelay.Design.ContractProject.Implicit.init -> void
+LogixTagRelay.Design.ContractProject.IncludeImplicit.get -> bool
+LogixTagRelay.Design.ContractProject.IncludeImplicit.init -> void
+LogixTagRelay.Design.ContractProject.ModuleName.get -> string!
+LogixTagRelay.Design.ContractProject.ModuleName.init -> void
+LogixTagRelay.Design.ContractProject.Name.get -> string!
+LogixTagRelay.Design.ContractProject.Name.init -> void
+LogixTagRelay.Design.ContractProject.Namespace.get -> string!
+LogixTagRelay.Design.ContractProject.Namespace.init -> void
+LogixTagRelay.Design.ContractProject.PcAddress.get -> string!
+LogixTagRelay.Design.ContractProject.PcAddress.init -> void
+LogixTagRelay.Design.ContractProject.Route.get -> string!
+LogixTagRelay.Design.ContractProject.Route.init -> void
+LogixTagRelay.Design.ContractProject.Selections.get -> System.Collections.Generic.List<LogixTagRelay.Design.TagSelection!>!
+LogixTagRelay.Design.ContractProject.Selections.init -> void
+LogixTagRelay.Design.ContractProject.SoftwareRevision.get -> string!
+LogixTagRelay.Design.ContractProject.SoftwareRevision.init -> void
+LogixTagRelay.Design.ContractProject.SourceL5x.get -> string?
+LogixTagRelay.Design.ContractProject.SourceL5x.init -> void
+LogixTagRelay.Design.ContractProject.SourceSha256.get -> string?
+LogixTagRelay.Design.ContractProject.SourceSha256.init -> void
+LogixTagRelay.Design.ContractProject.ToJson() -> string!
+LogixTagRelay.Design.ContractProject.Version.get -> int
+LogixTagRelay.Design.ContractProject.Version.init -> void
+LogixTagRelay.Design.GeneratedBundle
+LogixTagRelay.Design.GeneratedBundle.Configuration.get -> LogixTagRelay.SyncConfiguration!
+LogixTagRelay.Design.GeneratedBundle.Configuration.init -> void
+LogixTagRelay.Design.GeneratedBundle.GeneratedBundle(string! ModelCs, LogixTagRelay.SyncConfiguration! Configuration, string! RoutineL5x, string! ModuleInstructions) -> void
+LogixTagRelay.Design.GeneratedBundle.MergeAoiL5x.get -> string!
+LogixTagRelay.Design.GeneratedBundle.MergeAoiL5x.init -> void
+LogixTagRelay.Design.GeneratedBundle.MergeStructuredText.get -> string!
+LogixTagRelay.Design.GeneratedBundle.MergeStructuredText.init -> void
+LogixTagRelay.Design.GeneratedBundle.ModelCs.get -> string!
+LogixTagRelay.Design.GeneratedBundle.ModelCs.init -> void
+LogixTagRelay.Design.GeneratedBundle.ModuleInstructions.get -> string!
+LogixTagRelay.Design.GeneratedBundle.ModuleInstructions.init -> void
+LogixTagRelay.Design.GeneratedBundle.RoutineL5x.get -> string!
+LogixTagRelay.Design.GeneratedBundle.RoutineL5x.init -> void
+LogixTagRelay.Design.Generator
+LogixTagRelay.Design.L5xCatalog
+LogixTagRelay.Design.ModuleImport
+LogixTagRelay.Design.ModuleImport.ModuleImport(string! Xml, string! SourceSha256) -> void
+LogixTagRelay.Design.ModuleImport.SourceSha256.get -> string!
+LogixTagRelay.Design.ModuleImport.SourceSha256.init -> void
+LogixTagRelay.Design.ModuleImport.Xml.get -> string!
+LogixTagRelay.Design.ModuleImport.Xml.init -> void
+LogixTagRelay.Design.ModuleTemplate
+LogixTagRelay.Design.ModuleTemplateInfo
+LogixTagRelay.Design.ModuleTemplateInfo.Address.get -> string!
+LogixTagRelay.Design.ModuleTemplateInfo.Address.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.CommMethod.get -> string!
+LogixTagRelay.Design.ModuleTemplateInfo.CommMethod.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.ConfigurationAssembly.get -> int?
+LogixTagRelay.Design.ModuleTemplateInfo.ConfigurationAssembly.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.ConfigurationBytes.get -> int
+LogixTagRelay.Design.ModuleTemplateInfo.ConfigurationBytes.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.Errors.get -> System.Collections.Generic.List<string!>!
+LogixTagRelay.Design.ModuleTemplateInfo.Errors.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.InputAssembly.get -> int
+LogixTagRelay.Design.ModuleTemplateInfo.InputAssembly.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.InputBytes.get -> int
+LogixTagRelay.Design.ModuleTemplateInfo.InputBytes.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.ModuleTemplateInfo(string! SourceSha256, string! Name, string! SoftwareRevision, string! Address, int InputAssembly, int OutputAssembly, int? ConfigurationAssembly, int InputBytes, int OutputBytes, int ConfigurationBytes, int StatusConnections, string! CommMethod, System.Collections.Generic.List<string!>! Errors) -> void
+LogixTagRelay.Design.ModuleTemplateInfo.Name.get -> string!
+LogixTagRelay.Design.ModuleTemplateInfo.Name.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.OutputAssembly.get -> int
+LogixTagRelay.Design.ModuleTemplateInfo.OutputAssembly.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.OutputBytes.get -> int
+LogixTagRelay.Design.ModuleTemplateInfo.OutputBytes.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.SoftwareRevision.get -> string!
+LogixTagRelay.Design.ModuleTemplateInfo.SoftwareRevision.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.SourceSha256.get -> string!
+LogixTagRelay.Design.ModuleTemplateInfo.SourceSha256.init -> void
+LogixTagRelay.Design.ModuleTemplateInfo.StatusConnections.get -> int
+LogixTagRelay.Design.ModuleTemplateInfo.StatusConnections.init -> void
+LogixTagRelay.Design.SintMergeAoi
+LogixTagRelay.Design.TagCatalog
+LogixTagRelay.Design.TagCatalog.Controller.get -> string!
+LogixTagRelay.Design.TagCatalog.Controller.init -> void
+LogixTagRelay.Design.TagCatalog.SoftwareRevision.get -> string!
+LogixTagRelay.Design.TagCatalog.SoftwareRevision.init -> void
+LogixTagRelay.Design.TagCatalog.TagCatalog(string! Controller, string! SoftwareRevision, System.Collections.Generic.List<LogixTagRelay.Design.TagNode!>! Tags) -> void
+LogixTagRelay.Design.TagCatalog.Tags.get -> System.Collections.Generic.List<LogixTagRelay.Design.TagNode!>!
+LogixTagRelay.Design.TagCatalog.Tags.init -> void
+LogixTagRelay.Design.TagNode
+LogixTagRelay.Design.TagNode.Access.get -> string!
+LogixTagRelay.Design.TagNode.Access.init -> void
+LogixTagRelay.Design.TagNode.ArrayDimensions.get -> int[]!
+LogixTagRelay.Design.TagNode.AtomicType.get -> LogixTagRelay.PlcType?
+LogixTagRelay.Design.TagNode.Children.get -> System.Collections.Generic.List<LogixTagRelay.Design.TagNode!>!
+LogixTagRelay.Design.TagNode.Children.init -> void
+LogixTagRelay.Design.TagNode.DataType.get -> string!
+LogixTagRelay.Design.TagNode.DataType.init -> void
+LogixTagRelay.Design.TagNode.Dimensions.get -> int[]?
+LogixTagRelay.Design.TagNode.Dimensions.init -> void
+LogixTagRelay.Design.TagNode.IsArray.get -> bool
+LogixTagRelay.Design.TagNode.IsArray.init -> void
+LogixTagRelay.Design.TagNode.Leaves() -> System.Collections.Generic.IEnumerable<LogixTagRelay.Design.TagNode!>!
+LogixTagRelay.Design.TagNode.Name.get -> string!
+LogixTagRelay.Design.TagNode.Name.init -> void
+LogixTagRelay.Design.TagNode.Path.get -> string!
+LogixTagRelay.Design.TagNode.Path.init -> void
+LogixTagRelay.Design.TagNode.Selectable.get -> bool
+LogixTagRelay.Design.TagNode.StringCapacity.get -> int
+LogixTagRelay.Design.TagNode.StringCapacity.init -> void
+LogixTagRelay.Design.TagNode.TagNode(string! Name, string! Path, string! DataType, string! Access, System.Collections.Generic.List<LogixTagRelay.Design.TagNode!>! Children, bool IsArray = false, string? UnsupportedReason = null, int StringCapacity = 0, int[]? Dimensions = null) -> void
+LogixTagRelay.Design.TagNode.UnsupportedReason.get -> string?
+LogixTagRelay.Design.TagNode.UnsupportedReason.init -> void
+LogixTagRelay.Design.TagSelection
+LogixTagRelay.Design.TagSelection.Direction.get -> LogixTagRelay.Direction
+LogixTagRelay.Design.TagSelection.Direction.init -> void
+LogixTagRelay.Design.TagSelection.Path.get -> string!
+LogixTagRelay.Design.TagSelection.Path.init -> void
+LogixTagRelay.Design.TagSelection.TagSelection(string! Path, LogixTagRelay.Direction Direction) -> void
+const LogixTagRelay.Design.SintMergeAoi.Name = "LTR_SintMerge" -> string!
+static LogixTagRelay.Design.BuiltInTypes.Expand(string! name, string! path, string! type, string! access) -> LogixTagRelay.Design.TagNode!
+static LogixTagRelay.Design.BuiltInTypes.IsTimerOrCounter(string! type) -> bool
+static LogixTagRelay.Design.ContractComparison.Compare(LogixTagRelay.SyncConfiguration! before, LogixTagRelay.SyncConfiguration! after) -> System.Collections.Generic.IReadOnlyList<LogixTagRelay.Design.ContractChange!>!
+static LogixTagRelay.Design.ContractProject.FromJson(string! json) -> LogixTagRelay.Design.ContractProject!
+static LogixTagRelay.Design.Generator.Generate(LogixTagRelay.Design.TagCatalog! catalog, System.Collections.Generic.IReadOnlyList<LogixTagRelay.Design.TagSelection!>! selections, bool includeImplicit = true, string! moduleName = "LogixRelay", string! softwareRevision = "", int assemblyBytes = 0, LogixTagRelay.ExplicitOptions? explicitOptions = null, LogixTagRelay.ImplicitOptions? implicitOptions = null, LogixTagRelay.HeartbeatOptions? heartbeatOptions = null) -> LogixTagRelay.Design.GeneratedBundle!
+static LogixTagRelay.Design.L5xCatalog.Read(System.IO.Stream! stream) -> LogixTagRelay.Design.TagCatalog!
+static LogixTagRelay.Design.ModuleTemplate.Generate(byte[]! template, LogixTagRelay.SyncConfiguration! config, string! moduleName, string! pcAddress) -> LogixTagRelay.Design.ModuleImport!
+static LogixTagRelay.Design.ModuleTemplate.Inspect(byte[]! bytes, LogixTagRelay.ImplicitOptions? settings = null) -> LogixTagRelay.Design.ModuleTemplateInfo!
+static LogixTagRelay.Design.SintMergeAoi.GenerateL5x(string! softwareRevision = "35.03") -> string!
+static LogixTagRelay.Design.SintMergeAoi.StructuredText.get -> string!

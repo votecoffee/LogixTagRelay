@@ -2,6 +2,14 @@ using System.Buffers.Binary;
 
 namespace LogixTagRelay.Emulation;
 
+/// <summary>Emulated PLC-side image protocol counters and current command-apply state.</summary>
+/// <param name="Result">Most recent protocol outcome.</param>
+/// <param name="Exchanges">Number of API image exchanges processed.</param>
+/// <param name="Accepted">Number of new commands accepted.</param>
+/// <param name="Sequence">Current positive PLC image sequence.</param>
+/// <param name="Acknowledgement">Most recently accepted API command sequence.</param>
+/// <param name="ConflictBytes">Number of payload bytes for which concurrent PLC changes won.</param>
+/// <param name="ApplyCommands">Whether emulated API payload application is enabled.</param>
 public sealed record ImplicitPlcStatus(string Result, long Exchanges, long Accepted, int Sequence, int Acknowledgement,
     int ConflictBytes, bool ApplyCommands);
 
@@ -17,15 +25,22 @@ public sealed class ImplicitPlc
     private long exchanges, accepted;
     private bool applyCommands = true;
     private string result = "Waiting";
+    /// <summary>Creates an emulated PLC image protocol over shared memory; does not execute PLC logic.</summary>
+    /// <param name="memory">Shared emulated PLC memory.</param>
     public ImplicitPlc(PlcMemory memory)
     {
         this.memory = memory; config = memory.Configuration;
         if (config.Implicit is null) throw new ArgumentException("Contract has no implicit settings.");
         schema = BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(config.SchemaHash));
     }
+    /// <summary>Whether accepted API image payloads may modify emulated PLC memory.</summary>
     public bool ApplyCommands { get { lock (memory.Gate) return applyCommands; } set { lock (memory.Gate) applyCommands = value; } }
+    /// <summary>Consistent snapshot of current emulator protocol or script diagnostics.</summary>
     public ImplicitPlcStatus Status { get { lock (memory.Gate) return new(result, exchanges, accepted, sequence, acknowledgement, conflicts, applyCommands); } }
+    /// <summary>Returns a copy of the currently published PLC-to-API image.</summary>
     public byte[] Output() { lock (memory.Gate) { if (published is null) Publish(); return published!.ToArray(); } }
+    /// <summary>Processes an API image using the generated wrapper&apos;s baseline, acknowledgement and PLC-first merge model.</summary>
+    /// <param name="frame">Full symmetric relay image to exchange with the emulator.</param>
     public byte[] Exchange(ReadOnlySpan<byte> frame)
     {
         lock (memory.Gate)

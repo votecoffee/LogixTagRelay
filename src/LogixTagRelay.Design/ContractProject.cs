@@ -4,13 +4,34 @@ using System.Text.RegularExpressions;
 namespace LogixTagRelay.Design;
 
 /// <summary>Portable, versioned generation inputs. Catalogs can be embedded or loaded from a relative L5X.</summary>
+/// <param name="Name">Tag, controller or module display name from the source catalog.</param>
+/// <param name="Selections">Catalog paths and requested synchronization directions.</param>
+/// <param name="Catalog">Embedded source catalog; supply exactly one of Catalog and SourceL5x.</param>
+/// <param name="SourceL5x">Relative or absolute L5X catalog source; resolved against the project directory.</param>
+/// <param name="SourceSha256">Optional SHA-256 pin for the original L5X file; generation rejects a changed source.</param>
+/// <param name="Namespace">Valid C# namespace for the generated contract.</param>
+/// <param name="ClassName">Valid C# identifier for the generated contract type.</param>
+/// <param name="IncludeImplicit">Whether to generate one symmetric implicit image and its PLC artifacts.</param>
+/// <param name="ModuleName">Generic Ethernet Module identifier and staging prefix.</param>
+/// <param name="SoftwareRevision">Studio 5000 revision associated with the source export.</param>
+/// <param name="AssemblyBytes">Requested symmetric image length, or zero for the minimum aligned size.</param>
+/// <param name="Explicit">Optional explicit interval, trigger, receipt and grouped-read settings.</param>
+/// <param name="Implicit">Optional implicit assembly and timing settings.</param>
+/// <param name="Gateway">PLC endpoint hostname or IP address.</param>
+/// <param name="Route">CIP route to the intended controller.</param>
+/// <param name="PcAddress">IPv4 address of the PC NIC serving the implicit adapter.</param>
+/// <param name="Version">Portable project format version; currently 1.</param>
+/// <param name="Heartbeat">Optional explicit-only BOOL heartbeat, independent of implicit payload layout.</param>
 public sealed record ContractProject(string Name, List<TagSelection> Selections, TagCatalog? Catalog = null,
     string? SourceL5x = null, string? SourceSha256 = null, string Namespace = "LogixTagRelay.Generated",
     string ClassName = "GeneratedTags", bool IncludeImplicit = true, string ModuleName = "LogixRelay",
     string SoftwareRevision = "", int AssemblyBytes = 0, ExplicitOptions? Explicit = null,
     ImplicitOptions? Implicit = null, string Gateway = "192.168.1.10", string Route = "1,0", string PcAddress = "192.168.1.200", int Version = 1, HeartbeatOptions? Heartbeat = null)
 {
+    /// <summary>Serializes the configuration or project using the relay JSON format.</summary>
     public string ToJson() => JsonSerializer.Serialize(this, SyncConfiguration.Json) + "\n";
+    /// <summary>Parses JSON, rejecting duplicate keys and unknown properties. Contract configurations also undergo layout validation.</summary>
+    /// <param name="json">Serialized contract or project JSON.</param>
     public static ContractProject FromJson(string json)
     {
         using var document = JsonDocument.Parse(json);
@@ -26,6 +47,8 @@ public sealed record ContractProject(string Name, List<TagSelection> Selections,
         Unique(document.RootElement);
         return JsonSerializer.Deserialize<ContractProject>(json, SyncConfiguration.Json) ?? throw new FormatException("Empty contract project.");
     }
+    /// <summary>Resolves and optionally hash-checks the catalog source, validates project identity and generates matching artifacts.</summary>
+    /// <param name="projectDirectory">Base directory for resolving a relative source L5X path.</param>
     public GeneratedBundle Generate(string? projectDirectory = null)
     {
         if (Version != 1 || Selections is null || Selections.Count == 0 || string.IsNullOrWhiteSpace(Name)) throw new FormatException("A version 1 named contract project with selections is required.");
@@ -56,9 +79,17 @@ public sealed record ContractProject(string Name, List<TagSelection> Selections,
     private static readonly HashSet<string> Keywords = new(("abstract as base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while record required file").Split(' '), StringComparer.Ordinal);
 }
 
+/// <summary>One contract difference with a path, description and compatibility classification.</summary>
+/// <param name="Path">Fully qualified Logix path including optional program scope and array coordinates.</param>
+/// <param name="Description">Human-readable explanation of the contract difference.</param>
+/// <param name="Breaking">Whether the change breaks the existing model or implicit wire contract.</param>
 public sealed record ContractChange(string Path, string Description, bool Breaking);
+/// <summary>Compares generated contracts without browsing or writing a PLC.</summary>
 public static class ContractComparison
 {
+    /// <summary>Reports field, layout, access and communication-setting changes; implicit layout changes require both peers to be regenerated.</summary>
+    /// <param name="before">Previously generated configuration.</param>
+    /// <param name="after">Newly generated configuration.</param>
     public static IReadOnlyList<ContractChange> Compare(SyncConfiguration before, SyncConfiguration after)
     {
         before.Validate(); after.Validate(); var result = new List<ContractChange>();

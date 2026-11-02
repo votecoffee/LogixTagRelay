@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="LogixTagRelay" Version="$(RelayPackageVersion)" />
+    <PackageReference Include="LogixTagRelay.Build" Version="$(RelayPackageVersion)" PrivateAssets="all" />
+    <LogixContract Include="contract.ltrx.json" />
+  </ItemGroup>
+</Project>

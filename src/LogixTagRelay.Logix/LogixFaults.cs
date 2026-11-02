@@ -5,6 +5,12 @@ namespace LogixTagRelay.Logix;
 /// <summary>Preserves libplctag status while distinguishing endpoint/session errors from tag operations.</summary>
 public static class LogixFaults
 {
+    /// <summary>Preserves exact recognized driver status, endpoint, path and cause in a typed communication exception.</summary>
+    /// <param name="error">Original pinned libplctag exception to classify.</param>
+    /// <param name="gateway">PLC hostname or IP address, optionally with a port.</param>
+    /// <param name="route">CIP route to the controller, such as 1,0.</param>
+    /// <param name="tag">Affected scalar path, or null if the failure is not tag-specific.</param>
+    /// <param name="operation">Communication stage where the failure was detected.</param>
     public static PlcCommunicationException Translate(LibPlcTagException error, string gateway, string route, string tag, PlcOperation operation)
     {
         // The pinned 1.5.2 wrapper serializes Status only as its exact enum-name message.

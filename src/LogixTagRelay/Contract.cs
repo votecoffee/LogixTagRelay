@@ -6,12 +6,71 @@ using System.Text.RegularExpressions;
 
 namespace LogixTagRelay;
 
-public enum Direction { PlcToApp, AppToPlc, Bidirectional }
-public enum PlcType { BOOL, SINT, INT, DINT, LINT, REAL, STRING, USINT, UINT, UDINT, ULINT, DT, TIME, LREAL, TIME32, LTIME, LDT }
-public enum Quality { Unknown, Good, Bad }
+/// <summary>Selects how PLC observations and application edits participate in synchronization.</summary>
+public enum Direction
+{
+    /// <summary>Refreshes the application from the PLC; application assignment is rejected.</summary>
+    PlcToApp,
+    /// <summary>Writes application edits and retains separate PLC readback without replacing the desired value.</summary>
+    AppToPlc,
+    /// <summary>Refreshes clean values from the PLC and writes pending application edits.</summary>
+    Bidirectional,
+}
+/// <summary>Supported PLC scalars. The relay wire layout is distinct from native UDT storage.</summary>
+public enum PlcType
+{
+    /// <summary>Boolean, encoded as a four-byte DINT in the relay image.</summary>
+    BOOL,
+    /// <summary>Signed eight-bit integer.</summary>
+    SINT,
+    /// <summary>Signed 16-bit integer.</summary>
+    INT,
+    /// <summary>Signed 32-bit integer.</summary>
+    DINT,
+    /// <summary>Signed 64-bit integer.</summary>
+    LINT,
+    /// <summary>IEEE 754 single-precision floating point.</summary>
+    REAL,
+    /// <summary>Counted Latin-1 bytes with a declared DATA capacity and four-byte LEN.</summary>
+    STRING,
+    /// <summary>Unsigned eight-bit integer.</summary>
+    USINT,
+    /// <summary>Unsigned 16-bit integer.</summary>
+    UINT,
+    /// <summary>Unsigned 32-bit integer.</summary>
+    UDINT,
+    /// <summary>Unsigned 64-bit integer.</summary>
+    ULINT,
+    /// <summary>Signed 64-bit microseconds since the Unix epoch, represented by PlcDateTime.</summary>
+    DT,
+    /// <summary>Signed 64-bit microseconds of duration, represented by PlcTime.</summary>
+    TIME,
+    /// <summary>IEEE 754 double-precision floating point.</summary>
+    LREAL,
+    /// <summary>Signed 32-bit microseconds of duration, represented by PlcTime32.</summary>
+    TIME32,
+    /// <summary>Signed 64-bit nanoseconds of duration, represented by PlcLongTime.</summary>
+    LTIME,
+    /// <summary>Signed 64-bit nanoseconds since the Unix epoch, represented by PlcLongDateTime.</summary>
+    LDT,
+}
+/// <summary>Last synchronization outcome for an application variable.</summary>
+public enum Quality
+{
+    /// <summary>No successful synchronization is recorded.</summary>
+    Unknown,
+    /// <summary>The last accepted observation or write succeeded.</summary>
+    Good,
+    /// <summary>A synchronization or freshness check failed.</summary>
+    Bad,
+}
 
+/// <summary>Lossless scalar codecs for the relay&apos;s little-endian wire layout.</summary>
 public static class PlcTypes
 {
+    /// <summary>Returns the encoded scalar byte count; STRING requires its declared capacity.</summary>
+    /// <param name="type">Supported PLC scalar type.</param>
+    /// <param name="stringCapacity">Declared STRING DATA capacity in bytes; zero for non-STRING scalars.</param>
     public static int Size(PlcType type, int stringCapacity = 0) => type switch
     {
         PlcType.BOOL => 4, // Deliberate wire representation: DINT, never CLR/Logix BOOL layout.
@@ -19,6 +78,8 @@ public static class PlcTypes
         PlcType.LINT or PlcType.ULINT or PlcType.DT or PlcType.TIME or PlcType.LREAL or PlcType.LTIME or PlcType.LDT => 8, PlcType.STRING when stringCapacity is >= 1 and <= 65535 => 4 + stringCapacity,
         _ => throw new ArgumentOutOfRangeException(nameof(type), "A STRING requires its declared capacity (1..65535).")
     };
+    /// <summary>Returns the C# type name used by generated contracts.</summary>
+    /// <param name="type">Supported PLC scalar type.</param>
     public static string CSharp(PlcType type) => type switch
     {
         PlcType.BOOL => "bool", PlcType.SINT => "sbyte", PlcType.INT => "short",
@@ -28,6 +89,9 @@ public static class PlcTypes
         PlcType.DINT => "int", PlcType.LINT => "long", PlcType.REAL => "float", PlcType.STRING => "string",
         _ => throw new ArgumentOutOfRangeException(nameof(type))
     };
+    /// <summary>Rejects null text, invalid capacities, capacity overflow and characters above U+00FF.</summary>
+    /// <param name="value">Typed scalar or timestamp value required by this operation.</param>
+    /// <param name="capacity">Declared STRING DATA capacity in bytes, from 1 through 65535.</param>
     public static void ValidateString(string value, int capacity)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -35,8 +99,20 @@ public static class PlcTypes
             throw new ArgumentException($"STRING exceeds its declared {capacity}-byte capacity.");
         if (value.Any(c => c > 255)) throw new ArgumentException("Logix byte strings use a lossless Latin-1 mapping; characters above U+00FF are unsupported.");
     }
+    /// <summary>Encodes a typed scalar into the relay layout; the destination must have at least the required wire size.</summary>
+    /// <param name="field">Scalar mapping, including STRING capacity when applicable.</param>
+    /// <param name="value">Typed scalar or timestamp value required by this operation.</param>
+    /// <param name="destination">Writable buffer large enough for the encoded scalar.</param>
     public static void Encode(FieldMap field, object value, Span<byte> destination) => Encode(field.Type, value, destination, field.StringCapacity);
+    /// <summary>Decodes a relay scalar, validating counted STRING length against capacity.</summary>
+    /// <param name="field">Scalar mapping, including STRING capacity when applicable.</param>
+    /// <param name="source">Source buffer or text to be processed by this operation.</param>
     public static object Decode(FieldMap field, ReadOnlySpan<byte> source) => Decode(field.Type, source, field.StringCapacity);
+    /// <summary>Encodes a typed scalar into the relay layout; the destination must have at least the required wire size.</summary>
+    /// <param name="type">Supported PLC scalar type.</param>
+    /// <param name="value">Typed scalar or timestamp value required by this operation.</param>
+    /// <param name="destination">Writable buffer large enough for the encoded scalar.</param>
+    /// <param name="stringCapacity">Declared STRING DATA capacity in bytes; zero for non-STRING scalars.</param>
     public static void Encode(PlcType type, object value, Span<byte> destination, int stringCapacity = 0)
     {
         switch (type)
@@ -67,6 +143,10 @@ public static class PlcTypes
             default: throw new ArgumentOutOfRangeException(nameof(type));
         }
     }
+    /// <summary>Decodes a relay scalar, validating counted STRING length against capacity.</summary>
+    /// <param name="type">Supported PLC scalar type.</param>
+    /// <param name="source">Source buffer or text to be processed by this operation.</param>
+    /// <param name="stringCapacity">Declared STRING DATA capacity in bytes; zero for non-STRING scalars.</param>
     public static object Decode(PlcType type, ReadOnlySpan<byte> source, int stringCapacity = 0) => type switch
     {
         PlcType.BOOL => BinaryPrimitives.ReadInt32LittleEndian(source) != 0,
@@ -94,32 +174,78 @@ public static class PlcTypes
     }
 }
 
+/// <summary>One scalar member&apos;s PLC path, access permissions and offset in the symmetric relay image.</summary>
+/// <param name="Path">Fully qualified Logix path including optional program scope and array coordinates.</param>
+/// <param name="Type">Supported PLC scalar type.</param>
+/// <param name="Direction">Requested synchronization direction.</param>
+/// <param name="Offset">Four-byte-aligned scalar byte offset after the 24-byte relay header.</param>
+/// <param name="Access">Controller external access metadata, such as Read/Write or Read Only.</param>
+/// <param name="StringCapacity">Declared STRING DATA capacity, or zero for other scalar types.</param>
 public sealed record FieldMap(string Path, PlcType Type, Direction Direction, int Offset, string Access = "Read/Write", int StringCapacity = 0)
 {
+    /// <summary>Encoded scalar size, excluding alignment padding.</summary>
     [JsonIgnore] public int WireBytes => PlcTypes.Size(Type, StringCapacity);
+    /// <summary>Whether both the direction and PLC external access permit application writes.</summary>
     [JsonIgnore] public bool CanWrite => (Direction is Direction.AppToPlc or Direction.Bidirectional) && Access == "Read/Write";
 }
+/// <summary>A native UDT root read and the mapped scalar paths decoded from that snapshot.</summary>
+/// <param name="Path">Fully qualified Logix path including optional program scope and array coordinates.</param>
+/// <param name="DataType">Native Logix type name of the UDT root.</param>
+/// <param name="Fields">Ordered scalar field mappings or paths included in this group.</param>
 public sealed record ExplicitReadGroup(string Path, string DataType, List<string> Fields);
+/// <summary>Cyclic or DINT-triggered explicit update settings, with optional handled mirror and signed DINT response.</summary>
+/// <param name="IntervalMs">Cyclic explicit update interval in milliseconds; defaults to 100.</param>
+/// <param name="TriggerTag">Optional DINT request tag; a changed nonzero value requests a transfer.</param>
+/// <param name="TriggerPollMs">Polling interval for the DINT request, in milliseconds.</param>
+/// <param name="AcknowledgeTag">Legacy name for the optional exact handled-trigger DINT mirror.</param>
+/// <param name="HandledTriggerTag">Optional exact handled-trigger DINT mirror; takes precedence over AcknowledgeTag.</param>
+/// <param name="ResponseTag">Optional signed DINT reply: positive request magnitude for ACK, negative for NACK.</param>
+/// <param name="ReadGroups">Optional whole-UDT native read groups with scalar member decoding.</param>
 public sealed record ExplicitOptions(int IntervalMs = 100, string? TriggerTag = null, int TriggerPollMs = 20,
     string? AcknowledgeTag = null, string? HandledTriggerTag = null, string? ResponseTag = null,
     List<ExplicitReadGroup>? ReadGroups = null)
 {
     // AcknowledgeTag is the original API name for the exact handled-trigger mirror.
+    /// <summary>Effective handled-trigger mirror; HandledTriggerTag takes precedence over AcknowledgeTag.</summary>
     [JsonIgnore] public string? MirrorTag => HandledTriggerTag ?? AcknowledgeTag;
 }
+/// <summary>Assembly instances and timing for one symmetric image, capped at 480 bytes including its header.</summary>
+/// <param name="PlcInputAssembly">Adapter assembly consumed as the PLC module&apos;s input.</param>
+/// <param name="PlcOutputAssembly">Adapter assembly produced by the PLC module&apos;s output.</param>
+/// <param name="ConfigurationAssembly">Adapter configuration assembly instance.</param>
+/// <param name="RpiMs">Requested packet interval in milliseconds.</param>
+/// <param name="MaxAssemblyBytes">Maximum symmetric image size including the header; at most 480 bytes.</param>
 public sealed record ImplicitOptions(int PlcInputAssembly = 101, int PlcOutputAssembly = 100,
     int ConfigurationAssembly = 102, int RpiMs = 20, int MaxAssemblyBytes = 480);
+/// <summary>Explicit-only BOOL heartbeat, toggled every five seconds by default; consumes no implicit image bytes.</summary>
+/// <param name="Tag">Existing externally writable BOOL outside the data contract, updated through explicit communication.</param>
+/// <param name="IntervalMs">Update interval in milliseconds. Heartbeat defaults to a five-second explicit BOOL toggle.</param>
 public sealed record HeartbeatOptions(string Tag, int IntervalMs = 5000);
+/// <summary>Versioned contract layout and communication settings. Regenerate PLC and C# peers together after layout changes.</summary>
+/// <param name="SchemaHash">SHA-256 identity of the ordered scalar layout.</param>
+/// <param name="Fields">Ordered scalar field mappings or paths included in this group.</param>
+/// <param name="PlcToAppBytes">Complete PLC-to-application image length including its header.</param>
+/// <param name="AppToPlcBytes">Complete application-to-PLC image length; must equal PlcToAppBytes.</param>
+/// <param name="Gateway">PLC endpoint hostname or IP address.</param>
+/// <param name="Route">CIP route to the intended controller.</param>
+/// <param name="Explicit">Optional explicit interval, trigger, receipt and grouped-read settings.</param>
+/// <param name="Implicit">Optional implicit assembly and timing settings.</param>
+/// <param name="SchemaVersion">Contract configuration format version; currently 2.</param>
+/// <param name="Heartbeat">Optional explicit-only BOOL heartbeat, independent of implicit payload layout.</param>
 public sealed record SyncConfiguration(string SchemaHash, List<FieldMap> Fields,
     int PlcToAppBytes, int AppToPlcBytes, string Gateway = "192.168.1.10", string Route = "1,0",
     ExplicitOptions? Explicit = null, ImplicitOptions? Implicit = null, int SchemaVersion = 2, HeartbeatOptions? Heartbeat = null)
 {
+    /// <summary>Shared strict JSON settings for generated contract configuration.</summary>
     public static readonly JsonSerializerOptions Json = new()
     {
         WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() }, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
     };
+    /// <summary>Serializes the configuration or project using the relay JSON format.</summary>
     public string ToJson() => JsonSerializer.Serialize(this, Json) + "\n";
+    /// <summary>Parses JSON, rejecting duplicate keys and unknown properties. Contract configurations also undergo layout validation.</summary>
+    /// <param name="json">Serialized contract or project JSON.</param>
     public static SyncConfiguration FromJson(string json)
     {
         using var doc = JsonDocument.Parse(json);
@@ -143,6 +269,7 @@ public sealed record SyncConfiguration(string SchemaHash, List<FieldMap> Fields,
         else if (element.ValueKind == JsonValueKind.Array)
             foreach (var item in element.EnumerateArray()) CheckUnique(item);
     }
+    /// <summary>Validates schema identity, layout, access, image sizes and control-tag settings; throws FormatException for invalid contracts.</summary>
     public void Validate()
     {
         if (SchemaVersion != 2 || Fields is null || Fields.Count == 0 || string.IsNullOrWhiteSpace(SchemaHash))
@@ -199,6 +326,8 @@ public sealed record SyncConfiguration(string SchemaHash, List<FieldMap> Fields,
             throw new FormatException("Invalid assembly parameters or payload too large; split into groups.");
         if (ComputeHash(Fields) != SchemaHash) throw new FormatException("Schema hash does not match fields.");
     }
+    /// <summary>Computes a deterministic SHA-256 layout identity from the ordered scalar field mappings.</summary>
+    /// <param name="fields">Ordered scalar mappings to validate, encode or read.</param>
     public static string ComputeHash(IEnumerable<FieldMap> fields)
     {
         string canonical = string.Join("\n", fields.Select(f =>

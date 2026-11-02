@@ -1,0 +1,2 @@
+# Source Link must retrieve the same C# bytes used by the compiler on every OS.
+*.cs text eol=lf

@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 namespace LogixTagRelay.Logix;
 
 /// <summary>Reads UDT snapshots using controller-reported native offsets; never writes a UDT buffer.</summary>
+/// <param name="readRaw">Cancellation-aware native read delegate for UDT data and controller template metadata.</param>
 public sealed class LogixUdtReader(Func<string, CancellationToken, ValueTask<byte[]>> readRaw)
 {
     private sealed record Member(string Name, ushort Type, ushort Metadata, int Offset);
@@ -15,6 +16,10 @@ public sealed class LogixUdtReader(Func<string, CancellationToken, ValueTask<byt
     private readonly Dictionary<string, Dictionary<string, Symbol>> symbols = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, Template> templates = [];
     private readonly Dictionary<string, Plan> plans = [];
+    /// <summary>Reads a UDT root snapshot and decodes selected members using controller-reported native offsets.</summary>
+    /// <param name="group">Native UDT root and the mapped member paths to decode from its snapshot.</param>
+    /// <param name="fields">Ordered scalar mappings to validate, encode or read.</param>
+    /// <param name="ct">Cancels this operation.</param>
     public async ValueTask<IReadOnlyDictionary<string, object>> ReadAsync(ExplicitReadGroup group, IReadOnlyList<FieldMap> fields, CancellationToken ct = default)
     {
         ExplicitReads.Validate(fields, [group]);

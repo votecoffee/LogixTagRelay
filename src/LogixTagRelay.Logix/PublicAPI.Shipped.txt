@@ -1,0 +1,25 @@
+#nullable enable
+LogixTagRelay.Logix.LogixAddress
+LogixTagRelay.Logix.LogixBrowser
+LogixTagRelay.Logix.LogixBrowser.BrowseAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<LogixTagRelay.Design.TagCatalog!>!
+LogixTagRelay.Logix.LogixBrowser.LogixBrowser(string! gateway, string! route = "1,0", int timeoutMs = 5000) -> void
+LogixTagRelay.Logix.LogixEndpointProbe
+LogixTagRelay.Logix.LogixFaults
+LogixTagRelay.Logix.LogixStringBuffer
+LogixTagRelay.Logix.LogixTransport
+LogixTagRelay.Logix.LogixTransport.ConnectAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Logix.LogixTransport.DisposeAsync() -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Logix.LogixTransport.LogixTransport(string! gateway, string! route = "1,0", int timeoutMs = 5000) -> void
+LogixTagRelay.Logix.LogixTransport.ReadAsync(LogixTagRelay.FieldMap! field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<object!>
+LogixTagRelay.Logix.LogixTransport.ReadAsync(string! path, LogixTagRelay.PlcType type, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<object!>
+LogixTagRelay.Logix.LogixTransport.ReadBatchAsync(System.Collections.Generic.IReadOnlyList<LogixTagRelay.FieldMap!>! fields, System.Collections.Generic.IReadOnlyList<LogixTagRelay.ExplicitReadGroup!>! groups, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<object!>!>
+LogixTagRelay.Logix.LogixTransport.WriteAsync(LogixTagRelay.FieldMap! field, object! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Logix.LogixTransport.WriteAsync(string! path, LogixTagRelay.PlcType type, object! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+LogixTagRelay.Logix.LogixUdtReader
+LogixTagRelay.Logix.LogixUdtReader.LogixUdtReader(System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]!>>! readRaw) -> void
+LogixTagRelay.Logix.LogixUdtReader.ReadAsync(LogixTagRelay.ExplicitReadGroup! group, System.Collections.Generic.IReadOnlyList<LogixTagRelay.FieldMap!>! fields, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, object!>!>
+static LogixTagRelay.Logix.LogixAddress.SymbolicPath(LogixTagRelay.FieldMap! field) -> string!
+static LogixTagRelay.Logix.LogixEndpointProbe.CheckAsync(string! gateway, string! route = "1,0", int timeoutMs = 5000, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static LogixTagRelay.Logix.LogixFaults.Translate(libplctag.LibPlcTagException! error, string! gateway, string! route, string! tag, LogixTagRelay.PlcOperation operation) -> LogixTagRelay.PlcCommunicationException!
+static LogixTagRelay.Logix.LogixStringBuffer.Decode(LogixTagRelay.FieldMap! field, byte[]! nativeBuffer) -> string!
+static LogixTagRelay.Logix.LogixStringBuffer.Encode(LogixTagRelay.FieldMap! field, string! value, byte[]! nativeReadback) -> byte[]!

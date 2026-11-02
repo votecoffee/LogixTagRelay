@@ -4,20 +4,42 @@ using System.Text.Json.Serialization;
 
 namespace LogixTagRelay.Design;
 
+/// <summary>Catalog member with nested UDT or array children, native access metadata and optional unsupported reason.</summary>
+/// <param name="Name">Tag, controller or module display name from the source catalog.</param>
+/// <param name="Path">Fully qualified Logix path including optional program scope and array coordinates.</param>
+/// <param name="DataType">Native Logix scalar or composite type name.</param>
+/// <param name="Access">Controller external access metadata, such as Read/Write or Read Only.</param>
+/// <param name="Children">Ordered nested UDT members or array elements.</param>
+/// <param name="IsArray">Whether this node represents a Logix array.</param>
+/// <param name="UnsupportedReason">Reason this node cannot be selected, or null when supported.</param>
+/// <param name="StringCapacity">Declared STRING DATA capacity, or zero for other scalar types.</param>
+/// <param name="Dimensions">Native array dimensions, when known.</param>
 public sealed record TagNode(string Name, string Path, string DataType, string Access,
     List<TagNode> Children, bool IsArray = false, string? UnsupportedReason = null, int StringCapacity = 0, int[]? Dimensions = null)
 {
+    /// <summary>Effective tag or operand comment, falling back to the UDT member or data-type description when available.</summary>
+    public string? Description { get; init; }
+    /// <summary>Enumerates scalar descendants in catalog order, or this node when it has no children.</summary>
     public IEnumerable<TagNode> Leaves() => Children.Count == 0 ? [this] : Children.SelectMany(c => c.Leaves());
+    /// <summary>Supported scalar type, or null for a composite or unsupported native type.</summary>
     [JsonIgnore] public PlcType? AtomicType => StringCapacity > 0 ? PlcType.STRING :
         Enum.TryParse<PlcType>(DataType, out var type) && Enum.IsDefined(type) && type != PlcType.STRING ? type : null;
+    /// <summary>Declared array dimensions, falling back to one dimension based on child count.</summary>
     [JsonIgnore] public int[] ArrayDimensions => Dimensions ?? [Children.Count];
+    /// <summary>Whether every scalar descendant has a supported type and no rejection reason.</summary>
     public bool Selectable => Leaves().All(n => n.UnsupportedReason is null && n.AtomicType.HasValue);
 }
+/// <summary>Controller identity and tag tree from an offline export or live browse.</summary>
+/// <param name="Controller">Controller identity from the catalog source.</param>
+/// <param name="SoftwareRevision">Studio 5000 revision associated with the source export.</param>
+/// <param name="Tags">Ordered catalog or memory tag entries.</param>
 public sealed record TagCatalog(string Controller, string SoftwareRevision, List<TagNode> Tags);
 
 /// <summary>Offline browser catalog; no controller connection or native layout inference.</summary>
 public static class L5xCatalog
 {
+    /// <summary>Reads an L5X catalog with DTDs and external entities prohibited and a bounded document size; does not infer native UDT offsets.</summary>
+    /// <param name="stream">L5X XML input; external entities and DTDs are not permitted.</param>
     public static TagCatalog Read(Stream stream)
     {
         using var reader = XmlReader.Create(stream, new XmlReaderSettings
@@ -31,7 +53,26 @@ public static class L5xCatalog
             .ToDictionary(e => Required(e, "Name"), StringComparer.OrdinalIgnoreCase);
         var result = new List<TagNode>();
         int expanded = 0;
-        TagNode Build(string name, string path, string type, string dimensions, string access, HashSet<string> ancestors, int depth, bool isMember = false)
+        string? Text(XElement? element)
+        {
+            if (element is null) return null;
+            string language = (string?)doc.Root.Attribute("CurrentLanguage") ?? "en-US";
+            var localized = element.Elements().FirstOrDefault(e => string.Equals((string?)e.Attribute("Lang"), language, StringComparison.OrdinalIgnoreCase))
+                ?? element.Elements().FirstOrDefault();
+            string value = (localized ?? element).Value.Trim();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+        TagNode Build(string name, string path, string type, string dimensions, string access, HashSet<string> ancestors, int depth, bool isMember = false, string? description = null)
+        {
+            var node = BuildCore(name, path, type, dimensions, access, ancestors, depth, isMember);
+            string? effective = description ?? (types.TryGetValue(type, out var definition) ? Text(definition.Element("Description")) : null);
+            return node with
+            {
+                Description = effective,
+                Children = node.IsArray ? node.Children.Select(c => c with { Description = c.Description ?? effective }).ToList() : node.Children
+            };
+        }
+        TagNode BuildCore(string name, string path, string type, string dimensions, string access, HashSet<string> ancestors, int depth, bool isMember)
         {
             if (++expanded > 20000 || depth > 32) throw new FormatException("Catalog expansion limit exceeded.");
             var dims = ParseDimensions(dimensions);
@@ -74,7 +115,7 @@ public static class L5xCatalog
                 if (memberType == "BIT") memberType = "BOOL";
                 children.Add(Build(memberName, path + "." + memberName, memberType,
                     (string?)member.Attribute("Dimension") ?? "0", Restrict(access, (string?)member.Attribute("ExternalAccess") ?? "Read/Write"),
-                    new(ancestors, StringComparer.OrdinalIgnoreCase), depth + 1, true));
+                    new(ancestors, StringComparer.OrdinalIgnoreCase), depth + 1, true, Text(member.Element("Description"))));
             }
             return new(name, path, type, access, children, false, children.Count == 0 ? "Empty UDT." : null);
         }
@@ -84,9 +125,22 @@ public static class L5xCatalog
             {
                 string name = Required(tag, "Name");
                 if ((string?)tag.Attribute("TagType") is { } tagType && tagType != "Base")
-                { result.Add(new(displayPrefix + name, prefix + name, "Alias", "None", [], false, "Alias resolution is not implemented.")); continue; }
-                result.Add(Build(displayPrefix + name, prefix + name, Required(tag, "DataType"), (string?)tag.Attribute("Dimensions") ?? "0",
-                    (string?)tag.Attribute("ExternalAccess") ?? "Read/Write", new(StringComparer.OrdinalIgnoreCase), 0));
+                { result.Add(new(displayPrefix + name, prefix + name, "Alias", "None", [], false, "Alias resolution is not implemented.") { Description = Text(tag.Element("Description")) }); continue; }
+                var node = Build(displayPrefix + name, prefix + name, Required(tag, "DataType"), (string?)tag.Attribute("Dimensions") ?? "0",
+                    (string?)tag.Attribute("ExternalAccess") ?? "Read/Write", new(StringComparer.OrdinalIgnoreCase), 0, description: Text(tag.Element("Description")));
+                var comments = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var comment in tag.Element("Comments")?.Elements("Comment") ?? [])
+                {
+                    string operand = Required(comment, "Operand");
+                    if (Text(comment) is not { } text) continue;
+                    if (!comments.TryAdd(operand, text)) throw new FormatException("Duplicate tag operand comment: " + name + operand);
+                }
+                TagNode Annotate(TagNode current) => current with
+                {
+                    Description = comments.GetValueOrDefault(current.Path[node.Path.Length..]) ?? current.Description,
+                    Children = current.Children.Select(Annotate).ToList()
+                };
+                result.Add(Annotate(node));
             }
         }
         AddTags(controller.Element("Tags"), "", "");

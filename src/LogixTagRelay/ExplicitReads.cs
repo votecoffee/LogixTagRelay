@@ -2,8 +2,12 @@ using System.Text.RegularExpressions;
 
 namespace LogixTagRelay;
 
+/// <summary>Validation shared by explicit grouped and scalar read transports.</summary>
 public static class ExplicitReads
 {
+    /// <summary>Rejects duplicate paths, invalid roots and grouped fields that do not match the selected contract.</summary>
+    /// <param name="fields">Ordered scalar mappings to validate, encode or read.</param>
+    /// <param name="groups">Whole-UDT root read groups associated with the scalar fields.</param>
     public static void Validate(IReadOnlyList<FieldMap> fields, IReadOnlyList<ExplicitReadGroup> groups)
     {
         var paths = fields.Select(f => f.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
