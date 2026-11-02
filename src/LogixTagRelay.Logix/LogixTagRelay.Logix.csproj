@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><PackageId>LogixTagRelay.Logix</PackageId></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LogixTagRelay/LogixTagRelay.csproj" />
+    <ProjectReference Include="../LogixTagRelay.Design/LogixTagRelay.Design.csproj" />
+    <PackageReference Include="libplctag" Version="1.5.2" />
+  </ItemGroup>
+</Project>

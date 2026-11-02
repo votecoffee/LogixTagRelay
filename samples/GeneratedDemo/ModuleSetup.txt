@@ -1,0 +1,18 @@
+Generic Ethernet Module settings (PLC perspective)
+Name: LogixRelay
+IP address: the PC NIC serving the adapter (not the PLC IP)
+Comm Format: Data - SINT
+Input assembly: 101; size: 32 bytes (PC -> PLC)
+Output assembly: 100; size: 52 bytes (PLC -> PC)
+Configuration assembly: 102; size: 0
+RPI: 20 ms; actual supported RPI must be negotiated/tested with the chosen adapter.
+Unicast preferred; adapter transport headers are NOT included in these payload sizes.
+
+The preview generates a ROUTINE import, not a native module import. Add the module using these settings.
+Import into the program containing any selected program-scoped tags. One program scope per group.
+Explicitly call the imported routine from a scheduled task (JSR). It is not automatically scheduled.
+All selected application tags must already exist. Import creates only module-prefixed staging tags.
+Drive LogixRelay_PS_ApplyCommands from application permission logic. Its initial value is FALSE.
+The generated 1000 ms watchdog blocks stale frames. Application logic must handle its DN bit
+and module connection faults to choose a suitable hold/reset behavior for previously copied values.
+Studio 5000 import, verify, export/readback, then PLC bench validation are still required.

@@ -1,0 +1,129 @@
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+
+namespace LogixTagRelay.Design;
+
+public sealed record TagSelection(string Path, Direction Direction);
+public sealed record GeneratedBundle(string ModelCs, SyncConfiguration Configuration, string RoutineL5x, string ModuleInstructions);
+
+public static partial class Generator
+{
+    public static GeneratedBundle Generate(TagCatalog catalog, IReadOnlyList<TagSelection> selections,
+        bool includeImplicit = true, string moduleName = "LogixRelay", string softwareRevision = "")
+    {
+        if (!Identifier().IsMatch(moduleName) || moduleName.Length > 16) throw new ArgumentException("Module name must be an identifier of at most 16 characters.");
+        var nodes = new List<(TagNode Node, Direction Direction)>();
+        var allNodes = Flatten(catalog.Tags).ToDictionary(n => n.Path, StringComparer.OrdinalIgnoreCase);
+        foreach (var selection in selections)
+        {
+            if (!allNodes.TryGetValue(selection.Path, out var node) || !node.Selectable)
+                throw new ArgumentException($"Unsupported selection: {selection.Path}");
+            nodes.Add((node, selection.Direction));
+        }
+        var fields = new List<FieldMap>();
+        int fromPlc = ImplicitImage.HeaderBytes, toPlc = ImplicitImage.HeaderBytes;
+        foreach (var (node, direction) in nodes)
+        {
+            foreach (var leaf in node.Leaves())
+            {
+                int offset = direction == Direction.PlcToApp ? fromPlc : toPlc;
+                var type = Enum.Parse<PlcType>(leaf.DataType);
+                fields.Add(new(leaf.Path, type, direction, offset, leaf.Access));
+                int next = offset + ((PlcTypes.Size(type) + 3) / 4 * 4);
+                if (direction == Direction.PlcToApp) fromPlc = next; else toPlc = next;
+            }
+        }
+        var config = new SyncConfiguration(SyncConfiguration.ComputeHash(fields), fields, fromPlc, toPlc,
+            Explicit: new(), Implicit: includeImplicit ? new() : null);
+        config.Validate(); // Includes duplicate parent/child selections and incompatible access.
+        if (includeImplicit)
+        {
+            string program = fields.Select(f => Regex.Match(f.Path, @"^Program:([^.]+)\."))
+                .FirstOrDefault(m => m.Success)?.Groups[1].Value ?? "MainProgram";
+            foreach (var field in fields.Where(f => !f.Path.StartsWith("Program:", StringComparison.OrdinalIgnoreCase)))
+            {
+                string root = field.Path.Split('.', '[')[0];
+                if (catalog.Tags.Any(t => t.Path.Equals($"Program:{program}.{root}", StringComparison.OrdinalIgnoreCase)))
+                    throw new ArgumentException($"Program {program} shadows controller tag {root}; use a dedicated mapping program or resolve the conflict.");
+            }
+            if (catalog.Tags.Any(t => t.Path.StartsWith($"Program:{program}.{moduleName}_PS_", StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException("Generated staging prefix already exists in the target program. Choose a different module/prefix or reconcile the prior import.");
+        }
+        string model = GenerateModel(nodes, config);
+        string revision = string.IsNullOrEmpty(softwareRevision) ? catalog.SoftwareRevision : softwareRevision;
+        if (includeImplicit && !Regex.IsMatch(revision, @"^\d{1,2}\.\d{1,2}$"))
+            throw new ArgumentException("Specify the target Studio 5000 software revision (for example 35.00) for an implicit L5X import.");
+        return new(model, config, includeImplicit ? L5xGenerator.Generate(config, moduleName, revision) : "",
+            $"""
+            Generic Ethernet Module settings (PLC perspective)
+            Name: {moduleName}
+            IP address: the PC NIC serving the adapter (not the PLC IP)
+            Comm Format: Data - SINT
+            Input assembly: {config.Implicit?.PlcInputAssembly ?? 101}; size: {toPlc} bytes (PC -> PLC)
+            Output assembly: {config.Implicit?.PlcOutputAssembly ?? 100}; size: {fromPlc} bytes (PLC -> PC)
+            Configuration assembly: {config.Implicit?.ConfigurationAssembly ?? 102}; size: 0
+            RPI: {config.Implicit?.RpiMs ?? 20} ms; actual supported RPI must be negotiated/tested with the chosen adapter.
+            Unicast preferred; adapter transport headers are NOT included in these payload sizes.
+
+            The preview generates a ROUTINE import, not a native module import. Add the module using these settings.
+            Import into the program containing any selected program-scoped tags. One program scope per group.
+            Explicitly call the imported routine from a scheduled task (JSR). It is not automatically scheduled.
+            All selected application tags must already exist. Import creates only module-prefixed staging tags.
+            Drive {moduleName}_PS_ApplyCommands from application permission logic. Its initial value is FALSE.
+            The generated 1000 ms watchdog blocks stale frames. Application logic must handle its DN bit
+            and module connection faults to choose a suitable hold/reset behavior for previously copied values.
+            Studio 5000 import, verify, export/readback, then PLC bench validation are still required.
+            """ + "\n");
+    }
+    private static IEnumerable<TagNode> Flatten(IEnumerable<TagNode> nodes) => nodes.SelectMany(n => new[] { n }.Concat(Flatten(n.Children)));
+    private static string GenerateModel(List<(TagNode Node, Direction Direction)> nodes, SyncConfiguration config)
+    {
+        var classes = new Dictionary<string, (string Name, TagNode Node)>();
+        string Shape(TagNode n) => n.DataType + (n.IsArray ? "[]" : "{" + string.Join(";", n.Children.Select(c => c.Name + ":" + Shape(c))) + "}");
+        string Type(TagNode n)
+        {
+            if (n.IsArray) return Type(n.Children[0]) + "[]";
+            if (n.Children.Count == 0) return $"PlcVariable<{PlcTypes.CSharp(Enum.Parse<PlcType>(n.DataType))}>";
+            string key = Shape(n);
+            if (!classes.TryGetValue(key, out var item))
+            {
+                item = ($"Udt{classes.Count + 1}", n); classes.Add(key, item);
+                foreach (var child in n.Children) _ = Type(child);
+            }
+            return item.Name;
+        }
+        string Literal(string s) => JsonSerializer.Serialize(s);
+        string Init(TagNode n)
+        {
+            if (n.IsArray) return "new " + Type(n.Children[0]) + "[] { " + string.Join(", ", n.Children.Select(Init)) + " }";
+            if (n.Children.Count != 0) return "new " + Type(n) + " { " + string.Join(", ", n.Children.Select(c => Id(c.Name) + " = " + Init(c))) + " }";
+            var f = config.Fields.Single(f => f.Path == n.Path);
+            return $"new {Type(n)}(new FieldMap({Literal(f.Path)}, PlcType.{f.Type}, Direction.{f.Direction}, {f.Offset}, {Literal(f.Access)}))";
+        }
+        var names = nodes.Select(n => Id(n.Node.Path)).ToArray();
+        if (names.Distinct(StringComparer.Ordinal).Count() != names.Length) throw new ArgumentException("C# identifier collision.");
+        var builder = new StringBuilder("// <auto-generated/>\n#nullable enable\nusing System.Collections.Generic;\nusing LogixTagRelay;\nnamespace LogixTagRelay.Generated;\n\npublic sealed partial class GeneratedTags : IPlcModel\n{\n");
+        for (int i = 0; i < nodes.Count; i++) builder.AppendLine($"    public {Type(nodes[i].Node)} {names[i]} {{ get; }} = {Init(nodes[i].Node)};");
+        var refs = new List<string>();
+        void References(TagNode node, string expression)
+        {
+            if (node.Children.Count == 0) refs.Add(expression);
+            else for (int i = 0; i < node.Children.Count; i++)
+                References(node.Children[i], node.IsArray ? $"{expression}[{i}]" : expression + "." + Id(node.Children[i].Name));
+        }
+        for (int i = 0; i < nodes.Count; i++) References(nodes[i].Node, names[i]);
+        builder.AppendLine("    public IReadOnlyList<IPlcVariable> Variables => new IPlcVariable[] { " + string.Join(", ", refs) + " };\n}");
+        foreach (var (_, item) in classes)
+        {
+            builder.AppendLine($"\npublic sealed class {item.Name}\n{{");
+            foreach (var child in item.Node.Children) builder.AppendLine($"    public {Type(child)} {Id(child.Name)} {{ get; init; }} = null!;");
+            builder.AppendLine("}");
+        }
+        return builder.ToString();
+    }
+    // Encode punctuation and underscore so sanitized paths cannot collide. Prefix avoids keywords.
+    private static string Id(string name) => "Tag_" + string.Concat(name.Select(c => char.IsAsciiLetterOrDigit(c) ? c.ToString() : "_" + ((int)c).ToString("X4", CultureInfo.InvariantCulture)));
+    [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")] private static partial Regex Identifier();
+}

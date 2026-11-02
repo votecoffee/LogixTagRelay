@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.00" TargetName="LogixRelay_PS_Sync" TargetType="Routine" ContainsContext="true" ExportOptions="References NoRawData DecoratedData Context Dependencies">
+  <Controller Use="Context" Name="LogixRelayContext">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags />
+    <Programs>
+      <Program Use="Context" Name="MainProgram">
+        <Tags>
+          <Tag Name="LogixRelay_PS_Rx" TagType="Base" DataType="SINT" Dimensions="32" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Tx" TagType="Base" DataType="SINT" Dimensions="52" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Magic" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Version" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Schema" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Valid" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_CommandSequence" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_AcceptedSequence" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Sequence" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Bool" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_HeaderMagic" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_HeaderVersion" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_HeaderSchema" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_HeaderValid" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_ApplyCommands" TagType="Base" DataType="BOOL" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Watchdog" TagType="Base" DataType="TIMER" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+        </Tags>
+        <Routines>
+          <Routine Use="Target" Name="LogixRelay_PS_Sync" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Comment><![CDATA[Snapshot PC-to-PLC assembly once before decoding. Module I is input TO the PLC.]]></Comment>
+                <Text><![CDATA[CPS(LogixRelay:I.Data[0],LogixRelay_PS_Rx[0],32);]]></Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[0],LogixRelay_PS_Magic,1);]]></Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[4],LogixRelay_PS_Version,1);]]></Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[8],LogixRelay_PS_Schema,1);]]></Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[12],LogixRelay_PS_CommandSequence,1);]]></Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Rx[20],LogixRelay_PS_Valid,1);]]></Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text><![CDATA[XIC(LogixRelay_PS_ApplyCommands)EQU(LogixRelay_PS_Magic,1347637297)EQU(LogixRelay_PS_Version,1)EQU(LogixRelay_PS_Schema,-357618551)EQU(LogixRelay_PS_Valid,1)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)RES(LogixRelay_PS_Watchdog);]]></Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Comment><![CDATA[A managed application stall cannot refresh this watchdog by retransmitting the same sequence.]]></Comment>
+                <Text><![CDATA[TON(LogixRelay_PS_Watchdog,1000,0);]]></Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text><![CDATA[XIC(LogixRelay_PS_ApplyCommands)EQU(LogixRelay_PS_Magic,1347637297)EQU(LogixRelay_PS_Version,1)EQU(LogixRelay_PS_Schema,-357618551)EQU(LogixRelay_PS_Valid,1)XIO(LogixRelay_PS_Watchdog.DN)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)CPS(LogixRelay_PS_Rx[24],LogixRelay_PS_Bool,1);]]></Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Text><![CDATA[XIC(LogixRelay_PS_ApplyCommands)EQU(LogixRelay_PS_Magic,1347637297)EQU(LogixRelay_PS_Version,1)EQU(LogixRelay_PS_Schema,-357618551)EQU(LogixRelay_PS_Valid,1)XIO(LogixRelay_PS_Watchdog.DN)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)[NEQ(LogixRelay_PS_Bool,0)OTL(Command.Enable),EQU(LogixRelay_PS_Bool,0)OTU(Command.Enable)];]]></Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text><![CDATA[XIC(LogixRelay_PS_ApplyCommands)EQU(LogixRelay_PS_Magic,1347637297)EQU(LogixRelay_PS_Version,1)EQU(LogixRelay_PS_Schema,-357618551)EQU(LogixRelay_PS_Valid,1)XIO(LogixRelay_PS_Watchdog.DN)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)CPS(LogixRelay_PS_Rx[28],Command.Setpoint,1);]]></Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Comment><![CDATA[Acknowledgement follows all command copies; application logic should consume staging values deliberately.]]></Comment>
+                <Text><![CDATA[XIC(LogixRelay_PS_ApplyCommands)EQU(LogixRelay_PS_Magic,1347637297)EQU(LogixRelay_PS_Version,1)EQU(LogixRelay_PS_Schema,-357618551)EQU(LogixRelay_PS_Valid,1)XIO(LogixRelay_PS_Watchdog.DN)NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)MOV(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence);]]></Text>
+              </Rung>
+              <Rung Number="12" Type="N">
+                <Text><![CDATA[FLL(0,LogixRelay_PS_Tx[0],52);]]></Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text><![CDATA[MOV(0,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text><![CDATA[XIC(Status.Running)MOV(1,LogixRelay_PS_Bool);]]></Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Bool,LogixRelay_PS_Tx[24],4);]]></Text>
+              </Rung>
+              <Rung Number="16" Type="N">
+                <Text><![CDATA[CPS(Status.Speed,LogixRelay_PS_Tx[28],4);]]></Text>
+              </Rung>
+              <Rung Number="17" Type="N">
+                <Text><![CDATA[CPS(Status.Count,LogixRelay_PS_Tx[32],8);]]></Text>
+              </Rung>
+              <Rung Number="18" Type="N">
+                <Text><![CDATA[CPS(Status.Faults[0],LogixRelay_PS_Tx[40],4);]]></Text>
+              </Rung>
+              <Rung Number="19" Type="N">
+                <Text><![CDATA[CPS(Status.Faults[1],LogixRelay_PS_Tx[44],4);]]></Text>
+              </Rung>
+              <Rung Number="20" Type="N">
+                <Text><![CDATA[CPS(Status.Faults[2],LogixRelay_PS_Tx[48],4);]]></Text>
+              </Rung>
+              <Rung Number="21" Type="N">
+                <Text><![CDATA[EQU(LogixRelay_PS_Sequence,2147483647)MOV(-1,LogixRelay_PS_Sequence);]]></Text>
+              </Rung>
+              <Rung Number="22" Type="N">
+                <Comment><![CDATA[Wrap to zero before signed ADD overflow. Sequence advances on each routine execution.]]></Comment>
+                <Text><![CDATA[ADD(LogixRelay_PS_Sequence,1,LogixRelay_PS_Sequence);]]></Text>
+              </Rung>
+              <Rung Number="23" Type="N">
+                <Text><![CDATA[MOV(1347637297,LogixRelay_PS_HeaderMagic)MOV(1,LogixRelay_PS_HeaderVersion)MOV(-357618551,LogixRelay_PS_HeaderSchema)MOV(1,LogixRelay_PS_HeaderValid);]]></Text>
+              </Rung>
+              <Rung Number="24" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_HeaderMagic,LogixRelay_PS_Tx[0],4);]]></Text>
+              </Rung>
+              <Rung Number="25" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_HeaderVersion,LogixRelay_PS_Tx[4],4);]]></Text>
+              </Rung>
+              <Rung Number="26" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_HeaderSchema,LogixRelay_PS_Tx[8],4);]]></Text>
+              </Rung>
+              <Rung Number="27" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_Sequence,LogixRelay_PS_Tx[12],4);]]></Text>
+              </Rung>
+              <Rung Number="28" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_AcceptedSequence,LogixRelay_PS_Tx[16],4);]]></Text>
+              </Rung>
+              <Rung Number="29" Type="N">
+                <Text><![CDATA[CPS(LogixRelay_PS_HeaderValid,LogixRelay_PS_Tx[20],4);]]></Text>
+              </Rung>
+              <Rung Number="30" Type="N">
+                <Comment><![CDATA[Module O is output FROM the PLC. Only one routine/task should own these bytes.]]></Comment>
+                <Text><![CDATA[CPS(LogixRelay_PS_Tx[0],LogixRelay:O.Data[0],52);]]></Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+  </Controller>
+</RSLogix5000Content>

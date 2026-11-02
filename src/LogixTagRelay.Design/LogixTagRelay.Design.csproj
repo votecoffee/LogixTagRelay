@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><PackageId>LogixTagRelay.Design</PackageId></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../LogixTagRelay/LogixTagRelay.csproj" /></ItemGroup>
+</Project>

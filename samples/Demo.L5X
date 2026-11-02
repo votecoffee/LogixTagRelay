@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.00" TargetName="Demo" TargetType="Controller" ContainsContext="false">
+  <Controller Name="Demo">
+    <DataTypes>
+      <DataType Name="MotorStatus" Family="NoFamily" Class="User"><Members>
+        <Member Name="Running" DataType="BOOL" Dimension="0" ExternalAccess="Read Only" />
+        <Member Name="Speed" DataType="REAL" Dimension="0" ExternalAccess="Read Only" />
+        <Member Name="Count" DataType="LINT" Dimension="0" ExternalAccess="Read Only" />
+        <Member Name="Faults" DataType="DINT" Dimension="3" ExternalAccess="Read Only" />
+      </Members></DataType>
+      <DataType Name="MotorCommand" Family="NoFamily" Class="User"><Members>
+        <Member Name="Enable" DataType="BOOL" Dimension="0" ExternalAccess="Read/Write" />
+        <Member Name="Setpoint" DataType="REAL" Dimension="0" ExternalAccess="Read/Write" />
+      </Members></DataType>
+    </DataTypes>
+    <Tags>
+      <Tag Name="Status" TagType="Base" DataType="MotorStatus" ExternalAccess="Read Only" />
+      <Tag Name="Command" TagType="Base" DataType="MotorCommand" ExternalAccess="Read/Write" />
+      <Tag Name="RequestSequence" TagType="Base" DataType="DINT" ExternalAccess="Read Only" />
+      <Tag Name="AckSequence" TagType="Base" DataType="DINT" ExternalAccess="Read/Write" />
+    </Tags>
+    <Programs />
+  </Controller>
+</RSLogix5000Content>

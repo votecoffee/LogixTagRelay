@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/LogixTagRelay.Design/LogixTagRelay.Design.csproj" />
+    <ProjectReference Include="../../src/LogixTagRelay.Opener/LogixTagRelay.Opener.csproj" />
+    <None Include="../../samples/Demo.L5X" Link="Demo.L5X" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

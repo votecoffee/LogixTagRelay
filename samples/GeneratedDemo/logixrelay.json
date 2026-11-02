@@ -1,0 +1,79 @@
+{
+  "schemaHash": "892CAFEA7903C1BC1244480A06BEB1E9AD32D620B7BF519CC07F574513F36D03",
+  "fields": [
+    {
+      "path": "Status.Running",
+      "type": "BOOL",
+      "direction": "PlcToApp",
+      "offset": 24,
+      "access": "Read Only"
+    },
+    {
+      "path": "Status.Speed",
+      "type": "REAL",
+      "direction": "PlcToApp",
+      "offset": 28,
+      "access": "Read Only"
+    },
+    {
+      "path": "Status.Count",
+      "type": "LINT",
+      "direction": "PlcToApp",
+      "offset": 32,
+      "access": "Read Only"
+    },
+    {
+      "path": "Status.Faults[0]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 40,
+      "access": "Read Only"
+    },
+    {
+      "path": "Status.Faults[1]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 44,
+      "access": "Read Only"
+    },
+    {
+      "path": "Status.Faults[2]",
+      "type": "DINT",
+      "direction": "PlcToApp",
+      "offset": 48,
+      "access": "Read Only"
+    },
+    {
+      "path": "Command.Enable",
+      "type": "BOOL",
+      "direction": "AppToPlc",
+      "offset": 24,
+      "access": "Read/Write"
+    },
+    {
+      "path": "Command.Setpoint",
+      "type": "REAL",
+      "direction": "AppToPlc",
+      "offset": 28,
+      "access": "Read/Write"
+    }
+  ],
+  "plcToAppBytes": 52,
+  "appToPlcBytes": 32,
+  "gateway": "192.168.1.10",
+  "route": "1,0",
+  "explicit": {
+    "intervalMs": 100,
+    "triggerTag": null,
+    "triggerPollMs": 20,
+    "acknowledgeTag": null
+  },
+  "implicit": {
+    "plcInputAssembly": 101,
+    "plcOutputAssembly": 100,
+    "configurationAssembly": 102,
+    "rpiMs": 20,
+    "maxAssemblyBytes": 480
+  },
+  "schemaVersion": 1
+}

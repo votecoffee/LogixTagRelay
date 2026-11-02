@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><PackageId>LogixTagRelay.Opener</PackageId><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LogixTagRelay/LogixTagRelay.csproj" />
+    <None Include="../../artifacts/native/Release/LogixTagRelayOpener.dll" Condition="Exists('../../artifacts/native/Release/LogixTagRelayOpener.dll')" Pack="true" PackagePath="runtimes/win-x64/native/" Link="LogixTagRelayOpener.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../native/OpENer/license.txt" Pack="true" PackagePath="licenses/OpENer.txt" />
+    <None Include="../../THIRD_PARTY_NOTICES.md" Pack="true" PackagePath="licenses/" />
+  </ItemGroup>
+  <Target Name="RequireNativeForPack" BeforeTargets="GenerateNuspec" Condition="!Exists('../../artifacts/native/Release/LogixTagRelayOpener.dll')">
+    <Error Text="Build the native Release bridge with scripts/build-native.ps1 before packing LogixTagRelay.Opener." />
+  </Target>
+</Project>

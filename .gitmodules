@@ -1,0 +1,3 @@
+[submodule "native/OpENer"]
+	path = native/OpENer
+	url = https://github.com/EIPStackGroup/OpENer.git
