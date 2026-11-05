@@ -4,12 +4,14 @@
 #include <string.h>
 #include "opener_api.h"
 #include "appcontype.h"
+#include "cipidentity.h"
 
 EipStatus ApplicationInitialization(void) {
   if (!CreateAssemblyObject(ltr_input_instance, ltr_produced, ltr_produced_size) ||
       !CreateAssemblyObject(ltr_output_instance, ltr_consumed, ltr_consumed_size) ||
       !CreateAssemblyObject(ltr_config_instance, NULL, 0)) return kEipStatusError;
   ConfigureExclusiveOwnerConnectionPoint(0, ltr_output_instance, ltr_input_instance, ltr_config_instance);
+  CipIdentitySetExtendedDeviceStatus(kNoIoConnectionsEstablished);
   return kEipStatusOk;
 }
 void HandleApplication(void) { }
@@ -20,7 +22,17 @@ void CheckIoConnectionEvent(unsigned int output_id, unsigned int input_id, IoCon
   InterlockedIncrement(&ltr_generation); InterlockedIncrement(&ltr_epoch);
   ReleaseSRWLockExclusive(&ltr_lock);
   InterlockedExchange(&ltr_connected, event == kIoConnectionEventOpened ? 1 : 0);
-  if (event != kIoConnectionEventOpened) InterlockedExchange(&ltr_run, 0);
+  if (event == kIoConnectionEventOpened) {
+    CipIdentitySetStatusFlags(kOwned);
+    // OpENer updates the extended status when it receives the scanner's Run/Idle header.
+    CipIdentitySetExtendedDeviceStatus(kAtLeastOneIoConnectionEstablishedAllInIdleMode);
+  } else {
+    InterlockedExchange(&ltr_run, 0);
+    CipIdentityClearStatusFlags(kOwned);
+    CipIdentitySetExtendedDeviceStatus(event == kIoConnectionEventTimedOut
+      ? kStatusAtLeastOneFaultedIoConnection
+      : kNoIoConnectionsEstablished);
+  }
 }
 EipStatus AfterAssemblyDataReceived(CipInstance *instance) {
   if (instance->instance_number == ltr_output_instance) {

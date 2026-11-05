@@ -40,6 +40,17 @@ The PLC is the scanner; the PC runs the OpENer adapter. Defaults, from the PLC's
 | Separate status connection | Disabled |
 | RPI | 20 ms initial setting; validate on the intended controller/network |
 
+Studio 5000 reads the online module identity from the adapter. The development
+build reports the product name `LogixTagRelay Adapter`, product code `65001`, and
+unassigned Vendor ID `0`. Use `scripts/build-native.ps1 -VendorId <id> -ProductCode <code>`
+with your ODVA-assigned ID and your product code for a branded build.
+
+The Identity Object reports whether a scanner owns the adapter and whether the
+I/O connection is running, idle, disconnected, or timed out. The controller's
+connection state is available separately on the Connection tab and through
+`GSV MODULE EntryStatus`. Status Input and Status Output in the module settings
+refer to a second cyclic connection.
+
 Each image includes a 24-byte application header. Both directions use identical field
 offsets and include every selected leaf. The native bridge caps each image at 480
 bytes, including the header. Reduce the implicit selection if it exceeds that limit;
