@@ -51,8 +51,8 @@ OpENer DLL also requires Visual Studio 2022 C++ tools, Windows SDK and CMake. Us
 dotnet run --project tools/LogixTagRelay.Browser -c Release
 ```
 
-Open <http://127.0.0.1:5274> and load an L5X export. Select tags, entire UDTs or array
-elements and choose their access mode:
+Open <http://127.0.0.1:5274>, add a contract and load an L5X export. Select tags,
+entire UDTs or array elements and choose their access mode.
 
 | Mode | PLC updates | App edits |
 | --- | --- | --- |
@@ -65,11 +65,12 @@ permissions and makes its writable members bidirectional. Supported types includ
 BOOL, SINT, INT, DINT, LINT, REAL, USINT, UINT, UDINT, ULINT, DT, TIME, LREAL, TIME32, LTIME, LDT,
 standard/custom STRING, nested UDTs, TIMER/COUNTER members and tag arrays.
 
-The download includes ordinary C# source and `logixrelay.json`. Implicit generation
-also includes the synchronization routine, SINT merge AOI and module settings. A
-matching native module template can supply the module import.
+**Download interface** packages ordinary C# source and `logixrelay.json` for each
+saved contract in one ZIP. The implicit contract also includes the synchronization
+routine, SINT merge AOI and module settings. A matching native module template can
+supply the module import. **Export project** saves the full browser project for editing.
 
-Saved `.ltrx.json` projects retain catalog inputs, selections and settings. The
+Each `.ltrx.json` retains one contract's catalog inputs, selections and settings. The
 `LogixTagRelay.Build` package generates C# during compilation, with `LTR001` diagnostics.
 Generated IntelliSense descriptions use exported tag comments and UDT member defaults.
 See [contract projects](docs/CONTRACT_PROJECTS.md) and `samples/ContractProjectDemo`.

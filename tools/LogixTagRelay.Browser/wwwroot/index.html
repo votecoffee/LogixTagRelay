@@ -1,17 +1,180 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LogixTagRelay · Tag browser</title><link rel="stylesheet" href="style.css"></head>
-<body><header><span class="mark">L↔</span><div><p class="eyebrow">ENGINEERING WORKSPACE</p><h1>LogixTagRelay</h1></div><span class="badge">0.8 PREVIEW</span></header>
-<main><section class="intro"><h2>Build a typed PLC interface.</h2><p>Browse an L5X export or read an online catalog. Select tags or entire UDTs, choose read/write modes, and generate your C# model and PLC mapping.</p></section>
-<section class="card"><h3>Contract project</h3><label>Project name <input id="project-name" value="Contract"></label><label>C# namespace <input id="project-namespace" value="LogixTagRelay.Generated"></label><label>C# class <input id="project-class" value="GeneratedTags"></label><input id="project-file" type="file" accept=".json"><button id="project-open" class="secondary">Open project</button><button id="project-save" class="secondary">Save project</button><small>Projects retain the catalog, selections and settings. Add the saved .ltrx.json to a contract class library with LogixTagRelay.Build for build-time generation.</small></section>
-<section class="sources"><div class="card"><h3>01 / Open an export</h3><p>L5X includes UDT definitions and external access permissions.</p><input id="file" type="file" accept=".l5x,.L5X"><button id="load">Load L5X catalog</button></div><div class="card"><h3>Or browse a controller</h3><label>PLC address <input id="gateway" value="192.168.1.10"></label><label>CIP route <input id="route" value="1,0"></label><button id="online" class="secondary">Read online catalog</button><small>Read-only discovery. Online write permissions are unverified; use an L5X export to generate writable mappings.</small></div></section>
-<section class="card module-template"><h3>Optional / Native module template</h3><p>Use a native Data – SINT export with equal input/output sizes, no separate status connection, and configuration size zero.</p><input id="module-file" type="file" accept=".l5x,.L5X" aria-label="Module template file"><button id="load-module" class="secondary">Inspect module template</button><small id="module-status">A matching template adds a module L5X to the download. Import acceptance still requires Studio 5000.</small></section>
-<section class="card"><h3>Heartbeat and explicit update settings</h3><label>API heartbeat BOOL tag (optional) <input id="heartbeat-tag" placeholder="ApiAlive"></label><label>Heartbeat toggle interval (ms) <input id="heartbeat-interval-ms" type="number" min="1" value="5000"></label><small>Explicit BOOL writes toggle every five seconds by default, including for an implicit-only contract. Keep this tag outside data selections.</small><p>Leave the trigger empty for interval updates. A DINT change to a nonzero value triggers one group. Reply tags are optional DINTs from the loaded catalog.</p>
-<label>Update interval (ms) <input id="interval-ms" type="number" min="1" value="100"></label>
-<label>DINT trigger tag <input id="trigger-tag" placeholder="RequestSequence"></label>
-<label>Trigger poll interval (ms) <input id="trigger-poll-ms" type="number" min="1" value="20"></label>
-<label>Handled trigger mirror tag <input id="handled-tag" placeholder="HandledSequence"></label>
-<label>Signed ACK/NACK response tag <input id="response-tag" placeholder="ResponseSequence"></label>
-<small>Hold each request until handled. Use positive counters and roll over to 1 before the chosen threshold. Zero is idle; positive response is ACK, negative is NACK.</small></section>
-<div id="status" role="status">Choose a catalog to begin. The browser never writes PLC values.</div>
-<section class="workspace"><div class="browser"><div class="toolbar"><h3>02 / Select tags</h3><input id="filter" placeholder="Filter by tag path or type" aria-label="Filter tags"></div><div id="catalog" class="catalog"><div class="empty">Your controller tags and UDT members will appear here.</div></div></div><aside class="card"><h3>03 / Generate</h3><p id="summary">0 selections</p><label>Transport files <select id="mode"><option value="implicit">Explicit + implicit</option><option value="explicit">Explicit only</option></select></label><label>Generic module name <input id="module" value="LogixRelay" maxlength="16"></label><label>Studio 5000 revision <input id="revision" placeholder="e.g. 35.03" maxlength="5"></label><label>I/O image bytes (0 = minimum) <input id="assembly-bytes" type="number" min="0" max="480" step="4" value="480"></label><label>PC adapter IPv4 address <input id="pc-address" value="192.168.1.200"></label><label>Input assembly <input id="input-assembly" type="number" value="101" min="1" max="65535"></label><label>Output assembly <input id="output-assembly" type="number" value="100" min="1" max="65535"></label><label>Configuration assembly <input id="config-assembly" type="number" value="102" min="1" max="65535"></label><label>RPI (ms) <input id="rpi-ms" type="number" value="20" min="1"></label><p>Both directions carry the complete class at the same offsets. Local edits to writable fields overlay the received PLC image.</p><button id="generate" disabled>Download interface bundle</button><small>Includes C# and JSON. Implicit adds a routine and module settings; a matching native template also adds module L5X. Studio 5000 acceptance is still required.</small></aside></section>
-<footer>Little-endian wire format · Explicit field offsets · OpENer adapter · Member-level access</footer></main><script src="app.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LogixTagRelay · Contracts</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand-mark" aria-hidden="true">L↔</div>
+    <div>
+      <span class="eyebrow">ENGINEERING WORKSPACE</span>
+      <h1>LogixTagRelay</h1>
+    </div>
+  </header>
+  <main>
+    <div id="status" class="status" role="status" aria-live="polite" aria-atomic="true">Opening contract workspace…</div>
+    <section id="home" aria-labelledby="home-title">
+      <fieldset id="home-actions" disabled>
+        <div class="page-heading">
+          <div>
+            <h2 id="home-title" tabindex="-1">Contracts</h2>
+            <p>Manage the explicit and implicit contracts in this project.</p>
+          </div>
+          <div class="actions">
+            <button id="project-open" type="button" class="secondary">Open or import</button>
+            <button id="project-export" type="button" class="secondary">Export project</button>
+            <button id="interface-download" type="button">Download interface</button>
+          </div>
+          <input id="project-file" type="file" accept=".json" hidden>
+        </div>
+        <section id="linked-import" class="card" hidden aria-labelledby="linked-title">
+          <h3 id="linked-title">Choose the project's catalog export</h3>
+          <p id="linked-description"></p>
+          <label>Referenced L5X export <input id="linked-file" type="file" accept=".l5x"></label>
+          <div class="actions">
+            <button id="linked-open" type="button">Import with L5X</button>
+            <button id="linked-cancel" type="button" class="secondary">Cancel import</button>
+          </div>
+        </section>
+        <section class="card contract-group" aria-labelledby="explicit-title">
+          <div class="group-heading">
+            <div>
+              <span class="eyebrow">ADDRESSED TAGS</span>
+              <h3 id="explicit-title">Explicit contracts <span id="explicit-count" class="count"></span></h3>
+              <p>Read and write selected tags by name. Create a contract for each group you want to manage separately.</p>
+            </div>
+            <button id="add-explicit" type="button">Add explicit contract</button>
+          </div>
+          <div id="explicit-contracts" class="contract-list"></div>
+        </section>
+        <section class="card contract-group" aria-labelledby="implicit-title">
+          <div class="group-heading">
+            <div>
+              <span class="eyebrow">CYCLIC I/O</span>
+              <h3 id="implicit-title">Implicit contract <span id="implicit-count" class="count"></span></h3>
+              <p>Map tags and UDT members into one cyclic SINT image for the Generic Ethernet Module.</p>
+            </div>
+            <button id="add-implicit" type="button">Create implicit contract</button>
+          </div>
+          <div id="implicit-contracts" class="contract-list"></div>
+        </section>
+        <p class="workspace-note">Contracts are saved in this browser. Export project saves all contracts in one editable file. Download interface generates one ZIP with the C# and PLC files for the whole project.</p>
+      </fieldset>
+    </section>
+
+    <section id="editor" hidden aria-labelledby="editor-title">
+      <fieldset id="editor-actions">
+        <div class="page-heading">
+          <div>
+            <button id="back" type="button" class="text-button">← Back to contracts</button>
+            <h2 id="editor-title" tabindex="-1"></h2>
+            <p id="editor-description"></p>
+          </div>
+          <button id="project-save" type="button">Save contract</button>
+        </div>
+        <section class="card" aria-labelledby="details-title">
+          <h3 id="details-title">1. Name the contract</h3>
+          <div class="form-grid">
+            <label>Contract name <input id="project-name"></label>
+            <label>C# namespace <input id="project-namespace"></label>
+            <label>C# class <input id="project-class"></label>
+          </div>
+        </section>
+        <section class="card" aria-labelledby="catalog-title">
+          <h3 id="catalog-title">2. Load the PLC tag catalog</h3>
+          <div class="form-grid">
+            <label>PLC address <input id="gateway" placeholder="192.168.1.10"></label>
+            <label>CIP route <input id="route" placeholder="1,0"></label>
+            <label>Catalog source
+              <select id="catalog-source">
+                <option value="file">Studio 5000 L5X export</option>
+                <option value="online">Online controller</option>
+              </select>
+            </label>
+          </div>
+          <div id="file-source">
+            <p>L5X exports include tag types, UDT definitions, and external access permissions.</p>
+            <label>PLC tag export <input id="file" type="file" accept=".l5x"></label>
+            <button id="load" type="button" class="secondary">Load L5X catalog</button>
+          </div>
+          <div id="online-source" hidden>
+            <p>Discovery reads the controller catalog. Use an L5X export to obtain writable mappings.</p>
+            <button id="online" type="button" class="secondary">Read online catalog</button>
+          </div>
+          <p id="catalog-info" class="feedback">No catalog loaded.</p>
+        </section>
+        <section class="card tag-card" aria-labelledby="tags-title">
+          <div class="group-heading">
+            <div>
+              <h3 id="tags-title">3. Select tags and directions</h3>
+              <p><span id="summary">0 selections</span><span id="selection-size" hidden></span></p>
+            </div>
+            <input id="filter" type="search" placeholder="Filter by tag path or type" aria-label="Filter tags">
+          </div>
+          <div id="catalog" class="catalog"></div>
+        </section>
+        <section id="explicit-settings" class="card" hidden aria-labelledby="explicit-settings-title">
+          <h3 id="explicit-settings-title">4. Configure explicit updates</h3>
+          <p>Use interval updates or trigger the group when a DINT tag changes to a nonzero value. Explicit updates address tags by name.</p>
+          <div class="form-grid">
+            <label>Update interval (ms) <input id="interval-ms" type="number" min="1"></label>
+            <label>DINT trigger tag (optional) <input id="trigger-tag" placeholder="RequestSequence"></label>
+          </div>
+          <div id="trigger-settings" class="form-grid" hidden>
+            <label>Trigger poll interval (ms) <input id="trigger-poll-ms" type="number" min="1"></label>
+            <label>Handled trigger mirror tag <input id="handled-tag" placeholder="HandledSequence"></label>
+            <label>Signed ACK/NACK response tag <input id="response-tag" placeholder="ResponseSequence"></label>
+          </div>
+          <small id="trigger-help" hidden>Hold each request until handled. Zero is idle. Positive response is ACK and negative response is NACK.</small>
+        </section>
+        <section id="implicit-settings" class="card" hidden aria-labelledby="implicit-settings-title">
+          <h3 id="implicit-settings-title">4. Configure the cyclic I/O module</h3>
+          <p>Selected fields occupy the same offsets in both directions. The image includes the relay header.</p>
+          <div class="form-grid">
+            <label>Generic module name <input id="module" maxlength="16"></label>
+            <label>PC adapter IPv4 address <input id="pc-address"></label>
+            <label>Studio 5000 revision <input id="revision" placeholder="35.03" maxlength="5"></label>
+            <label>I/O image bytes override <input id="assembly-bytes" type="number" max="480" step="4" aria-describedby="image-size"></label>
+            <label>RPI (ms) <input id="rpi-ms" type="number" min="1"></label>
+          </div>
+          <p id="image-size" class="feedback" role="status"></p>
+          <details id="assembly-settings">
+            <summary>Assembly instances</summary>
+            <div class="form-grid">
+              <label>Input assembly (PC → PLC) <input id="input-assembly" type="number" min="1" max="65535"></label>
+              <label>Output assembly (PLC → PC) <input id="output-assembly" type="number" min="1" max="65535"></label>
+              <label>Configuration assembly <input id="config-assembly" type="number" min="1" max="65535"></label>
+            </div>
+          </details>
+          <details id="module-template">
+            <summary>Optional · Existing Generic Ethernet Module export</summary>
+            <p>Attach a Studio 5000 export of a Data – SINT Generic Ethernet Module to include a module import in the download. Use the tag catalog above to select UDT members for the SINT mapping.</p>
+            <label>Module L5X export <input id="module-file" type="file" accept=".l5x"></label>
+            <div class="actions">
+              <button id="load-module" type="button" class="secondary">Inspect and attach module</button>
+              <button id="remove-module" type="button" class="secondary" hidden>Remove attachment</button>
+            </div>
+            <p id="module-status" class="feedback">The interface download includes a routine and module setup instructions.</p>
+          </details>
+        </section>
+        <details id="heartbeat-settings" class="card">
+          <summary>Optional · API heartbeat</summary>
+          <p>Each contract can toggle its own writable BOOL using explicit messaging. The default interval is five seconds. Keep the heartbeat tag outside the data selections and use a different tag for each contract on the same PLC.</p>
+          <div class="form-grid">
+            <label>Heartbeat BOOL tag <input id="heartbeat-tag" placeholder="ApiAlive"></label>
+            <label>Toggle interval (ms) <input id="heartbeat-interval-ms" type="number" min="1"></label>
+          </div>
+        </details>
+        <div class="actions editor-footer">
+          <button id="back-bottom" type="button" class="secondary">← Back to contracts</button>
+          <button id="project-save-bottom" type="button">Save contract</button>
+        </div>
+      </fieldset>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

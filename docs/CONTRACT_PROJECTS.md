@@ -1,10 +1,26 @@
 # Contract projects
 
-Save/open `.ltrx.json` projects in the browser to retain catalog, selections, generated
-C# identity, update settings and assembly instances. Each download also contains the
-project. Browser projects embed their catalog; CLI projects may instead reference a
-relative `sourceL5x` with an optional `sourceSha256` pin. Refresh the export explicitly
-when controller definitions change. Native module templates are selected separately.
+Use the browser's contract list to add, edit, and delete explicit contracts and
+one implicit contract. **Save contract** validates the contract and stores it in the
+current browser. **Export project** downloads one `.workspace.json` containing every
+saved contract and its module attachment, if present. **Download interface** creates
+one ZIP with that workspace file and a folder for each contract. Each folder includes
+its `.ltrx.json`, generated C# and configuration. The implicit folder also includes
+the PLC artifacts.
+
+**Open or import** opens a `.workspace.json` as the current project, with confirmation
+before replacing existing entries. It can also import a single `.ltrx.json` into the
+current project. For a contract that references `sourceL5x`, choose the companion
+L5X export when prompted. The browser verifies an optional `sourceSha256` pin and
+stores an embedded catalog. Refresh the catalog when controller definitions change.
+
+In the implicit editor, the optional Generic Ethernet Module export supplies the
+native module definition for the generated module import. The selected catalog
+tags and UDT members determine the minimum SINT image size in each direction.
+Leave the override blank to use that size automatically, or enter a larger aligned
+size up to 480 bytes. An attached module template is resized to the generated image.
+Explicit contracts address tags by name. Each contract may have a separate optional
+BOOL heartbeat that uses explicit messaging and defaults to five seconds.
 
 Use a dedicated contract class library with these package references (local preview
 feed until publication):
