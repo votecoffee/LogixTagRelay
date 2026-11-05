@@ -196,6 +196,7 @@ dotnet run --project samples/TypesAndEventsDemo -c Release -- --implicit
 - [Step-by-step .NET consumer manual](docs/CONSUMER_MANUAL.md)
 - [Synchronization and explicit UDT reads](docs/SYNCHRONIZATION.md)
 - [PLC module setup and imports](docs/PLC_SETUP.md)
+- [Writing code for simulated I/O](docs/SIMULATED_IO_MANUAL.md)
 - [Emulator and JavaScript scripts](docs/EMULATION.md)
 - [Wire format and architecture](docs/ARCHITECTURE.md)
 - [SINT merge AOI](plc/README.md)

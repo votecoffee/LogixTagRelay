@@ -1,5 +1,7 @@
 # Contract memory emulator
 
+For a worked JavaScript and C# example, see the [simulated I/O manual](SIMULATED_IO_MANUAL.md).
+
 The emulator supplies PLC-side tag memory, not PLC program execution. It runs as a
 separate loopback process so a consuming .NET app, manual GUI edits and scripts share
 the same values. It requires no PLC, Studio 5000 or native OpENer DLL.

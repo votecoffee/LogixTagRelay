@@ -147,7 +147,7 @@ Console.WriteLine($"App to PLC: {memory.Read("DemoCount")}");
 dotnet run --project .\RelayApp
 ```
 
-Expect `PLC to app: 41` and `App to PLC: 42`. To try PLC-side changes from a GUI or script, load the same `logixrelay.json` in the [contract memory emulator](EMULATION.md). It supports both explicit and implicit contracts.
+Expect `PLC to app: 41` and `App to PLC: 42`. To try PLC-side changes from a GUI or script, load the same `logixrelay.json` in the emulator. The [simulated I/O manual](SIMULATED_IO_MANUAL.md) walks through JavaScript responses and the C# client for both explicit and implicit contracts.
 
 ## 5. Run the explicit contract against the PLC
 
