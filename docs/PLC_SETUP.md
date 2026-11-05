@@ -55,8 +55,8 @@ Each image includes a 24-byte application header. Both directions use identical 
 offsets and include every selected leaf. The native bridge caps each image at 480
 bytes, including the header. Reduce the implicit selection if it exceeds that limit;
 a host supports one implicit contract alongside multiple explicit groups. Explicit-only
-contracts do not have that assembly limit. Enter 0 in the browser to
-choose the minimum aligned size, or select a fixed aligned image length.
+contracts do not have that assembly limit. Leave the browser's image size override
+blank to use the minimum aligned size, or enter a larger aligned image length.
 
 A module template must already have the matching assemblies, configuration size zero,
 equal I/O lengths and no separate status connection. Generation resizes known sizes

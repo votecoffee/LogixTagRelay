@@ -1,5 +1,8 @@
 # Contract projects
 
+For a complete walkthrough from the ZIP to a working .NET app, see the
+[consumer manual](CONSUMER_MANUAL.md).
+
 Use the browser's contract list to add, edit, and delete explicit contracts and
 one implicit contract. **Save contract** validates the contract and stores it in the
 current browser. **Export project** downloads one `.workspace.json` containing every

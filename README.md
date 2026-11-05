@@ -193,6 +193,7 @@ dotnet run --project samples/TypesAndEventsDemo -c Release -- --implicit
 
 ## Documentation
 
+- [Step-by-step .NET consumer manual](docs/CONSUMER_MANUAL.md)
 - [Synchronization and explicit UDT reads](docs/SYNCHRONIZATION.md)
 - [PLC module setup and imports](docs/PLC_SETUP.md)
 - [Emulator and JavaScript scripts](docs/EMULATION.md)
