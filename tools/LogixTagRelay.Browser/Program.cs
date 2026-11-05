@@ -101,24 +101,32 @@ app.MapPost("/api/workspace", (WorkspaceRequest request) => Results.Json(Generat
     configuration = contract.Bundle.Configuration,
     template = contract.Template is { } template ? new { template.Base64, template.Filename, info = contract.TemplateInfo } : null
 })));
-app.MapPost("/api/workspace/generate", (WorkspaceRequest request) =>
+app.MapPost("/api/workspace/generate", async (WorkspaceRequest request, CancellationToken cancellationToken) =>
 {
-    var contracts = GenerateWorkspace(request);
+    var contracts = GenerateWorkspace(request, scopedMemberTypes: true);
+    var duplicateType = contracts.GroupBy(c => $"{c.Project.Namespace}.{c.Project.ClassName}", StringComparer.Ordinal)
+        .FirstOrDefault(group => group.Count() > 1);
+    if (duplicateType is not null)
+        throw new ArgumentException($"More than one contract generates {duplicateType.Key}. Edit the contracts to give each a distinct C# namespace or class name.");
     using var bytes = new MemoryStream();
     using (var zip = new ZipArchive(bytes, ZipArchiveMode.Create, true))
     {
         WriteEntry(zip, "LogixTagRelay.workspace.json", JsonSerializer.Serialize(request, SyncConfiguration.Json) + "\n");
+        var models = new Dictionary<string, string>();
         for (int index = 0; index < contracts.Count; index++)
         {
             var contract = contracts[index];
-            AddContract(zip, $"contracts/{index + 1:D2}-{contract.Project.ClassName}/", contract.Project, contract.Bundle, contract.Template?.Base64);
+            string folder = $"contracts/{index + 1:D2}-{contract.Project.ClassName}/";
+            AddContract(zip, folder, contract.Project, contract.Bundle, contract.Template?.Base64, "plc/");
+            models.Add(folder + "GeneratedTags.cs", contract.Bundle.ModelCs);
         }
+        await InterfaceBuild.AddToArchiveAsync(zip, models, cancellationToken);
     }
     return Results.File(bytes.ToArray(), "application/zip", "LogixTagRelay.Interface.zip");
 });
 app.Run();
 
-static List<WorkspaceContract> GenerateWorkspace(WorkspaceRequest request)
+static List<WorkspaceContract> GenerateWorkspace(WorkspaceRequest request, bool scopedMemberTypes = false)
 {
     if (request.WorkspaceVersion != 1 || request.Contracts is not { Count: > 0 })
         throw new ArgumentException("A version 1 workspace with at least one contract is required.");
@@ -144,25 +152,26 @@ static List<WorkspaceContract> GenerateWorkspace(WorkspaceRequest request)
             if (info.Errors.Count > 0)
                 throw new ArgumentException($"{entry.Project.Name}: " + string.Join(" ", info.Errors));
         }
-        return new WorkspaceContract(entry.Project, entry.Project.Generate(), entry.Template, info);
+        return new WorkspaceContract(entry.Project, entry.Project.Generate(projectDirectory: null, scopedMemberTypes), entry.Template, info);
     }).ToList();
 }
 
-static void AddContract(ZipArchive zip, string folder, ContractProject project, GeneratedBundle bundle, string? templateBase64)
+static void AddContract(ZipArchive zip, string folder, ContractProject project, GeneratedBundle bundle, string? templateBase64, string? plcFolder = null)
 {
     void Add(string name, string content) => WriteEntry(zip, folder + name, content);
     Add("contract.ltrx.json", project.ToJson());
     Add("GeneratedTags.cs", bundle.ModelCs);
     Add("logixrelay.json", bundle.Configuration.ToJson());
     if (!project.IncludeImplicit) return;
-    Add("RelayRoutine.L5X", bundle.RoutineL5x);
-    Add("ModuleSetup.txt", bundle.ModuleInstructions);
-    Add("LTR_SintMerge.L5X", bundle.MergeAoiL5x);
-    Add("LTR_SintMerge.st", bundle.MergeStructuredText);
+    void AddPlc(string name, string content) => WriteEntry(zip, (plcFolder ?? folder) + name, content);
+    AddPlc("RelayRoutine.L5X", bundle.RoutineL5x);
+    AddPlc("ModuleSetup.txt", bundle.ModuleInstructions);
+    AddPlc("LTR_SintMerge.L5X", bundle.MergeAoiL5x);
+    AddPlc("LTR_SintMerge.st", bundle.MergeStructuredText);
     if (templateBase64 is null) return;
     var module = ModuleTemplate.Generate(Convert.FromBase64String(templateBase64), bundle.Configuration, project.ModuleName, project.PcAddress);
-    Add("GenericEthernetModule.L5X", module.Xml);
-    Add("ModuleProvenance.txt", $"Native template SHA-256: {module.SourceSha256}\nGenerated as an offline review copy. Studio 5000 import/verify/re-export acceptance is still required.\n");
+    AddPlc("GenericEthernetModule.L5X", module.Xml);
+    AddPlc("ModuleProvenance.txt", $"Native template SHA-256: {module.SourceSha256}\nGenerated as an offline review copy. Studio 5000 import/verify/re-export acceptance is still required.\n");
 }
 
 static void WriteEntry(ZipArchive zip, string name, string content)

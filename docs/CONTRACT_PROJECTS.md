@@ -7,9 +7,10 @@ Use the browser's contract list to add, edit, and delete explicit contracts and
 one implicit contract. **Save contract** validates the contract and stores it in the
 current browser. **Export project** downloads one `.workspace.json` containing every
 saved contract and its module attachment, if present. **Download interface** creates
-one ZIP with that workspace file and a folder for each contract. Each folder includes
-its `.ltrx.json`, generated C# and configuration. The implicit folder also includes
-the PLC artifacts.
+one ZIP with that workspace file, a compiled DLL and IntelliSense XML in `dist/`,
+and the editable `.ltrx.json`, generated C# and configuration under `contracts/`.
+The PLC artifacts for an implicit contract are in `plc/`. `Build Contracts.cmd`
+recompiles the included C# using the core package from your configured NuGet source.
 
 **Open or import** opens a `.workspace.json` as the current project, with confirmation
 before replacing existing entries. It can also import a single `.ltrx.json` into the
@@ -25,8 +26,8 @@ size up to 480 bytes. An attached module template is resized to the generated im
 Explicit contracts address tags by name. Each contract may have a separate optional
 BOOL heartbeat that uses explicit messaging and defaults to five seconds.
 
-Use a dedicated contract class library with these package references (local preview
-feed until publication):
+To regenerate from `.ltrx.json` in your own build, use a dedicated class library
+with these package references. [Local preview feed setup](LOCAL_NUGET_FEED.md)
 
 ```xml
 <ItemGroup>

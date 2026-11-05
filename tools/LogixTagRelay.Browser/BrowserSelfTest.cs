@@ -96,13 +96,25 @@ sealed class BrowserSelfTest(IServer server, IHostApplicationLifetime lifetime) 
             var template = new WorkspaceModuleTemplate("Template.L5X", Convert.ToBase64String(Encoding.UTF8.GetBytes(moduleSource)));
             string Workspace(params ContractProject[] projects) => JsonSerializer.Serialize(new WorkspaceRequest(1, projects.Select(p =>
                 new WorkspaceContractRequest(JsonSerializer.SerializeToElement(p, SyncConfiguration.Json), p.IncludeImplicit ? template : null)).ToList()), SyncConfiguration.Json);
-            string workspace = Workspace(explicitProject, explicitProject with { Name = "Second explicit" }, project);
+            string workspace = Workspace(explicitProject, explicitProject with { Name = "Second explicit", ClassName = "SecondTags" }, project);
             using var workspaceDownload = await Post("api/workspace/generate", workspace);
-            workspaceDownload.EnsureSuccessStatusCode();
+            if (!workspaceDownload.IsSuccessStatusCode)
+                throw new Exception($"Workspace download failed: {await workspaceDownload.Content.ReadAsStringAsync(ct)}");
             using var archive = new ZipArchive(new MemoryStream(await workspaceDownload.Content.ReadAsByteArrayAsync(ct)));
             Check(archive.Entries.Count(e => e.Name == "GeneratedTags.cs") == 3 && archive.Entries.Count(e => e.Name == "logixrelay.json") == 3 &&
-                archive.Entries.Count(e => e.Name == "RelayRoutine.L5X") == 1 && archive.GetEntry("contracts/03-BrowserTags/GenericEthernetModule.L5X") is not null,
+                archive.GetEntry("plc/RelayRoutine.L5X") is not null && archive.GetEntry("plc/GenericEthernetModule.L5X") is not null,
                 "one interface archive contains every contract, the PLC routine and the attached module import");
+            using var compiledBytes = new MemoryStream();
+            using (var dll = archive.GetEntry("dist/LogixTagRelay.Contracts.dll")!.Open()) await dll.CopyToAsync(compiledBytes, ct);
+            compiledBytes.Position = 0;
+            var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromStream(compiledBytes);
+            var compiledType = assembly.GetType("Browser.Contracts.BrowserTags")!;
+            var compiledConfig = (SyncConfiguration)compiledType.GetMethod("CreateConfiguration")!.Invoke(null, null)!;
+            Check(Activator.CreateInstance(compiledType) is IPlcModel && compiledConfig.SchemaHash == config.SchemaHash &&
+                assembly.GetType("Browser.Contracts.ExplicitTags") is not null && assembly.GetType("Browser.Contracts.SecondTags") is not null &&
+                archive.GetEntry("dist/LogixTagRelay.Contracts.xml") is not null && archive.GetEntry("Build Contracts.cmd") is not null &&
+                archive.GetEntry("LogixTagRelay.Contracts.csproj") is not null && archive.Entries.All(e => !e.Name.EndsWith(".nupkg")),
+                "compiled contract DLL loads with all types, matching configuration and rebuild files");
             using var workspaceFile = new StreamReader(archive.GetEntry("LogixTagRelay.workspace.json")!.Open());
             using var reopened = await Post("api/workspace", await workspaceFile.ReadToEndAsync(ct));
             reopened.EnsureSuccessStatusCode();
@@ -111,6 +123,9 @@ sealed class BrowserSelfTest(IServer server, IHostApplicationLifetime lifetime) 
                 "the project in the archive reopens all contracts and restores the module attachment");
             using var secondImplicit = await Post("api/workspace/generate", Workspace(project, project));
             Check(secondImplicit.StatusCode == HttpStatusCode.BadRequest, "a workspace rejects a second implicit contract");
+            using var duplicateTypes = await Post("api/workspace/generate", Workspace(explicitProject, explicitProject));
+            Check(duplicateTypes.StatusCode == HttpStatusCode.BadRequest && (await duplicateTypes.Content.ReadAsStringAsync(ct)).Contains("Browser.Contracts.ExplicitTags"),
+                "the interface reports duplicate fully qualified contract types");
             using var bad = await Post("api/project", (project with { Namespace = "namespace" }).ToJson());
             Check(bad.StatusCode == HttpStatusCode.BadRequest, "invalid C# identity is a reviewable validation error");
             using var duplicate = await Post("api/project", project.ToJson().Replace("\"version\": 1", "\"version\": 1, \"version\": 1"));

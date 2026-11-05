@@ -76,7 +76,7 @@ dotnet new console --name MotionClient --framework net8.0 --no-restore
 dotnet add .\MotionClient\MotionClient.csproj package LogixTagRelay.Emulation --version 0.8.1-preview.1 --no-restore
 Copy-Item -LiteralPath (Join-Path $relayRepo 'samples/EmulationDemo/GeneratedTags.g.cs') `
     -Destination .\MotionClient
-dotnet restore .\MotionClient\MotionClient.csproj --configfile .\NuGet.Config
+dotnet restore .\MotionClient\MotionClient.csproj
 ```
 
 Replace `MotionClient/Program.cs` with the following. The generated class supplies its matching configuration. The client uses the loopback emulator address by default.

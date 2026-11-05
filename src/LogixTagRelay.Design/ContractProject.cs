@@ -49,7 +49,9 @@ public sealed record ContractProject(string Name, List<TagSelection> Selections,
     }
     /// <summary>Resolves and optionally hash-checks the catalog source, validates project identity and generates matching artifacts.</summary>
     /// <param name="projectDirectory">Base directory for resolving a relative source L5X path.</param>
-    public GeneratedBundle Generate(string? projectDirectory = null)
+    public GeneratedBundle Generate(string? projectDirectory = null) => Generate(projectDirectory, scopedMemberTypes: false);
+
+    internal GeneratedBundle Generate(string? projectDirectory, bool scopedMemberTypes)
     {
         if (Version != 1 || Selections is null || Selections.Count == 0 || string.IsNullOrWhiteSpace(Name)) throw new FormatException("A version 1 named contract project with selections is required.");
         bool Identifier(string value) => Regex.IsMatch(value, "^[A-Za-z_][A-Za-z0-9_]*$") && !Keywords.Contains(value);
@@ -64,7 +66,8 @@ public sealed record ContractProject(string Name, List<TagSelection> Selections,
                 throw new FormatException("L5X source SHA-256 differs from the pinned contract project.");
             using var input = new MemoryStream(source); catalog = L5xCatalog.Read(input);
         }
-        var bundle = Generator.Generate(catalog!, Selections, IncludeImplicit, ModuleName, SoftwareRevision, AssemblyBytes, Explicit, Implicit, Heartbeat);
+        var bundle = Generator.Generate(catalog!, Selections, IncludeImplicit, ModuleName, SoftwareRevision, AssemblyBytes, Explicit, Implicit, Heartbeat,
+            scopedMemberTypes ? ClassName : null);
         var config = bundle.Configuration with { Gateway = Gateway, Route = Route, Implicit = IncludeImplicit ? Implicit ?? new() : null };
         config.Validate();
         // Regenerate module references using the final assembly choices. Payload layout stays unchanged.

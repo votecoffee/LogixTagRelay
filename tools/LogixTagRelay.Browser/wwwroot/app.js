@@ -496,10 +496,10 @@ $('project-export').onclick = () => action('Preparing project export…', () => 
   download(new Blob([json], { type: 'application/json' }), 'LogixTagRelay.workspace.json');
   return `Project exported with ${entries.length} contract(s). Download started.`;
 });
-$('interface-download').onclick = () => action('Generating interface for all contracts…', async () => {
+$('interface-download').onclick = () => action('Generating and compiling the interface for all contracts…', async () => {
   const response = await post('/api/workspace/generate', workspace());
   download(await response.blob(), 'LogixTagRelay.Interface.zip');
-  return `Interface generated for ${entries.length} contract(s). Download started.`;
+  return `Interface compiled for ${entries.length} contract(s). Download started.`;
 });
 $('project-open').onclick = () => {
   cancelLinkedImport();

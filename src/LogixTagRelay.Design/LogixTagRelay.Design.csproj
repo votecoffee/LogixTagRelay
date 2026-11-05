@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><PackageId>LogixTagRelay.Design</PackageId></PropertyGroup>
   <ItemGroup><ProjectReference Include="../LogixTagRelay/LogixTagRelay.csproj" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="LogixTagRelay.Browser" /></ItemGroup>
   <ItemGroup><EmbeddedResource Include="../../plc/LTR_SintMerge.st" LogicalName="LogixTagRelay.Design.LTR_SintMerge.st" /></ItemGroup>
 </Project>

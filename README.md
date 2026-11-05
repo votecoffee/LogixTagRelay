@@ -65,10 +65,10 @@ permissions and makes its writable members bidirectional. Supported types includ
 BOOL, SINT, INT, DINT, LINT, REAL, USINT, UINT, UDINT, ULINT, DT, TIME, LREAL, TIME32, LTIME, LDT,
 standard/custom STRING, nested UDTs, TIMER/COUNTER members and tag arrays.
 
-**Download interface** packages ordinary C# source and `logixrelay.json` for each
-saved contract in one ZIP. The implicit contract also includes the synchronization
-routine, SINT merge AOI and module settings. A matching native module template can
-supply the module import. **Export project** saves the full browser project for editing.
+**Download interface** compiles the saved contracts and packages the DLL in `dist/`,
+the editable definitions, generated C# and configuration in `contracts/`, and any PLC
+imports in `plc/`. Run **Build Contracts.cmd** to recompile the included C#. **Export
+project** saves the full browser project for editing.
 
 Each `.ltrx.json` retains one contract's catalog inputs, selections and settings. The
 `LogixTagRelay.Build` package generates C# during compilation, with `LTR001` diagnostics.
@@ -194,6 +194,7 @@ dotnet run --project samples/TypesAndEventsDemo -c Release -- --implicit
 ## Documentation
 
 - [Step-by-step .NET consumer manual](docs/CONSUMER_MANUAL.md)
+- [Install packages from a local NuGet feed](docs/LOCAL_NUGET_FEED.md)
 - [Synchronization and explicit UDT reads](docs/SYNCHRONIZATION.md)
 - [PLC module setup and imports](docs/PLC_SETUP.md)
 - [Writing code for simulated I/O](docs/SIMULATED_IO_MANUAL.md)
