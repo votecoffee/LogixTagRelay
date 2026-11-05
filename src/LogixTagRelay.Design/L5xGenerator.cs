@@ -19,7 +19,8 @@ internal static class L5xGenerator
         var tags = new XElement("Tags");
         void Tag(string name, string type, int count = 0) => tags.Add(new XElement("Tag", new XAttribute("Name", name),
             new XAttribute("TagType", "Base"), new XAttribute("DataType", type), count == 0 ? null : new XAttribute("Dimensions", count),
-            type == SintMergeAoi.Name ? null : new XAttribute("Radix", "Decimal"), new XAttribute("Constant", "false"), new XAttribute("ExternalAccess", "Read/Write")));
+            type is "BOOL" or "SINT" or "DINT" or "LINT" ? new XAttribute("Radix", "Decimal") : null,
+            new XAttribute("Constant", "false"), new XAttribute("ExternalAccess", "Read/Write")));
         Tag(rx, "SINT", bytes); Tag(tx, "SINT", bytes);
         foreach (string a in new[] { current, saved, received }) Tag(a, "SINT", payload);
         foreach (string s in new[] { "Magic", "Version", "Schema", "Valid", "CommandSequence", "BaselineSequence", "AcceptedSequence", "Sequence", "Bool", "HeaderMagic", "HeaderVersion", "HeaderSchema", "HeaderValid", "ResyncNonce" }) Tag(p + "_" + s, "DINT");

@@ -37,6 +37,8 @@ Check(triggerBundle.Configuration.Explicit?.ResponseTag == "AckSequence", "contr
 Throws<ArgumentException>(() => Generator.Generate(catalog, selections, explicitOptions: new(TriggerTag: "Missing")), "unknown trigger catalog tag rejected");
 Throws<ArgumentException>(() => Generator.Generate(catalog, [new("Command", Direction.AppToPlc)], explicitOptions: new(TriggerTag: "Status.Speed")), "non-DINT trigger catalog tag rejected");
 Check(rungs.Contains("TON(LogixRelay_PS_Watchdog,1000,0)") && rungs.Contains("NEQ(LogixRelay_PS_CommandSequence,LogixRelay_PS_AcceptedSequence)"), "PLC watchdog requires fresh generations");
+var watchdog = xml.Descendants("Tag").Single(tag => tag.Attribute("Name")?.Value == "LogixRelay_PS_Watchdog");
+Check(watchdog.Attribute("DataType")?.Value == "TIMER" && watchdog.Attribute("Radix") is null, "PLC watchdog TIMER has no tag-level display radix");
 var shadow = new TagNode("Status", "Program:MainProgram.Status", "DINT", "Read/Write", []);
 Throws<ArgumentException>(() => Generator.Generate(catalog with { Tags = [.. catalog.Tags, shadow] }, selections), "program tag shadowing rejected");
 using (var hostile = new MemoryStream(Encoding.UTF8.GetBytes("<!DOCTYPE x [<!ENTITY x SYSTEM 'file:///test'>]><RSLogix5000Content/>")))

@@ -122,7 +122,7 @@
           <Tag Name="LogixRelay_PS_MergedValid" TagType="Base" DataType="BOOL" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
           <Tag Name="LogixRelay_PS_Publish" TagType="Base" DataType="BOOL" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
           <Tag Name="LogixRelay_PS_ResyncPending" TagType="Base" DataType="BOOL" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
-          <Tag Name="LogixRelay_PS_Watchdog" TagType="Base" DataType="TIMER" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
+          <Tag Name="LogixRelay_PS_Watchdog" TagType="Base" DataType="TIMER" Constant="false" ExternalAccess="Read/Write" />
           <Tag Name="LogixRelay_PS_Merge" TagType="Base" DataType="LTR_SintMerge" Constant="false" ExternalAccess="Read/Write" />
           <Tag Name="LogixRelay_PS_StringLen0" TagType="Base" DataType="DINT" Radix="Decimal" Constant="false" ExternalAccess="Read/Write" />
         </Tags>
